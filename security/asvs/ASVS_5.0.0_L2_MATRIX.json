@@ -1,0 +1,375 @@
+{
+  "schemaVersion": 1,
+  "standard": "OWASP ASVS",
+  "version": "5.0.0",
+  "target": "Level 2",
+  "statusLegend": {
+    "SOURCE_PASS": "source evidence satisfies the selected requirement; runtime may still be separately gated",
+    "PARTIAL": "meaningful control exists but required coverage/evidence is incomplete",
+    "BLOCKED": "known gap blocks production release",
+    "NOT_EXECUTED": "requires runtime/provider/staging validation not performed",
+    "RUNTIME_PASS": "runtime evidence executed and passed"
+  },
+  "controls": [
+    {
+      "id": "v5.0.0-1.2.4",
+      "title": "Parameterized database queries",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "Drizzle/postgres tagged-query server code",
+        "migrations/0001-0009"
+      ]
+    },
+    {
+      "id": "v5.0.0-2.4.1",
+      "title": "Anti-automation / abuse controls",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "apps/web/lib/rate-limit.server.ts",
+        "Cloudflare edge rate-limit runtime evidence pending"
+      ]
+    },
+    {
+      "id": "v5.0.0-3.4.1",
+      "title": "HSTS one year and L2 subdomains",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "apps/web/next.config.ts includes max-age=31536000; includeSubDomains",
+        "live Cloudflare/origin response not probed"
+      ]
+    },
+    {
+      "id": "v5.0.0-3.4.3",
+      "title": "Enforced CSP with trusted content sources",
+      "status": "BLOCKED",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "CSP is Report-Only and currently permits unsafe-inline; nonce/hash migration plus browser/staging validation required"
+      ]
+    },
+    {
+      "id": "v5.0.0-3.4.4",
+      "title": "X-Content-Type-Options nosniff",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "apps/web/next.config.ts"
+      ]
+    },
+    {
+      "id": "v5.0.0-3.4.5",
+      "title": "Referrer-Policy",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "apps/web/next.config.ts strict-origin-when-cross-origin"
+      ]
+    },
+    {
+      "id": "v5.0.0-3.4.6",
+      "title": "Frame embedding restrictions",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "frame-ancestors none exists only in report-only CSP; X-Frame-Options DENY is defense in depth"
+      ]
+    },
+    {
+      "id": "v5.0.0-3.5.1",
+      "title": "Cross-site request forgery protection",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "SameSite=Lax cookies and signed/session-bound capabilities exist; cross-origin mutation staging tests pending"
+      ]
+    },
+    {
+      "id": "v5.0.0-5.1.1",
+      "title": "Upload security documentation",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "docs/SECURITY_GOVERNANCE_SPEC_V1.md",
+        "security/THREAT_MODEL.md"
+      ]
+    },
+    {
+      "id": "v5.0.0-5.2.1",
+      "title": "Upload size limits",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "apps/web/lib/photo-upload.server.ts",
+        "apps/web/lib/photo-sanitize.ts"
+      ]
+    },
+    {
+      "id": "v5.0.0-5.2.2",
+      "title": "Upload type/content validation and image rewriting",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "apps/web/lib/photo-upload.server.ts",
+        "apps/web/lib/photo-sanitize.ts Sharp decode/re-encode"
+      ]
+    },
+    {
+      "id": "v5.0.0-5.2.6",
+      "title": "Image decompression/pixel bomb protection",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "Sharp limitInputPixels=40000000 and bounded output dimensions"
+      ]
+    },
+    {
+      "id": "v5.0.0-5.3.2",
+      "title": "Trusted internally generated storage paths",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "random UUID/object keys; original filename not used as public path"
+      ]
+    },
+    {
+      "id": "v5.0.0-7.2.1",
+      "title": "Trusted backend session verification",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "server-bound anonymous/session flows; real Supabase session/auth integration validation pending"
+      ]
+    },
+    {
+      "id": "v5.0.0-7.2.2",
+      "title": "Dynamic session/capability tokens",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "recovery/generation/template capabilities expire and are signed/randomized"
+      ]
+    },
+    {
+      "id": "v5.0.0-7.2.3",
+      "title": "CSPRNG and sufficient token entropy",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "randomBytes(32) recovery/upload capabilities; UUID used for identifiers, not payment/recovery secret capability"
+      ]
+    },
+    {
+      "id": "v5.0.0-8.1.1",
+      "title": "Authorization model documented",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "docs/SECURITY_GOVERNANCE_SPEC_V1.md",
+        "security/THREAT_MODEL.md",
+        "Lumer authority policies"
+      ]
+    },
+    {
+      "id": "v5.0.0-8.2.1",
+      "title": "Function-level permission enforcement",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "server/admin guards exist; identity-aware admin edge gate and staging authorization tests pending"
+      ]
+    },
+    {
+      "id": "v5.0.0-8.2.2",
+      "title": "Object-level permission enforcement",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "session-bound entitlements and RLS schema present; real RLS matrix not executed"
+      ]
+    },
+    {
+      "id": "v5.0.0-8.3.1",
+      "title": "Authorization in trusted service layer",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "server-side payment/recovery/final-download checks; client success never authoritative"
+      ]
+    },
+    {
+      "id": "v5.0.0-11.1.1",
+      "title": "Cryptographic key lifecycle documented",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "security/CRYPTOGRAPHIC_INVENTORY.md and security/SECRETS_POLICY.md; live rotation evidence pending"
+      ]
+    },
+    {
+      "id": "v5.0.0-11.1.2",
+      "title": "Cryptographic inventory",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "security/CRYPTOGRAPHIC_INVENTORY.md"
+      ]
+    },
+    {
+      "id": "v5.0.0-11.2.1",
+      "title": "Approved/industry cryptographic implementations",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "Node crypto HMAC-SHA256/SHA-256/CSPRNG/timingSafeEqual"
+      ]
+    },
+    {
+      "id": "v5.0.0-11.2.3",
+      "title": "At least 128-bit cryptographic strength",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "32-byte application secrets enforced for major HMAC capabilities; provider/TLS runtime evidence pending"
+      ]
+    },
+    {
+      "id": "v5.0.0-11.4.3",
+      "title": "Collision-resistant hashes where required",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "SHA-256 fingerprints/token hashes"
+      ]
+    },
+    {
+      "id": "v5.0.0-11.5.1",
+      "title": "CSPRNG for security-sensitive randomness",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "Node randomBytes for recovery and upload capabilities"
+      ]
+    },
+    {
+      "id": "v5.0.0-12.1.1",
+      "title": "TLS 1.2/1.3 configuration",
+      "status": "NOT_EXECUTED",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "requires live Cloudflare/origin/provider TLS probe"
+      ]
+    },
+    {
+      "id": "v5.0.0-12.2.1",
+      "title": "TLS for external HTTP services",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "HTTPS provider URLs in configuration; runtime transport validation pending"
+      ]
+    },
+    {
+      "id": "v5.0.0-13.1.4",
+      "title": "Secret rotation process",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "security/SECRETS_POLICY.md; executed rotation evidence pending"
+      ]
+    },
+    {
+      "id": "v5.0.0-13.3.1",
+      "title": "Secrets kept out of source/build artifacts and managed securely",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        ".gitignore + blank .env.example + source secret scanner; actual Pi5 secret store not validated"
+      ]
+    },
+    {
+      "id": "v5.0.0-13.3.2",
+      "title": "Least-privilege secrets",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "environment scope guards/policy exist; provider IAM scope evidence pending"
+      ]
+    },
+    {
+      "id": "v5.0.0-15.1.2",
+      "title": "Release SBOM",
+      "status": "BLOCKED",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "source SBOM tooling exists; pnpm-lock.yaml/resolved release SBOM missing"
+      ]
+    },
+    {
+      "id": "v5.0.0-15.2.1",
+      "title": "Dependency vulnerability remediation",
+      "status": "BLOCKED",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "cannot bind vulnerability report to a frozen dependency graph without pnpm-lock.yaml"
+      ]
+    },
+    {
+      "id": "v5.0.0-15.2.3",
+      "title": "Production contains only required functionality",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "multi-stage/unprivileged containers; final image contents require built-image inspection"
+      ]
+    },
+    {
+      "id": "v5.0.0-16.1.1",
+      "title": "Security logging inventory",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "security/LOGGING_INVENTORY.md"
+      ]
+    },
+    {
+      "id": "v5.0.0-16.2.5",
+      "title": "Sensitive data excluded/protected in logs",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "logging policy and existing content-minimized events; live log sink/access tests pending"
+      ]
+    },
+    {
+      "id": "v5.0.0-16.3.1",
+      "title": "Authentication operations logged",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "apps/web/proxy.ts emits content-minimized admin_auth_succeeded/admin_auth_failed events; centralized sink/alerts remain a separate runtime gate"
+      ]
+    },
+    {
+      "id": "v5.0.0-16.3.2",
+      "title": "Failed authorization logged",
+      "status": "SOURCE_PASS",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "apps/web/proxy.ts emits admin_authorization_denied; recovery download denial is logged without identifiers/tokens"
+      ]
+    },
+    {
+      "id": "v5.0.0-16.3.3",
+      "title": "Security-relevant events logged",
+      "status": "PARTIAL",
+      "mandatoryForLaunch": true,
+      "evidence": [
+        "admin, webhook rejection/verification, rate-limit enforcement, recovery denial and fulfillment retry events now exist; centralized sink/alerts and full event coverage need runtime validation"
+      ]
+    }
+  ],
+  "note": "Selected launch-relevant matrix, not a claim that every ASVS 5.0.0 requirement has been verified. Full L2 verification remains a Step 18/staging task."
+}

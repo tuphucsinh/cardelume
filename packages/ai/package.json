@@ -1,0 +1,22 @@
+{
+  "name": "@cardelume/ai",
+  "version": "0.4.3-step.17i",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@cardelume/card-schema": "workspace:*",
+    "@cardelume/templates": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "node -e \"process.exit(0)\"",
+    "test": "node -e \"process.exit(0)\""
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "flags": [
+    {
+      "key": "typography_plus_jakarta",
+      "description": "Staging evidence flag for the Step17E Plus Jakarta Sans global source candidate; production remains approval-gated.",
+      "defaultEnabled": false,
+      "allowedEnvironments": [
+        "experiment",
+        "staging"
+      ],
+      "rolloutPercent": 0,
+      "owner": "Lumer",
+      "expiresAt": "2026-09-27T08:35:24.836Z",
+      "killSwitchKey": "KILL_TYPOGRAPHY_PLUS_JAKARTA",
+      "experimentId": "typography-plus-jakarta"
+    },
+    {
+      "key": "original_template_v2",
+      "description": "Benchmark 12 implemented original procedural POCs against selected current template families.",
+      "defaultEnabled": false,
+      "allowedEnvironments": [
+        "experiment",
+        "staging"
+      ],
+      "rolloutPercent": 0,
+      "owner": "Lumer",
+      "expiresAt": "2026-09-27T08:35:24.874Z",
+      "killSwitchKey": "KILL_ORIGINAL_TEMPLATE_V2",
+      "experimentId": "original-template-v2"
+    }
+  ]
+}

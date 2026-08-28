@@ -1,0 +1,30 @@
+{
+  "id": "typography-plus-jakarta",
+  "owner": "Lumer",
+  "hypothesis": "Plus Jakarta Sans improves Vietnamese/global UI consistency without reducing premium perception or layout stability versus DM Sans.",
+  "scope": "Compare DM Sans control against Plus Jakarta Sans for global web UI/body across launch locales.",
+  "branchWorktree": "exp/typography-plus-jakarta",
+  "featureFlag": "typography_plus_jakarta",
+  "startAt": "2026-08-28T08:35:24.835Z",
+  "endAt": null,
+  "allowedEnvironments": [
+    "experiment",
+    "staging"
+  ],
+  "aiBudget": {
+    "maxCallsPerRun": 60,
+    "maxBenchmarkGenerations": 150,
+    "dailyCostUsd": 10
+  },
+  "successMetric": "No glyph fallback; no material CLS/layout regression; human/native premium review equal or better.",
+  "premiumBenchmarkImpact": "Must preserve or improve CardeLume premium/WOW perception and multilingual typography naturalness.",
+  "securityIpReviewRequirements": [
+    "font-provenance",
+    "ip-license",
+    "glyph-coverage",
+    "security-delta"
+  ],
+  "rollbackKillSwitch": "KILL_TYPOGRAPHY_PLUS_JAKARTA",
+  "status": "draft",
+  "createdBy": "experiment-lab-v1"
+}

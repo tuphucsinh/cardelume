@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T13:51:04.122Z",
+  "candidate": "0.4.3-step.17i",
+  "requestedMode": "release",
+  "executedTier": "release",
+  "sourceVerdict": "PASS",
+  "productionVerdict": "NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES",
+  "durationMs": 3987,
+  "checksPlanned": 28,
+  "checksExecuted": 28,
+  "checks": [
+    {
+      "id": "product.integration",
+      "domain": "product",
+      "declaredTier": "fast",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 102,
+      "summary": "\"release-registry-critical-boundary:scripts/dodo-payment-contract-stress.ts\", |     \"release-registry-critical-boundary:scripts/recovery-security-stress.ts\" |   ] | }"
+    },
+    {
+      "id": "product.visual-directions",
+      "domain": "product",
+      "declaredTier": "fast",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 66,
+      "summary": "\"ok\": true, |   \"directions\": 28, |   \"checks\": 62 | }"
+    },
+    {
+      "id": "product.ux-contract",
+      "domain": "product",
+      "declaredTier": "fast",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 52,
+      "summary": "{ |   \"ok\": true, |   \"checks\": 23 | }"
+    },
+    {
+      "id": "creative.director-authority",
+      "domain": "creative",
+      "declaredTier": "fast",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 119,
+      "summary": "\"aiUsageLedger\": true, |     \"photoCreativeDecision\": true |   } | }"
+    },
+    {
+      "id": "commerce.payment-boundary",
+      "domain": "commerce",
+      "declaredTier": "fast",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 95,
+      "summary": "verified Dodo payment source boundary: PASS"
+    },
+    {
+      "id": "media.photo-upload-boundary",
+      "domain": "media",
+      "declaredTier": "fast",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 92,
+      "summary": "photo upload boundary source stress: PASS"
+    },
+    {
+      "id": "runtime.generation-queue-boundary",
+      "domain": "runtime",
+      "declaredTier": "fast",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 114,
+      "summary": "generation queue source stress: PASS"
+    },
+    {
+      "id": "templates.catalog-source",
+      "domain": "templates",
+      "declaredTier": "fast",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 141,
+      "summary": "\"sessionBoundAnalytics\": true, |     \"replayDedupe\": true |   } | }"
+    },
+    {
+      "id": "templates.catalog-runtime",
+      "domain": "templates",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 139,
+      "summary": "], |     \"recentPenalty\": 1 |   } | }"
+    },
+    {
+      "id": "templates.event-capability",
+      "domain": "templates",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 179,
+      "summary": "template event capability runtime: PASS"
+    },
+    {
+      "id": "templates.production-standard",
+      "domain": "templates",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 40,
+      "summary": "font/template production standard stress: PASS (160 checks)"
+    },
+    {
+      "id": "templates.font-governance",
+      "domain": "templates",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 36,
+      "summary": "- every replacement concept has thesis/signature/asset strategy | - replacement concepts are not framed as copied third-party templates | - typography alternatives remain experiment-only | - font experiments have promotion evidence gates"
+    },
+    {
+      "id": "templates.portfolio-v2",
+      "domain": "templates",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 161,
+      "summary": "PASS template portfolio V2 source stress: 121 checks"
+    },
+    {
+      "id": "templates.multilingual-layout",
+      "domain": "templates",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 203,
+      "summary": "\"pressures\": 3, |   \"cases\": 900, |   \"checks\": 4500 | }"
+    },
+    {
+      "id": "templates.experimental-contract",
+      "domain": "templates",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 88,
+      "summary": "PASS: 65 experimental-template source checks"
+    },
+    {
+      "id": "ip.provenance",
+      "domain": "ip",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 207,
+      "summary": "\"status\": \"PASS\", |   \"checks\": 23, |   \"failures\": [] | }"
+    },
+    {
+      "id": "security.governance",
+      "domain": "security",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 487,
+      "summary": "\"status\": \"PASS\", |   \"checks\": 39, |   \"failures\": [] | }"
+    },
+    {
+      "id": "security.launch-retention",
+      "domain": "security",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 119,
+      "summary": "launch security/retention stress: PASS"
+    },
+    {
+      "id": "experiment.isolation",
+      "domain": "experiment",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 195,
+      "summary": "\"status\": \"PASS\", |   \"checks\": 43, |   \"failures\": [] | }"
+    },
+    {
+      "id": "operations.readiness",
+      "domain": "operations",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 107,
+      "summary": "production operations source stress: PASS"
+    },
+    {
+      "id": "operations.backup-restore-source",
+      "domain": "operations",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 148,
+      "summary": "backup/restore source stress: PASS"
+    },
+    {
+      "id": "operations.container-reproducibility",
+      "domain": "operations",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 64,
+      "summary": "reproducible container source stress: PASS"
+    },
+    {
+      "id": "operations.pre-pi-deployment",
+      "domain": "operations",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 65,
+      "summary": "\"migration_0010_present\", |     \"migration_0011_present\" |   ] | }"
+    },
+    {
+      "id": "commerce.dodo-crypto-contract",
+      "domain": "commerce",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 196,
+      "summary": "Dodo Standard Webhooks contract: PASS"
+    },
+    {
+      "id": "runtime.generation-fallback",
+      "domain": "runtime",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 236,
+      "summary": "generation fallback source + runtime contract: PASS"
+    },
+    {
+      "id": "runtime.recovery-security",
+      "domain": "runtime",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 126,
+      "summary": "{\"ok\":true,\"secrets\":2000,\"cookieA\":\"cardelume_recovery_a3a9e1ed9732ca\"}"
+    },
+    {
+      "id": "operator.lumer-toolkit",
+      "domain": "operator",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 43,
+      "summary": "Lumer Toolkit source stress: PASS | Checks passed: 458 | Canonical skills: 18; operational companion skills: 7; total: 25"
+    },
+    {
+      "id": "quality.premium-benchmark-contract",
+      "domain": "quality",
+      "declaredTier": "release",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 31,
+      "summary": "{\"ok\":true,\"briefs\":150,\"locales\":10,\"checks\":\"step14 premium benchmark source contract + step13 challenge evidence\"}"
+    }
+  ],
+  "runtimeAndOwnerGates": [
+    {
+      "id": "release.ip-provenance",
+      "status": "NO_GO",
+      "exitCode": 2,
+      "durationMs": 44,
+      "evidence": "{\n  \"status\": \"PASS\",\n  \"releaseEligible\": false,\n  \"errors\": [],\n  \"warnings\": [\n    \"pnpm_lock_missing_exact_npm_font_binary_not_frozen\"\n  ],\n  \"unresolved\": [\n    {\n      \"kind\": \"font\",\n      \"id\": \"web.cormorant-garamond\",\n      \"status\": \"UNKNOWN\",\n      \"reason\": \"Fontsource family page + upstream Cormorant OFL; exact installed package evidence pending Family-level OFL eligibility verified 2026-08-28; exact shipped binary approval remains pending.\"\n    },\n    {\n      \"kind\": \"font\",\n      \"id\": \"web.plus-jakarta-sans\",\n      \"status\": \"UNKNOWN\",\n      \"reason\": \"Family-level OFL/commercial eligibility and Vietnamese coverage verified; exact installed Fontsource package version, binary hashes and retained license evidence must be collected after frozen install before production appro\n…<truncated>",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "release.security",
+      "status": "NO_GO",
+      "exitCode": 2,
+      "durationMs": 135,
+      "evidence": "{\n  \"generatedAt\": \"2026-08-28T13:51:03.971Z\",\n  \"candidate\": \"0.4.3-step.17i\",\n  \"verdict\": \"NO_GO\",\n  \"note\": \"Fail-closed evidence check only. It never deploys production. GO_FOR_OWNER_APPROVAL still requires explicit owner approval.\",\n  \"gates\": [\n    {\n      \"name\": \"governance-audit\",\n      \"status\": \"PASS\",\n      \"evidence\": \"security/reports/security-governance-audit.json\"\n    },\n    {\n      \"name\": \"dependency-lock\",\n      \"status\": \"FAIL\",\n      \"evidence\": \"pnpm-lock.yaml required\"\n    },\n    {\n      \"name\": \"ip-production-catalog\",\n      \"status\": \"FAIL\",\n      \"evidence\": \"all production fonts/assets/templates need approved exact provenance\"\n    },\n    {\n      \"name\": \"enforced-csp\",\n      \"status\": \"FAIL\",\n      \"evidence\": \"enforced CSP without unsafe-inline script/style req\n…<truncated>",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "release.font-template-quality",
+      "status": "NO_GO",
+      "exitCode": 2,
+      "durationMs": 32,
+      "evidence": "{\n  \"generatedAt\": \"2026-08-28T13:51:04.003Z\",\n  \"verdict\": \"NO_GO\",\n  \"note\": \"Fail-closed quality/IP gate. It never changes approval state or deploys production.\",\n  \"blockerCount\": 32,\n  \"blockers\": [\n    {\n      \"gate\": \"font-provenance\",\n      \"font\": \"@fontsource/cormorant-garamond\",\n      \"reason\": \"Family license is eligible, but exact installed version/file hash/license evidence is not APPROVED yet.\"\n    },\n    {\n      \"gate\": \"font-provenance\",\n      \"font\": \"@fontsource/noto-sans-jp\",\n      \"reason\": \"Family license is eligible, but exact installed version/file hash/license evidence is not APPROVED yet.\"\n    },\n    {\n      \"gate\": \"font-provenance\",\n      \"font\": \"@fontsource/noto-sans-kr\",\n      \"reason\": \"Family license is eligible, but exact installed version/file hash/licens\n…<truncated>",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "release.secret-scan",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 74,
+      "evidence": "{\n  \"schemaVersion\": 1,\n  \"generatedAt\": \"2026-08-28T13:51:04.077Z\",\n  \"status\": \"PASS\",\n  \"scanner\": \"CardeLume high-confidence source/worktree scanner; run a dedicated history/entropy scanner in controlled CI before release.\",\n  \"findings\": []\n}",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "release.source-sbom",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 40,
+      "evidence": "{\n  \"status\": \"PASS\",\n  \"completeForRelease\": false,\n  \"lockPresent\": false,\n  \"components\": 39,\n  \"path\": \"security/reports/source-sbom.cdx.json\"\n}",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "dependency.lock",
+      "status": "BLOCKED",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "owner.brand-asset-attestation",
+      "status": "OWNER_ACTION_REQUIRED",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "owner.template-premium-originality",
+      "status": "HUMAN_REVIEW_REQUIRED",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "owner.legal-native-language",
+      "status": "OWNER_ACTION_REQUIRED",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "runtime.real-golden-model",
+      "status": "NOT_EXECUTED",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "runtime.staging-db-r2-pgboss-dodo",
+      "status": "NOT_EXECUTED",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "runtime.browser-accessibility-performance-csp",
+      "status": "NOT_EXECUTED",
+      "mandatoryForProduction": true
+    },
+    {
+      "id": "runtime.pi5-oracle-ha-restore",
+      "status": "DEFERRED_TO_PI5",
+      "mandatoryForProduction": true
+    }
+  ],
+  "principles": [
+    "FAST is for frequent source changes.",
+    "RELEASE is the authoritative source/offline promotion suite.",
+    "HEAVY adds deterministic render stress and optionally frozen build checks; real service/HA evidence remains Step18/19.",
+    "A missing mandatory production gate never becomes PASS by source appearance or owner pressure."
+  ]
+}

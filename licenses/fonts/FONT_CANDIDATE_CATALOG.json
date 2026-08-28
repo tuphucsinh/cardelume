@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 2,
+  "checkedAt": "2026-08-28",
+  "policy": "Candidate eligibility is not production approval. Pin exact version/file, hash it, retain license evidence, benchmark typography, then approve.",
+  "candidates": [
+    {
+      "id": "cormorant-garamond",
+      "family": "Cormorant Garamond",
+      "class": "serif",
+      "role": "brand/display/headline",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "KEEP_PRIMARY_DISPLAY",
+      "why": "Elegant, high-contrast editorial voice already aligned with CardeLume; Vietnamese supported.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/cormorantgaramond/METADATA.pb",
+      "productionStatus": "PENDING_PIN_AND_HASH"
+    },
+    {
+      "id": "plus-jakarta-sans",
+      "family": "Plus Jakarta Sans",
+      "class": "sans",
+      "role": "global UI/body",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "PRIMARY_DM_SANS_REPLACEMENT",
+      "why": "Warm modern proportions, strong UI readability, variable 200-800 and verified Vietnamese coverage.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/plusjakartasans/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY_UNTIL_BUILD_BENCHMARK"
+    },
+    {
+      "id": "inter",
+      "family": "Inter",
+      "class": "sans",
+      "role": "global UI/body fallback candidate",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "SAFE_NEUTRAL_ALTERNATE",
+      "why": "Excellent screen legibility and broad language support; less distinctive than Plus Jakarta Sans.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/inter/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY"
+    },
+    {
+      "id": "manrope",
+      "family": "Manrope",
+      "class": "sans",
+      "role": "global UI/body alternate",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "MODERN_ALTERNATE",
+      "why": "Clean geometric/editorial feel with Vietnamese coverage; evaluate against Plus Jakarta Sans in UI benchmark.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/manrope/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY"
+    },
+    {
+      "id": "eb-garamond",
+      "family": "EB Garamond",
+      "class": "serif",
+      "role": "final renderer serif",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "KEEP_RENDERER_BASELINE",
+      "why": "Print-oriented classic serif with Vietnamese coverage; useful as stable renderer baseline.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/ebgaramond/METADATA.pb",
+      "productionStatus": "PENDING_APT_VERSION_AND_HASH"
+    },
+    {
+      "id": "lato",
+      "family": "Lato",
+      "class": "sans",
+      "role": "final renderer sans/body",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "KEEP_BASELINE_COMPARE_WITH_PLUS_JAKARTA",
+      "why": "Mature legible sans and Vietnamese support; compare visually to newer UI family for preview/final parity.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/lato/METADATA.pb",
+      "productionStatus": "PENDING_APT_VERSION_AND_HASH"
+    },
+    {
+      "id": "fraunces",
+      "family": "Fraunces",
+      "class": "serif",
+      "role": "expressive premium display experiment",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "EXPERIMENT_DISPLAY",
+      "why": "Variable optical size/softness gives a distinctive premium personality without decorative assets; use sparingly.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/fraunces/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY"
+    },
+    {
+      "id": "newsreader",
+      "family": "Newsreader",
+      "class": "serif",
+      "role": "editorial/intimate display experiment",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "EXPERIMENT_DISPLAY",
+      "why": "Refined reading/display optical sizes suit restrained editorial and heartfelt cards.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/newsreader/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY"
+    },
+    {
+      "id": "noto-cjk",
+      "family": "Noto Serif/Sans CJK (JP/KR/SC)",
+      "class": "serif+sans",
+      "role": "CJK/Hangul web+renderer baseline",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": null,
+      "scripts": [
+        "japanese",
+        "korean",
+        "simplified-chinese"
+      ],
+      "recommendation": "KEEP_PRIMARY_CJK_BASELINE",
+      "why": "Broad CJK coverage and strong deterministic cross-platform baseline; prioritize bundled Noto before OS fonts.",
+      "evidenceUrl": "https://github.com/notofonts/noto-cjk",
+      "productionStatus": "PENDING_EXACT_PACKAGE_BINARY_HASH"
+    },
+    {
+      "id": "source-han-serif",
+      "family": "Source Han Serif",
+      "class": "serif",
+      "role": "CJK premium serif alternate",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": null,
+      "scripts": [
+        "japanese",
+        "korean",
+        "simplified-chinese",
+        "traditional-chinese"
+      ],
+      "recommendation": "EXPERIMENT_CJK_SERIF",
+      "why": "Pan-CJK serif alternative for benchmark if Noto Serif art direction feels too neutral.",
+      "evidenceUrl": "https://github.com/adobe-fonts/source-han-serif/blob/master/LICENSE.txt",
+      "productionStatus": "EXPERIMENT_ONLY"
+    },
+    {
+      "id": "zen-old-mincho",
+      "family": "Zen Old Mincho",
+      "class": "serif",
+      "role": "Japanese premium display alternate",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": null,
+      "scripts": [
+        "japanese"
+      ],
+      "recommendation": "EXPERIMENT_JP_ONLY",
+      "why": "Elegant Japanese Mincho personality; upstream is archived as of 2026, so only use from a pinned verified artifact if benchmark justifies it.",
+      "evidenceUrl": "https://github.com/googlefonts/zen-oldmincho",
+      "productionStatus": "EXPERIMENT_ONLY_ARCHIVED_UPSTREAM"
+    },
+    {
+      "id": "gowun-batang",
+      "family": "Gowun Batang",
+      "class": "serif",
+      "role": "Korean warm display alternate",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": null,
+      "scripts": [
+        "korean"
+      ],
+      "recommendation": "EXPERIMENT_KR_ONLY",
+      "why": "Human, handwriting-influenced serif can add warmth to Korean cards; benchmark native-language naturalness.",
+      "evidenceUrl": "https://github.com/yangheeryu/Gowun-Batang",
+      "productionStatus": "EXPERIMENT_ONLY"
+    },
+    {
+      "id": "be-vietnam-pro",
+      "family": "Be Vietnam Pro",
+      "class": "sans",
+      "role": "Vietnamese-first UI/body and multilingual alternate",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "STRONG_VI_UI_ALTERNATE",
+      "why": "Designed with Vietnamese support from the outset; clear, contemporary and useful for VI localization benchmarking without relying on system fallback.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/bevietnampro/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY_UNTIL_PIN_HASH_BENCHMARK"
+    },
+    {
+      "id": "lora",
+      "family": "Lora",
+      "class": "serif",
+      "role": "warm editorial / heartfelt card text",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "EXPERIMENT_WARM_SERIF",
+      "why": "Human, contemporary serif with calligraphic warmth; suitable for romantic, family and thank-you cards without becoming ornamental.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/lora/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY"
+    },
+    {
+      "id": "spectral",
+      "family": "Spectral",
+      "class": "serif",
+      "role": "premium editorial / longer-copy cards",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "EXPERIMENT_EDITORIAL_SERIF",
+      "why": "Production Type editorial serif with a broad weight range and Vietnamese support; strong candidate for sophisticated longer-copy compositions.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/spectral/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY"
+    },
+    {
+      "id": "source-serif-4",
+      "family": "Source Serif 4",
+      "class": "serif",
+      "role": "renderer/editorial robustness candidate",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "EXPERIMENT_RENDERER_SERIF",
+      "why": "Adobe open-source serif with optical-size axis, Vietnamese coverage and strong text/display versatility; useful for deterministic final-render benchmarking.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/sourceserif4/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY"
+    },
+    {
+      "id": "literata",
+      "family": "Literata",
+      "class": "serif",
+      "role": "literary/intimate premium cards",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "EXPERIMENT_LITERARY_SERIF",
+      "why": "Optical-size serif with a literary, intimate tone and Vietnamese support; useful for sensitive, gratitude and anniversary directions.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/literata/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY"
+    },
+    {
+      "id": "crimson-pro",
+      "family": "Crimson Pro",
+      "class": "serif",
+      "role": "soft classic premium display/body alternate",
+      "license": "OFL-1.1",
+      "commercialUseAllowed": true,
+      "vietnamese": true,
+      "scripts": [
+        "latin",
+        "vietnamese"
+      ],
+      "recommendation": "EXPERIMENT_CLASSIC_SERIF",
+      "why": "Compact warm classic serif with Vietnamese support; useful where Cormorant is too display-like and EB Garamond feels too traditional.",
+      "evidenceUrl": "https://github.com/google/fonts/blob/main/ofl/crimsonpro/METADATA.pb",
+      "productionStatus": "EXPERIMENT_ONLY"
+    }
+  ],
+  "portfolioRule": "Keep production typography intentionally small: one primary UI sans, one primary premium display serif, a renderer-safe body pair, and locale-specific CJK/Hangul families. Extra fonts remain experiment-only until they beat the incumbent on CardeLume Golden benchmarks and typography QA."
+}

@@ -1,0 +1,48 @@
+import {readFileSync} from "node:fs";
+function read(p:string){return readFileSync(p,"utf8")}function need(v:unknown,m:string):asserts v{if(!v)throw new Error(m)}
+const templates=read("packages/templates/src/index.ts");
+const ai=read("packages/ai/src/index.ts");
+const worker=read("apps/worker/src/index.ts");
+const migration=read("packages/db/migrations/0009_ai_creative_director.sql");
+const dbTemplates=read("packages/db/src/templates.ts");
+const dbGeneration=read("packages/db/src/generation.ts");
+const cardSchema=read("packages/card-schema/src/index.ts");
+const checkoutCard=read("apps/web/lib/checkout-card.server.ts");
+const studio=read("apps/web/components/card-studio.tsx");
+const spec=read("docs/AI_CREATIVE_DIRECTOR_0.4.3_STEP13.md");
+
+need(spec.includes("Rules protect quality; AI directs creativity"),"creative_authority_missing");
+need(spec.includes("No soft ranking score is a final creative decision"),"soft_rank_authority_wrong");
+need(templates.includes("buildCreativeCandidatePack"),"creative_pack_missing");
+need(templates.includes("Math.min(6,ranked.length)"),"fit_six_missing");
+need(templates.includes("Math.min(2,wildcardRanked.length)"),"wildcard_two_missing");
+need(templates.includes("recentStylePenalty")&&templates.includes("noveltyPenalty*.16"),"novelty_soft_prior_missing");
+need(templates.includes("editorialScore>=84"),"wildcard_quality_floor_missing");
+need(ai.includes('o.action==="expand_pool"'),"ai_pool_expansion_missing");
+need(ai.includes("ai_template_not_in_candidate_pool"),"ai_candidate_invention_guard_missing");
+need(ai.includes("ai_template_family_duplicate"),"ai_family_diversity_guard_missing");
+need(ai.includes("creativeThesis")&&ai.includes("signatureMove")&&ai.includes("wowScore"),"premium_creative_contract_missing");
+need(ai.includes("assertPromptBudget(prompt)"),"prompt_budget_guard_missing");
+need(ai.includes("criticRepairDirections")&&ai.includes("creativeQualityRisks"),"conditional_critic_missing");
+
+need(templates.includes("fitTarget=Math.max(3,Math.floor(limit*.75))"),"expanded_fit_exploration_ratio_missing");
+need(ai.includes("priorCritique")&&worker.includes("priorCritique={reasonCode:outcome.reasonCode"),"ai_critique_not_carried_into_expansion");
+need(ai.includes("allowTemplateSwap=risks.includes(\"creative_range\")"),"creative_range_reconsideration_missing");
+need(ai.includes("ai_critic_family_duplicate")&&ai.includes("ai_critic_template_duplicate"),"critic_swap_identity_guard_missing");
+need(worker.includes("premiumCritical")&&worker.includes("ai_premium_quality_not_met"),"post_critic_premium_fail_closed_missing");
+need(ai.includes("AI_WOW_REPAIR_THRESHOLD")&&ai.includes("AI_CONFIDENCE_REPAIR_THRESHOLD"),"premium_thresholds_missing");
+need(worker.indexOf("const pack=buildCreativeCandidatePack")<worker.indexOf("outcome=await generateCreativeDirectorDirections"),"ai_runs_before_shortlist");
+need(worker.includes("listRecentStyleFingerprints"),"recent_style_not_wired");
+need(worker.includes("expandedCreativeCandidatePool")&&worker.includes('outcome.kind==="expand_pool"'),"worker_expansion_missing");
+need(worker.includes("criticTriggers")&&worker.includes("criticRepairDirections"),"worker_critic_missing");
+need(worker.includes("recordGenerationAIUsage"),"ai_usage_ledger_not_wired");
+for(const table of ["style_fingerprints","generation_ai_usage"])need(migration.includes(`create table if not exists ${table}`),`migration_missing_${table}`);
+need(!migration.includes("recipient")&&!migration.includes("headline")&&!migration.includes("body text")&&!migration.includes("photo_asset"),"style_memory_contains_content_field");
+need(dbTemplates.includes("recordStyleFingerprint")&&dbTemplates.includes("listRecentStyleFingerprints"),"style_memory_db_missing");
+need(dbGeneration.includes("recordGenerationAIUsage"),"ai_usage_db_missing");
+need(cardSchema.includes("creativeThesis")&&cardSchema.includes("signatureMove")&&cardSchema.includes("photoProfile"),"generation_schema_not_step13");
+need(!checkoutCard.includes("photo_accent_requires_photo_direction"),"legacy_photo_slot_hard_rule_present");
+need(checkoutCard.includes('input.managedTemplate?.photoMode==="required"'),"template_photo_hard_constraint_missing");
+need(studio.includes('photoAssetId:(selected.photoMode==="required"'),"studio_photo_still_slot_bound");
+need(studio.includes("suggestedAccentMode"),"ai_accent_not_used");
+console.log(JSON.stringify({status:"PASS",step13:{candidatePack:"6+2",aiFinalCreativeDecision:true,expansion:true,conditionalCritic:true,creativeReconsideration:true,postCriticFailClosed:true,styleMemoryContentFree:true,aiUsageLedger:true,photoCreativeDecision:true}},null,2));

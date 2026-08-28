@@ -1,0 +1,60 @@
+name: cardelume
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    image: cardelume-web:0.4.3-step.17i
+    container_name: cardelume-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_VERSION: "0.4.3-step.17i"
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+      start_period: 15s
+    tmpfs:
+      - /tmp:size=512m
+    security_opt:
+      - no-new-privileges:true
+
+  worker:
+    profiles: ["worker"]
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    image: cardelume-worker:0.4.3-step.17i
+    container_name: cardelume-worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_VERSION: "0.4.3-step.17i"
+    tmpfs:
+      - /tmp:size=1g
+    security_opt:
+      - no-new-privileges:true
+
+  cloudflared:
+    profiles: ["tunnel"]
+    image: cloudflare/cloudflared:2026.8.2@sha256:0aa26e284f05e6c77ae375b8c9c11d9eb6a448fb7bcd8d40f31cb6176189eb38
+    container_name: cardelume-cloudflared
+    restart: unless-stopped
+    env_file: .env
+    command: ["tunnel", "--no-autoupdate", "run", "--token", "${TUNNEL_TOKEN}"]
+    depends_on:
+      web:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  default:
+    name: cardelume-net

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="980" viewBox="0 0 700 980">
+  <rect width="100%" height="100%" fill="#141516"/>
+  <rect x="70" y="78.4" width="560" height="823.2" fill="none" stroke="#d0aa68" stroke-width="2.3" opacity=".62"/>
+        <path d="M 217 215.6 H 483 M 217 764.4 H 483" stroke="#d0aa68" stroke-width="1.3" opacity=".58"/>
+        <path d="M 350 127.4 l 24 28 l -24 28 l -24 -28 Z" fill="none" stroke="#d0aa68" stroke-width="1.3" opacity=".58"/>
+  <text x="350" y="480" text-anchor="middle" fill="#f3eee2" font-family="Georgia, serif" font-size="58" font-weight="500">For you, always</text>
+  <text x="350" y="540" text-anchor="middle" fill="#f3eee2" opacity=".72" font-family="Arial, sans-serif" font-size="21" letter-spacing="2">A MOMENT MADE PERSONAL</text>
+  <line x1="250" y1="585" x2="450" y2="585" stroke="#d0aa68" stroke-width="2" opacity=".45"/>
+  <text x="350" y="900" text-anchor="middle" fill="#f3eee2" opacity=".55" font-family="Arial, sans-serif" font-size="18">Art Deco Noir</text>
+</svg>

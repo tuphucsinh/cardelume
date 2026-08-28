@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+const root=path.resolve(import.meta.dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const json=p=>JSON.parse(read(p));
+const exists=p=>fs.existsSync(path.join(root,p));
+const pass=[],fail=[];const check=(ok,msg)=>(ok?pass:fail).push(msg);
+const required=['scripts/release-sbom.mjs','scripts/dependency-vulnerability-scan.mjs','security/THREAT_MODEL.md','security/CRYPTOGRAPHIC_INVENTORY.md','security/LOGGING_INVENTORY.md','security/DEPENDENCY_POLICY.md','security/SECRETS_POLICY.md','security/INCIDENT_RESPONSE.md','security/asvs/ASVS_5.0.0_L2_MATRIX.json','security/top10/TOP10_2025_MAPPING.json','scripts/security-governance.mjs'];
+for(const p of required)check(exists(p),`required:${p}`);
+const matrix=json('security/asvs/ASVS_5.0.0_L2_MATRIX.json');
+check(matrix.version==='5.0.0'&&matrix.target==='Level 2','asvs-version-target');
+check(matrix.controls.length>=35,'asvs-selected-controls>=35');
+check(matrix.controls.some(c=>c.id==='v5.0.0-3.4.3'&&c.status==='BLOCKED'),'csp-blocker-explicit');
+check(matrix.controls.some(c=>c.id==='v5.0.0-15.1.2'&&c.status==='BLOCKED'),'sbom-blocker-explicit');
+check(matrix.controls.some(c=>c.id==='v5.0.0-16.3.3'&&c.status==='PARTIAL'),'security-logging-partial-explicit');
+const top=json('security/top10/TOP10_2025_MAPPING.json');check(top.version==='2025'&&top.categories.length===10,'top10-2025-all-categories');
+const next=read('apps/web/next.config.ts'),proxy=read('apps/web/proxy.ts'),csp=read('apps/web/lib/csp.ts'),webPkg=json('apps/web/package.json');check(/max-age=31536000; includeSubDomains/.test(next),'hsts-l2-source-hardening');check(/base-uri 'none'/.test(csp),'csp-base-uri-none');check(/nonce-\$\{nonce\}/.test(csp)&&/strict-dynamic/.test(csp)&&!/script-src[^\n]*unsafe-inline/.test(csp),'csp-script-nonce-source-ready');check(/CSP_ENFORCE/.test(proxy)&&/Content-Security-Policy-Report-Only/.test(proxy),'csp-runtime-enforcement-gated');check(/ADMIN_REQUIRE_EDGE_ACCESS/.test(proxy)&&/cf-access-jwt-assertion/.test(proxy),'admin-edge-access-source-boundary');check(/startsWith\(\"\/admin\"\).*startsWith\(\"\/api\/admin\"\)/s.test(proxy),'all-admin-namespaces-protected');check(webPkg.dependencies?.next==='16.3.3','next-security-patch-source-pin');
+const tool=read('scripts/security-governance.mjs');check(/never deploys production/i.test(tool),'release-tool-no-deploy');check(/pnpm-lock\.yaml/.test(tool),'lockfile-required');check(/release-sbom\.cdx\.json/.test(tool),'release-sbom-required');check(/cardelume:lockSha256/.test(tool),'release-sbom-lock-binding-required');check(/dependency-vulnerability-report\.json/.test(tool),'vulnerability-report-required');check(/staging-security-validation/.test(tool),'runtime-security-evidence-required');
+const audit=spawnSync(process.execPath,['scripts/security-governance.mjs','audit'],{cwd:root,encoding:'utf8'});check(audit.status===0,'security-audit-executes');let ar={};try{ar=JSON.parse(audit.stdout);}catch{}check(ar.status==='PASS','security-governance-source-pass');check(ar.releaseEligible===false,'security-audit-does-not-fake-release-pass');check(ar.sourceChecks?.cspEnforcement==='BLOCKED','audit-detects-csp-blocker');check(ar.sourceChecks?.lockfile==='BLOCKED','audit-detects-missing-lock');
+const rel=spawnSync(process.execPath,['scripts/security-governance.mjs','release-check'],{cwd:root,encoding:'utf8'});check(rel.status===2,'release-check-fails-closed');let rr={};try{rr=JSON.parse(rel.stdout);}catch{}check(rr.verdict==='NO_GO','release-verdict-no-go');check(rr.gates?.some(g=>g.name==='dependency-lock'&&g.status==='FAIL'),'release-lock-gate');check(rr.gates?.some(g=>g.name==='enforced-csp'&&g.status==='FAIL'),'release-csp-gate');
+console.log(JSON.stringify({status:fail.length?'FAIL':'PASS',checks:pass.length,failures:fail},null,2));if(fail.length)process.exit(1);

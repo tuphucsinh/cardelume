@@ -1,0 +1,650 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:1db0f662-4a41-4b80-bafc-fa519cb11e0e",
+  "metadata": {
+    "timestamp": "2026-08-28T13:51:28.816Z",
+    "component": {
+      "type": "application",
+      "name": "cardelume",
+      "version": "0.4.3-step.17i"
+    },
+    "properties": [
+      {
+        "name": "cardelume:sbomCompleteness",
+        "value": "partial-source-manifests-no-lockfile"
+      },
+      {
+        "name": "cardelume:releaseAuthority",
+        "value": "NOT_A_RELEASE_SBOM"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "@cardelume/card-schema",
+      "version": "workspace:*",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cardelume/core",
+      "version": "workspace:*",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cardelume/db",
+      "version": "workspace:*",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cardelume/queue",
+      "version": "workspace:*",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cardelume/storage",
+      "version": "workspace:*",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cardelume/templates",
+      "version": "workspace:*",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cardelume/ui",
+      "version": "workspace:*",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@fontsource/cormorant-garamond",
+      "version": "5.2.6",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@fontsource/noto-sans-jp",
+      "version": "5.2.6",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@fontsource/noto-sans-kr",
+      "version": "5.2.6",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@fontsource/noto-sans-sc",
+      "version": "5.2.6",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@fontsource/noto-serif-jp",
+      "version": "5.2.6",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@fontsource/noto-serif-kr",
+      "version": "5.2.6",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@fontsource/noto-serif-sc",
+      "version": "5.2.6",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@fontsource/plus-jakarta-sans",
+      "version": "5.2.6",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@supabase/ssr",
+      "version": "^0.7.0",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@supabase/supabase-js",
+      "version": "^2.57.4",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "lucide-react",
+      "version": "^0.544.0",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "next",
+      "version": "16.3.3",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "react",
+      "version": "^19.2.0",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "react-dom",
+      "version": "^19.2.0",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "sharp",
+      "version": "^0.34.3",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "zod",
+      "version": "^4.1.5",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cardelume/ai",
+      "version": "workspace:*",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/node",
+      "version": "^24.3.0",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/react",
+      "version": "^19.1.12",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/react-dom",
+      "version": "^19.1.9",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "typescript",
+      "version": "^5.9.2",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cardelume/renderer",
+      "version": "workspace:*",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/worker/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tsx",
+      "version": "^4.20.5",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/worker/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "turbo",
+      "version": "^2.5.6",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tsx",
+      "version": "^4.20.5",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "drizzle-orm",
+      "version": "^0.44.5",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "packages/db/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "postgres",
+      "version": "^3.4.7",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "packages/db/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "drizzle-kit",
+      "version": "^0.31.4",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "packages/db/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pg-boss",
+      "version": "^12.6.0",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "packages/queue/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@resvg/resvg-js",
+      "version": "^2.6.2",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "packages/renderer/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@aws-sdk/client-s3",
+      "version": "^3.888.0",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "packages/storage/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@aws-sdk/s3-request-presigner",
+      "version": "^3.888.0",
+      "scope": "runtime",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "packages/storage/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    }
+  ]
+}

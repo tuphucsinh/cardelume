@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "baseline": "0.4.3-step.17h",
+  "comparison": "0.4.3-step.17f",
+  "before": {
+    "total": 554,
+    "docs": 134,
+    "quality": 79,
+    "scripts": 53,
+    "rootPackageScripts": 63
+  },
+  "after": {
+    "total": 490,
+    "docs": 78,
+    "quality": 70,
+    "scripts": 52,
+    "rootPackageScripts": 33
+  },
+  "reductions": {
+    "total": {
+      "absolute": 64,
+      "percent": 11.6
+    },
+    "docs": {
+      "absolute": 56,
+      "percent": 41.8
+    },
+    "quality": {
+      "absolute": 9,
+      "percent": 11.4
+    },
+    "scripts": {
+      "absolute": 1,
+      "percent": 1.9
+    },
+    "rootPackageScripts": {
+      "absolute": 30,
+      "percent": 47.6
+    }
+  },
+  "execution": {
+    "fast": {
+      "checks": 8,
+      "durationMs": 1216,
+      "verdict": "PASS"
+    },
+    "release": {
+      "checks": 28,
+      "durationMs": 3895,
+      "verdict": "PASS"
+    },
+    "heavy": {
+      "checks": 33,
+      "durationMs": 4660,
+      "pass": 29,
+      "blockedRuntime": 4,
+      "verdict": "PASS"
+    },
+    "status": {
+      "checks": 28,
+      "durationMs": 3442,
+      "productionVerdict": "NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES"
+    }
+  },
+  "coverageNote": "RELEASE retains every Step17F aggregate domain and additionally executes Step13 creative authority, payment/upload/queue/catalog/event/operations/backup/container/Dodo/recovery/retention probes under one stable registry.",
+  "safetyNote": "Focused probes remain independent. Compression targets entry points, duplicate reports, stale Step assertions and historical copies, not hard boundaries."
+}

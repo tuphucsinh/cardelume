@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-08-28",
+  "reviewBasis": "source inspection + procedural renderer contact sheet; not a substitute for human market similarity review or Golden benchmark",
+  "templates": [
+    {"id":"luxury-editorial","decision":"KEEP_CORE_REFINEMENT","offlineQuality":"STRONG_DIRECTION","reason":"Brand-aligned editorial restraint; needs typography/negative-space signature strengthened."},
+    {"id":"midnight-lume","decision":"KEEP_CORE_REFINEMENT","offlineQuality":"STRONG_DIRECTION","reason":"Strong nocturne brand fit; keep distinct from celestial alternatives."},
+    {"id":"botanical-poise","decision":"KEEP_BUT_REWORK","offlineQuality":"PROMISING_GENERIC_MOTIF","reason":"Calm and premium-capable, but current leaves/ellipses are generic; needs a more authored procedural system."},
+    {"id":"washi-elegance","decision":"HOLD_REFRAME_RENAME","offlineQuality":"NOT_LAUNCH_READY","reason":"Minimal composition is usable, but cultural material naming risks reducing a market to an aesthetic shorthand."},
+    {"id":"soft-seoul","decision":"HOLD_REFRAME_RENAME","offlineQuality":"NOT_LAUNCH_READY","reason":"Generic soft blobs plus city label are not a sufficiently authored or culturally grounded thesis."},
+    {"id":"art-deco-noir","decision":"KEEP_NICHE_REWORK","offlineQuality":"PROMISING","reason":"Coherent formal direction; strengthen personalization and avoid stock Art Deco shorthand."},
+    {"id":"photo-story","decision":"KEEP_CORE_REFINEMENT","offlineQuality":"STRONG_UTILITY_DIRECTION","reason":"Important photo family; must become more distinctive than a generic photo frame through caption/date/composition behavior."},
+    {"id":"quiet-minimal","decision":"KEEP_CORE_REFINEMENT","offlineQuality":"STRONG_DIRECTION","reason":"Excellent CardeLume restraint if typography quality is exceptional; differentiation must come from type and micro-layout."},
+    {"id":"watercolor-bloom","decision":"REPLACE_OR_MAJOR_REWORK","offlineQuality":"GENERIC","reason":"Overlaps Botanical Poise and common watercolor greeting-card motifs."},
+    {"id":"golden-hour","decision":"REPLACE_OR_MAJOR_REWORK","offlineQuality":"GENERIC","reason":"Sun/mountain silhouette is common and does not currently read as premium CardeLume signature."},
+    {"id":"quiet-noir","decision":"MERGE_OR_REWORK","offlineQuality":"REDUNDANT","reason":"Too close to Art Deco Noir/Midnight Lume portfolio territory."},
+    {"id":"bold-pop","decision":"REPLACE_OR_MAJOR_REWORK","offlineQuality":"GENERIC","reason":"Simple floating primitives feel template-marketplace-like rather than premium authored celebration."},
+    {"id":"kawaii-joy","decision":"RENAME_AND_MAJOR_REWORK","offlineQuality":"NOT_LAUNCH_READY","reason":"Generic kawaii shorthand and weak differentiation; should become an original playful system rather than a style label."},
+    {"id":"classic-letterpress","decision":"KEEP_CORE_REFINEMENT","offlineQuality":"STRONG_DIRECTION","reason":"Tactile restraint is useful and commercially broad; keep ornament original/procedural."},
+    {"id":"celestial-night","decision":"RETIRE_OR_MERGE","offlineQuality":"REDUNDANT","reason":"Near-overlap with Midnight Lume and common constellation motif."},
+    {"id":"little-wonders","decision":"REPLACE_OR_MAJOR_REWORK","offlineQuality":"GENERIC","reason":"Cut-paper/gouache blobs are common; needs a distinct authored procedural grammar."}
+  ]
+}

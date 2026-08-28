@@ -1,0 +1,332 @@
+import { Buffer } from "node:buffer";
+import {
+  CARD_BODY_MIN_RENDER_PX,
+  CardDocumentSchema,
+  cardCopyMetrics,
+  cardFormatFactor,
+  cardPhotoContrastPalette,
+  cardVisualLength,
+  type CardDocument
+} from "@cardelume/card-schema";
+import { Resvg } from "@resvg/resvg-js";
+import sharp from "sharp";
+import { createPrintPdfFromJpeg } from "./pdf";
+import { getCardFormatSpec, type CardFormatSpec } from "./formats";
+import { rendererFontConfig } from "./fonts";
+import { assertRendererTemplateId, templateArtSvg } from "./template-art";
+import { templateLayoutProfile, type TemplateTextAnchor } from "./template-layout";
+
+export const CURRENT_RENDERER_VERSION="0.4.3-step.5" as const;
+
+const XML:Record<string,string>={"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&apos;"};
+export function escapeXml(value:string):string{return value.replace(/[&<>"']/g,char=>XML[char]);}
+
+const palettes:Record<string,{bg:string;fg:string;accent:string}>={
+  "editorial-ivory":{bg:"#f4eddd",fg:"#233049",accent:"#b99762"},
+  "midnight-navy":{bg:"#0b1730",fg:"#fbf8f1",accent:"#d8c095"},
+  "soft-sage":{bg:"#e9eee6",fg:"#26384a",accent:"#a28d67"},
+  "soft-rose":{bg:"#f2e8e7",fg:"#2b3548",accent:"#b18a72"}
+};
+
+const templateOriginalPalettes:Partial<Record<string,{bg:string;fg:string;accent:string}>>={
+  "whispered-type":{bg:"#f5f0e7",fg:"#1d2b40",accent:"#a6875d"},
+  "museum-note":{bg:"#ece9e1",fg:"#263240",accent:"#92734d"},
+  "monogram-orbit":{bg:"#e9ece5",fg:"#1e3240",accent:"#8d7a5d"},
+  "ribbon-line":{bg:"#f1e6e5",fg:"#293344",accent:"#a97772"},
+  "memory-window":{bg:"#e9e1d5",fg:"#243247",accent:"#9d7a55"},
+  "type-celebration":{bg:"#eadcbc",fg:"#14233a",accent:"#b35e4c"},
+  "quiet-seal":{bg:"#f0ece3",fg:"#233142",accent:"#9d7a4f"},
+  "pressed-shadow":{bg:"#e8dfd1",fg:"#2b3543",accent:"#8e7760"},
+  "ink-pause":{bg:"#eceae5",fg:"#1e3045",accent:"#52697d"},
+  "petal-geometry":{bg:"#e8eee7",fg:"#2d403b",accent:"#80947d"},
+  "soft-fold":{bg:"#ece8df",fg:"#283545",accent:"#9a8061"}
+};
+
+export type RenderAsset={bytes:Uint8Array;contentType:"image/jpeg"|"image/png"|"image/webp"};
+export type RenderAssets=Readonly<Record<string,RenderAsset>>;
+export type RenderSvgOptions={watermark?:boolean;assets?:RenderAssets};
+export type RasterizeSvg=(svg:string,input:{width:number;height:number;locale:string})=>Promise<Uint8Array>|Uint8Array;
+
+export type ProductionRenderMetadata={
+  format:CardDocument["format"];
+  rendererVersion:string;
+  deterministicKey:string;
+  jpg:{widthPx:number;heightPx:number;dpi:300;contentType:"image/jpeg"};
+  pdf:{widthIn:number;heightIn:number;pageCount:number;contentType:"application/pdf";layout:CardFormatSpec["pdf"]["layout"]};
+};
+
+export function fitTypography(headline:string,body:string,locale="en",format:CardDocument["format"]="portrait-5x7"){
+  const metrics=cardCopyMetrics(headline,body,locale,format);
+  const script=metrics.script,ff=cardFormatFactor(format);
+  const pressure=metrics.pressure;
+  const density=metrics.density;
+  let headlinePx=script==="latin"?116:script==="hangul"?103:100;let bodyPx=script==="latin"?36:34;
+  if(density==="balanced"){headlinePx-=13;bodyPx-=3;}if(density==="compact"){headlinePx-=25;bodyPx-=6;}if(pressure>1.65){headlinePx-=7;bodyPx-=2;}
+  headlinePx*=ff;
+  bodyPx=Math.max(CARD_BODY_MIN_RENDER_PX,bodyPx);
+  return{
+    headlinePx:Math.round(headlinePx),bodyPx:Math.round(bodyPx),trackingEm:script==="latin"?(density==="compact"?-.03:-.02):0,
+    headlineLineHeight:script==="latin"?(density==="compact"?.96:.99):script==="hangul"?1.12:1.16,bodyLineHeight:script==="latin"?1.46:1.62,
+    headlineMaxWidthPct:density==="compact"?93:density==="balanced"?89:83,bodyMaxWidthPct:density==="compact"?94:density==="balanced"?90:84,
+    maxHeadlineChars:script==="latin"?(density==="compact"?23:density==="balanced"?28:34):(density==="compact"?15:density==="balanced"?18:22),
+    maxBodyChars:script==="latin"?(density==="compact"?50:56):(density==="compact"?24:30),density,script
+  };
+}
+
+function assertRenderableCopy(headline:string,body:string,locale="en",format:CardDocument["format"]="portrait-5x7"){
+  const metrics=cardCopyMetrics(headline,body,locale,format);
+  if(metrics.hardOverflow)throw new Error("typography_copy_too_dense");
+}
+function splitLongToken(token:string,maxVisual:number,locale:string){
+  const out:string[]=[];let line="";
+  for(const ch of Array.from(token)){
+    const next=line+ch;
+    if(line&&cardVisualLength(next,locale)>maxVisual){out.push(line);line=ch;}else line=next;
+  }
+  if(line)out.push(line);
+  return out;
+}
+function wrapText(value:string,maxVisual:number,locale:string):string[]{
+  const clean=value.replace(/\s+/g," ").trim();if(!clean)return[];
+  if(!clean.includes(" "))return splitLongToken(clean,maxVisual,locale);
+  const words=clean.split(" "),lines:string[]=[];let line="";
+  for(const word of words){
+    if(cardVisualLength(word,locale)>maxVisual){
+      if(line){lines.push(line);line="";}
+      const chunks=splitLongToken(word,maxVisual,locale);lines.push(...chunks.slice(0,-1));line=chunks.at(-1)??"";continue;
+    }
+    const candidate=line?`${line} ${word}`:word;
+    if(line&&cardVisualLength(candidate,locale)>maxVisual){lines.push(line);line=word;}else line=candidate;
+  }
+  if(line)lines.push(line);return lines;
+}
+function visualWidthPx(value:string,size:number,locale:string){return cardVisualLength(value,locale)*size*.54;}
+function textLines(lines:string[],x:number,startY:number,size:number,lineHeight:number,attrs:string){return lines.map((line,index)=>`<text x="${x}" y="${startY+index*size*lineHeight}" ${attrs}>${escapeXml(line)}</text>`).join("\n");}
+function base64Asset(asset:RenderAsset){return`data:${asset.contentType};base64,${Buffer.from(asset.bytes).toString("base64")}`;}
+function firstPhoto(doc:CardDocument,assets?:RenderAssets){
+  if(!assets||!(doc.photoTreatment||doc.templateId==="photo-story"))return null;
+  for(const id of doc.artworkAssetIds){const asset=assets[id];if(asset)return asset;}
+  return null;
+}
+
+function normalizedTypography(doc:CardDocument,headline:string,body:string){
+  const auto=fitTypography(headline,body,doc.locale,doc.format);
+  // Browser typographyFit values live in a much smaller CSS coordinate space;
+  // final export therefore uses renderer-space fit unless the supplied values
+  // are already plausible at the 1500px reference canvas.
+  const supplied=doc.typographyFit;
+  if(!supplied||supplied.headlinePx<60||supplied.bodyPx<20)return auto;
+  return{
+    ...auto,
+    headlinePx:Math.max(64,Math.min(142,supplied.headlinePx)),
+    bodyPx:Math.max(CARD_BODY_MIN_RENDER_PX,Math.min(48,supplied.bodyPx)),
+    trackingEm:Math.max(-.06,Math.min(.08,supplied.trackingEm)),
+    headlineLineHeight:supplied.headlineLineHeight??supplied.lineHeight??auto.headlineLineHeight,
+    bodyLineHeight:supplied.bodyLineHeight??auto.bodyLineHeight,
+    headlineMaxWidthPct:supplied.headlineMaxWidthPct??supplied.maxWidthPct??auto.headlineMaxWidthPct,
+    bodyMaxWidthPct:supplied.bodyMaxWidthPct??supplied.maxWidthPct??auto.bodyMaxWidthPct
+  };
+}
+
+function assertLayoutBounds(input:{
+  headlineLines:string[];bodyLines:string[];hp:number;bp:number;hLeading:number;bLeading:number;
+  width:number;height:number;safeInset:number;headlineStart:number;bodyStart:number;photo:boolean;
+  headlineMaxWidthPct:number;bodyMaxWidthPct:number;locale:string;textX:number;anchor:TemplateTextAnchor;
+}){
+  const headlineHeight=Math.max(input.hp,input.headlineLines.length*input.hp*input.hLeading);
+  const bodyHeight=Math.max(input.bp,input.bodyLines.length*input.bp*input.bLeading);
+  const maxHeadline=input.photo?input.height*.24:input.height*.30;
+  const maxBody=input.photo?input.height*.20:input.height*.27;
+  if(headlineHeight>maxHeadline||bodyHeight>maxBody)throw new Error("typography_copy_too_dense");
+  const headlineLimit=Math.min(input.width-input.safeInset*2,input.width*(input.headlineMaxWidthPct/100));
+  const bodyLimit=Math.min(input.width-input.safeInset*2,input.width*(input.bodyMaxWidthPct/100));
+  const horizontalOk=(line:string,size:number,limit:number)=>{
+    const visual=visualWidthPx(line,size,input.locale);
+    if(visual>limit)return false;
+    const left=input.anchor==="middle"?input.textX-visual/2:input.anchor==="end"?input.textX-visual:input.textX;
+    const right=input.anchor==="middle"?input.textX+visual/2:input.anchor==="end"?input.textX:input.textX+visual;
+    return left>=input.safeInset&&right<=input.width-input.safeInset;
+  };
+  if(input.headlineLines.some(line=>!horizontalOk(line,input.hp,headlineLimit)))throw new Error("headline_horizontal_overflow");
+  if(input.bodyLines.some(line=>!horizontalOk(line,input.bp,bodyLimit)))throw new Error("body_horizontal_overflow");
+  const headlineTop=input.headlineStart-input.hp;
+  const headlineBottom=input.headlineStart+Math.max(0,input.headlineLines.length-1)*input.hp*input.hLeading+input.hp*.28;
+  const bodyTop=input.bodyStart-input.bp;
+  const bodyBottom=input.bodyStart+Math.max(0,input.bodyLines.length-1)*input.bp*input.bLeading+input.bp*.28;
+  if(headlineTop<input.safeInset||bodyBottom>input.height-input.safeInset)throw new Error("typography_safe_margin_overflow");
+  if(headlineBottom+input.bp*.8>bodyTop)throw new Error("typography_blocks_overlap");
+}
+
+
+export function renderSafeSvg(input:CardDocument,options:RenderSvgOptions={}):string{
+  const doc=CardDocumentSchema.parse(input);
+  // Trust boundary: the SVG is assembled only from renderer-owned markup,
+  // allowlisted IDs/colors, escaped text and in-memory raster assets. No raw
+  // SVG/HTML/CSS/JS or external URL from AI/user input is ever emitted.
+  assertRendererTemplateId(doc.templateId);
+  const layout=templateLayoutProfile(doc.templateId);
+  const spec=getCardFormatSpec(doc.format),w=spec.front.widthPx,h=spec.front.heightPx,min=Math.min(w,h),scale=min/1500;
+  const base=(doc.paletteId==="editorial-ivory"?templateOriginalPalettes[doc.templateId]:undefined)??palettes[doc.paletteId]??palettes["editorial-ivory"];
+  const photoPalette=doc.photoPalette?cardPhotoContrastPalette(doc.photoPalette):null;
+  const photoDarkGradient=doc.templateId==="midnight-lume"||doc.templateId==="celestial-night";
+  const photoFixedNoir=doc.templateId==="art-deco-noir"||doc.templateId==="quiet-noir";
+  const photoAdjusted=photoPalette?(photoFixedNoir?{
+    bg:"#111820",
+    fg:"#f8f0e0",
+    accent:photoPalette.darkAccent
+  }:photoDarkGradient?{
+    bg:photoPalette.darkBackground,
+    fg:photoPalette.darkForeground,
+    accent:photoPalette.darkAccent
+  }:{
+    bg:photoPalette.background,
+    fg:photoPalette.foreground,
+    accent:photoPalette.accent
+  }):base;
+  const palette=layout.darkSurface?{bg:"#111a2b",fg:"#f5f0e6",accent:photoPalette?.darkAccent??"#d8c095"}:photoAdjusted;
+  const headline=doc.textBlocks.find(x=>x.role==="headline")?.text??"";
+  const body=doc.textBlocks.find(x=>x.role==="body")?.text??"";
+  const kicker=doc.textBlocks.find(x=>x.role==="kicker")?.text??"";
+  assertRenderableCopy(headline,body,doc.locale,doc.format);
+  const fit=normalizedTypography(doc,headline,body);
+  const hp=Math.max(42,Math.round(fit.headlinePx*scale*layout.headlineScale)),bp=Math.max(CARD_BODY_MIN_RENDER_PX,Math.round(fit.bodyPx*scale*layout.bodyScale)),kp=Math.max(18,Math.round(31*scale));
+  const hLeading=fit.headlineLineHeight??1,bLeading=fit.bodyLineHeight??1.45;
+  const inset=Math.round(min*(spec.safeMarginIn/Math.min(spec.front.widthIn,spec.front.heightIn)));
+  const headlineWidthPct=Math.min(fit.headlineMaxWidthPct??88,layout.headlineWidthPct);
+  const bodyWidthPct=Math.min(fit.bodyMaxWidthPct??90,layout.bodyWidthPct);
+  const headlineWidthPx=Math.min(w-inset*2,w*(headlineWidthPct/100));
+  const bodyWidthPx=Math.min(w-inset*2,w*(bodyWidthPct/100));
+  const headlineLines=wrapText(headline,headlineWidthPx/(hp*.54),doc.locale);
+  const bodyLines=wrapText(body,bodyWidthPx/(bp*.54),doc.locale);
+  const photo=firstPhoto(doc,options.assets);
+
+  const art=templateArtSvg({templateId:doc.templateId,width:w,height:h,scale,accent:palette.accent,foreground:palette.fg,background:palette.bg});
+
+  const borderInset=Math.max(inset,Math.round(min*.073));
+  const borderWidth=Math.max(2,Math.round(3*scale));
+  const textX=Math.round(w*layout.xPct);
+  const textAnchor=layout.anchor;
+  const watermark=options.watermark?`<g aria-label="preview-watermark" opacity=".12"><text x="${w-borderInset}" y="${h-borderInset/2}" text-anchor="end" fill="${palette.fg}" font-family="sans-serif" font-size="${Math.max(12,Math.round(15*scale))}" letter-spacing="4">CARDELUME · PREVIEW</text></g>`:"";
+
+  if(photo&&layout.photoWindow){
+    const pw=layout.photoWindow;
+    const photoX=Math.round(w*pw.xPct),photoY=Math.round(h*pw.yPct),photoW=Math.round(w*pw.widthPct),photoH=Math.round(h*pw.heightPct);
+    const kickerY=Math.round(h*layout.kickerYPct),headlineCenter=Math.round(h*layout.headlineYPct),bodyCenter=Math.round(h*layout.bodyYPct);
+    const headlineStart=headlineCenter-Math.max(0,headlineLines.length-1)*hp*hLeading/2;
+    const bodyStart=bodyCenter-Math.max(0,bodyLines.length-1)*bp*bLeading/2;
+    assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:false,headlineMaxWidthPct,bodyMaxWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+    return`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+      <rect width="${w}" height="${h}" fill="${palette.bg}"/>
+      <image x="${photoX}" y="${photoY}" width="${photoW}" height="${photoH}" preserveAspectRatio="xMidYMid slice" href="${base64Asset(photo)}"/>
+      ${art}
+      <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
+      ${textLines(headlineLines,textX,headlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
+      ${textLines(bodyLines,textX,bodyStart,bp,bLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
+      ${watermark}
+    </svg>`;
+  }
+
+  if(photo){
+    const photoH=Math.round(h*.57),copyTop=photoH;
+    const kickerY=Math.round(copyTop+h*.075);
+    const headlineCenter=Math.round(copyTop+h*.18);
+    const bodyCenter=Math.round(copyTop+h*.33);
+    const headlineStart=headlineCenter-Math.max(0,headlineLines.length-1)*hp*hLeading/2;
+    const bodyStart=bodyCenter-Math.max(0,bodyLines.length-1)*bp*bLeading/2;
+    assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:true,headlineMaxWidthPct,bodyMaxWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+    return`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+      <rect width="${w}" height="${h}" fill="${palette.bg}"/>
+      <image x="0" y="0" width="${w}" height="${photoH}" preserveAspectRatio="xMidYMid slice" href="${base64Asset(photo)}"/>
+      <rect x="0" y="${photoH}" width="${w}" height="${h-photoH}" fill="${palette.bg}"/>
+      <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
+      ${textLines(headlineLines,textX,headlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
+      ${textLines(bodyLines,textX,bodyStart,bp,bLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
+      ${watermark}
+    </svg>`;
+  }
+
+  const kickerY=Math.round(h*layout.kickerYPct),headlineCenter=Math.round(h*layout.headlineYPct),bodyCenter=Math.round(h*layout.bodyYPct),sparkY=Math.round(h*layout.signatureYPct);
+  const headlineStart=headlineCenter-Math.max(0,headlineLines.length-1)*hp*hLeading/2;
+  const bodyStart=bodyCenter-Math.max(0,bodyLines.length-1)*bp*bLeading/2;
+  assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:false,headlineMaxWidthPct,bodyMaxWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+  return`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" rx="${Math.max(6,Math.round(18*scale))}" fill="${palette.bg}"/>
+    ${art}
+    ${layout.showBorder?`<rect x="${borderInset}" y="${borderInset}" width="${w-borderInset*2}" height="${h-borderInset*2}" rx="${Math.max(2,Math.round(4*scale))}" fill="none" stroke="${palette.accent}" stroke-width="${borderWidth}" opacity=".68"/>`:""}
+    <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
+    ${textLines(headlineLines,textX,headlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
+    ${textLines(bodyLines,textX,bodyStart,bp,bLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
+    ${layout.showSignatureMark?`<text x="${textX}" y="${sparkY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="serif" font-size="${Math.max(36,Math.round(58*scale))}">✦</text>`:""}
+    ${watermark}
+  </svg>`;
+}
+
+export function renderPreviewSvg(doc:CardDocument,assets?:RenderAssets){return renderSafeSvg(doc,{watermark:true,assets});}
+export function renderFinalSvg(doc:CardDocument,assets?:RenderAssets){return renderSafeSvg(doc,{watermark:false,assets});}
+
+export async function rasterizeSvgWithResvg(svg:string,input:{width:number;height:number;locale:string}){
+  const font=rendererFontConfig(input.locale);
+  const renderer=new Resvg(svg,{
+    fitTo:{mode:"original"},
+    dpi:300,
+    background:"rgba(255,255,255,1)",
+    font,
+    shapeRendering:2,
+    textRendering:2,
+    imageRendering:0
+  });
+  const rendered=renderer.render();
+  if(rendered.width!==input.width||rendered.height!==input.height)throw new Error(`resvg_dimension_mismatch:${rendered.width}x${rendered.height}`);
+  return new Uint8Array(rendered.asPng());
+}
+
+async function encodeJpeg(png:Uint8Array,width:number,height:number){
+  const out=await sharp(Buffer.from(png),{failOn:"error"})
+    .resize(width,height,{fit:"fill",kernel:"lanczos3"})
+    .flatten({background:"#ffffff"})
+    .jpeg({quality:95,chromaSubsampling:"4:4:4",progressive:true,force:true})
+    .withMetadata({density:300})
+    .toBuffer();
+  const meta=await sharp(out).metadata();
+  if(meta.width!==width||meta.height!==height)throw new Error(`jpg_dimension_mismatch:${meta.width}x${meta.height}`);
+  return new Uint8Array(out);
+}
+
+export async function renderProductionFinal(input:CardDocument,options:{assets?:RenderAssets;rasterize?:RasterizeSvg}={}):Promise<{jpg:Uint8Array;pdf:Uint8Array;metadata:ProductionRenderMetadata}>{
+  const doc=CardDocumentSchema.parse(input);
+  if(doc.rendererVersion!==CURRENT_RENDERER_VERSION)throw new Error(`unsupported_renderer_version:${doc.rendererVersion}`);
+  if((doc.templateId==="photo-story"||doc.photoTreatment)&&!firstPhoto(doc,options.assets))throw new Error("trusted_photo_asset_required");
+  const spec=getCardFormatSpec(doc.format),svg=renderFinalSvg(doc,options.assets);
+  const rasterize=options.rasterize??rasterizeSvgWithResvg;
+  const png=await rasterize(svg,{width:spec.front.widthPx,height:spec.front.heightPx,locale:doc.locale});
+  const jpg=await encodeJpeg(png,spec.front.widthPx,spec.front.heightPx);
+  const pdf=createPrintPdfFromJpeg({jpeg:jpg,format:doc.format,pixelWidth:spec.front.widthPx,pixelHeight:spec.front.heightPx});
+  return{
+    jpg,pdf,
+    metadata:{
+      format:doc.format,rendererVersion:doc.rendererVersion,deterministicKey:`${doc.id}:${doc.rendererVersion}:${doc.templateVersion}:${doc.format}`,
+      jpg:{widthPx:spec.front.widthPx,heightPx:spec.front.heightPx,dpi:300,contentType:"image/jpeg"},
+      pdf:{widthIn:spec.pdf.widthIn,heightIn:spec.pdf.heightIn,pageCount:spec.pdf.pageCount,contentType:"application/pdf",layout:spec.pdf.layout}
+    }
+  };
+}
+
+export async function renderProductionPreview(input:CardDocument,options:{assets?:RenderAssets;rasterize?:RasterizeSvg;maxLongEdge?:number}={}):Promise<{jpg:Uint8Array;width:number;height:number}>{
+  const doc=CardDocumentSchema.parse(input),spec=getCardFormatSpec(doc.format),svg=renderPreviewSvg(doc,options.assets),max=options.maxLongEdge??1200;
+  const ratio=Math.min(1,max/Math.max(spec.front.widthPx,spec.front.heightPx));
+  const width=Math.max(1,Math.round(spec.front.widthPx*ratio)),height=Math.max(1,Math.round(spec.front.heightPx*ratio));
+  const rasterize=options.rasterize??rasterizeSvgWithResvg;
+  // render full deterministic SVG first, then use Sharp for the preview downscale.
+  const png=await rasterize(svg,{width:spec.front.widthPx,height:spec.front.heightPx,locale:doc.locale});
+  const jpg=await sharp(Buffer.from(png),{failOn:"error"}).resize(width,height,{fit:"fill",kernel:"lanczos3"}).jpeg({quality:88,chromaSubsampling:"4:2:0",progressive:true}).toBuffer();
+  return{jpg:new Uint8Array(jpg),width,height};
+}
+
+export { createPrintPdfFromJpeg } from "./pdf";
+export { getCardFormatSpec } from "./formats";
+export { rendererFontConfig } from "./fonts";
+export { rendererTemplateIds, assertRendererTemplateId } from "./template-art";
+
+export function assertRendererFontsReady(){
+  for(const locale of ["en","ja","ko","zh"] as const)rendererFontConfig(locale);
+}

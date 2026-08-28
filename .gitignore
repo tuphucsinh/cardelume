@@ -1,0 +1,41 @@
+node_modules/
+.pnpm-store/
+.next/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+tmp/
+.cache/
+render-cache/
+user-uploads/
+
+# Step 14 benchmark outputs
+benchmark-results/*.jsonl
+benchmark-results/*.csv
+benchmark-results/*.json
+!benchmark-results/.gitkeep
+
+# Step 16 experiment runtime scratch (registry/records remain versioned)
+experiments/results/*
+!experiments/results/.gitkeep
+experiments/*.budget-ledger.jsonl
+# Hermes standard project scratch/runtime data
+.tmp/
+!data/.gitkeep
+data/*
+!data/.gitkeep
+*.tsbuildinfo
+
+# Browser/runtime artifacts
+playwright-report/
+test-results/
+lighthouse-report*/
+
+# Local DB/backup artifacts must never be committed by default
+*.dump
+*.backup
+*.sql.gz

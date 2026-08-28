@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "policy": "A font family may be commercially eligible while its shipped binary remains unapproved. Production requires exact artifact evidence and typography quality evidence.",
+  "hardGates": [
+    "authoritative license evidence exists",
+    "commercial design use allowed",
+    "embedding/bundling terms known",
+    "exact package/upstream version pinned",
+    "exact shipped font file SHA256 recorded",
+    "license/copyright evidence retained with artifact",
+    "required glyph coverage verified for every assigned locale",
+    "browser and final-render typography QA pass",
+    "preview/final metric parity pass",
+    "no uncontrolled system-font fallback in supported locales"
+  ],
+  "portfolioLimits": {
+    "primaryGlobalUiSans": 1,
+    "primaryLatinDisplaySerif": 1,
+    "productionLatinAlternatesMax": 3,
+    "principle": "Do not ship a font collection. Ship a coherent CardeLume type system."
+  },
+  "currentPreferredDirection": {
+    "brandDisplay": "Cormorant Garamond",
+    "globalUiCandidate": "Plus Jakarta Sans",
+    "vietnameseUiAlternate": "Be Vietnam Pro",
+    "rendererBaselineSerif": "EB Garamond",
+    "rendererBaselineSans": "Lato",
+    "cjkHangulBaseline": "Noto Serif/Sans CJK"
+  }
+}

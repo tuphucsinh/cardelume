@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "packageName": "CARDELUME_STEP17I_HERMES_PI5_PROJECT",
+  "projectDirectory": "cardelume",
+  "sourceRelease": "0.4.3-step.17i",
+  "sourceBaseline": "STEP17I_PREMIUM_EXPERIENCE_CONVERGENCE",
+  "hermesReady": true,
+  "productionStatus": "NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES",
+  "migrationHead": "0011_funnel_and_launch_approvals.sql",
+  "authoritativeLockfilePresent": false,
+  "lockfilePolicy": "Step18 must generate a NEW candidate lockfile, review/commit it, then prove frozen install. Do not claim historical recovery.",
+  "entryFiles": [
+    "AGENTS.md",
+    "HANDOFF.md",
+    "MASTERPLAN.MD",
+    "tasks.md",
+    "README.md"
+  ],
+  "aiFiles": [
+    ".ai/MASTER_PLAN.md",
+    ".ai/DECISIONS_LOG.md",
+    ".ai/ARCHITECT.md",
+    ".ai/UI_UX.md",
+    ".ai/KNOWN_BUGS.md"
+  ],
+  "validation": {
+    "fast": {
+      "checks": 8,
+      "statuses": {
+        "PASS": 8
+      },
+      "path": "quality/governance/LATEST_FAST.json"
+    },
+    "release": {
+      "checks": 28,
+      "statuses": {
+        "PASS": 28
+      },
+      "path": "quality/governance/LATEST_RELEASE.json"
+    },
+    "status": {
+      "checks": 28,
+      "statuses": {
+        "PASS": 28
+      },
+      "path": "quality/governance/LATEST_STATUS.json"
+    },
+    "heavy": {
+      "checks": 33,
+      "statuses": {
+        "PASS": 29,
+        "BLOCKED_RUNTIME": 4
+      },
+      "path": "quality/governance/LATEST_HEAVY.json"
+    },
+    "secretScan": "PASS / 0 findings at packaging time"
+  },
+  "notes": [
+    "HEAVY intentionally retains BLOCKED_RUNTIME renderer checks until dependency/runtime setup exists.",
+    "Zero production-approved templates is intentional fail-closed state.",
+    "No production credential or .env is included.",
+    "apps/ + packages/ are the canonical monorepo source layout; do not rename to generic src/."
+  ]
+}

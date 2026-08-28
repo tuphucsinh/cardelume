@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-08-28",
+  "authority": "AI_OFFLINE_SOURCE_AND_CONTACT_SHEET_REVIEW_ONLY",
+  "warning": "This is not human premium/WOW certification and not a copyright clearance. Production promotion remains gated.",
+  "contactSheet": "quality/template-audit/v2-production-layout/STEP17E_V2_PRODUCTION_LAYOUT_CONTACT_SHEET.png",
+  "families": [
+    {"id":"museum-note","offlineVerdict":"PRIORITY_GOLDEN","reason":"Distinct editorial label-grid hierarchy with strong negative-space discipline."},
+    {"id":"monogram-orbit","offlineVerdict":"PRIORITY_GOLDEN","reason":"Personalization can become the artwork through restrained parametric geometry."},
+    {"id":"whispered-type","offlineVerdict":"PRIORITY_GOLDEN","reason":"Strong typographic restraint and clear authored signature without decorative dependency."},
+    {"id":"memory-window","offlineVerdict":"PRIORITY_GOLDEN","reason":"Photo treatment has a specific asymmetric memory-fragment thesis rather than a generic frame."},
+    {"id":"night-ledger","offlineVerdict":"PRIORITY_GOLDEN","reason":"Distinct nocturne system with sparse coordinate language and controlled dark surface."},
+    {"id":"quiet-seal","offlineVerdict":"PRIORITY_GOLDEN","reason":"Formal negative-space system with a small generated personal mark."},
+    {"id":"ribbon-line","offlineVerdict":"PROMISING_REFINE","reason":"Elegant movement with one line; needs benchmark proof that the gesture remains distinctive across briefs."},
+    {"id":"pressed-shadow","offlineVerdict":"PROMISING_REFINE","reason":"Paper-depth planes are useful but need stronger differentiation from generic layered-card aesthetics."},
+    {"id":"ink-pause","offlineVerdict":"PROMISING_REFINE","reason":"Restrained abstract gesture works; procedural path variation must avoid repetitive brush-signature sameness."},
+    {"id":"soft-fold","offlineVerdict":"PROMISING_REFINE","reason":"Good spatial thesis; verify fold geometry does not compete with longer copy."},
+    {"id":"type-celebration","offlineVerdict":"REFINE_BEFORE_GOLDEN","reason":"Current layout is disciplined but not yet sufficiently celebratory or signature-rich without becoming generic."},
+    {"id":"petal-geometry","offlineVerdict":"REFINE_BEFORE_GOLDEN","reason":"Procedural and safe, but abstract botanical geometry remains a common visual language and needs stronger authorship."}
+  ]
+}

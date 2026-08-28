@@ -1,0 +1,22 @@
+{
+  "name": "@cardelume/queue",
+  "version": "0.4.3-step.17i",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "pg-boss": "^12.6.0"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "node -e \"process.exit(0)\"",
+    "test": "node -e \"process.exit(0)\""
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "@types/node": "^24.3.0"
+  }
+}

@@ -1,0 +1,12 @@
+CARDELUME 0.4.3 STEP 17I — HERMES / PI5 START HERE
+
+1) This directory is already a complete Hermes-ready project. Do NOT run new-project inside it.
+2) Read AGENTS.md first.
+3) Then read HANDOFF.md, MASTERPLAN.MD, tasks.md and .ai/ARCHITECT.md / .ai/UI_UX.md / .ai/KNOWN_BUGS.md.
+4) Preserve the product invariant: small brief → 3 premium directions → minimal finish → pay once → secure JPG/PDF.
+5) Preserve creative authority: hard compatibility constraints veto; soft evidence informs; Premium AI makes the final creative decision.
+6) Run sha256sum -c PROJECT_SHA256SUMS.txt, then npm run check:fast / check:release / check:status before Step18 work.
+7) This package intentionally has no authoritative pnpm-lock.yaml. Step18 must generate a NEW candidate lock, review/commit it, then prove frozen install.
+8) Production customer template surfaces are approved-only. There are currently 0 approved templates by design; never auto-approve.
+9) Production remains NO_GO until real runtime + owner gates pass.
+10) Detailed Pi5 setup: docs/PI5_HERMES_SETUP.md. Detailed runtime plan: docs/STEP18_CONTROLLED_RUNTIME_RUNBOOK.md.

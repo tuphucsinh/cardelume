@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+import fs from 'node:fs';import path from 'node:path';
+const root=path.resolve(import.meta.dirname,'..');const read=p=>fs.readFileSync(path.join(root,p),'utf8');const pkg=JSON.parse(read('package.json'));const compose=read('docker-compose.yml');const pi=read('scripts/bootstrap-pi5.sh');const vps=read('scripts/bootstrap-vps.sh');const watch=read('infra/watchdog/cardelume-health-watchdog.sh');const svc=read('infra/watchdog/cardelume-watchdog.service');const cf=read('docs/CLOUDFLARE_SHARED_TUNNEL.md');const run=read('docs/STEP18_CONTROLLED_RUNTIME_RUNBOOK.md');
+const checks=[];const assert=(ok,name)=>{if(!ok)throw new Error(`pre_pi5_deployment_source_failed:${name}`);checks.push(name)};
+assert(/^0\.4\.3-step\.(?:1[7-9][a-z]?|[2-9]\d+[a-z]?)$/.test(pkg.version),'root_release_identity');
+assert(compose.includes(`cardelume-web:${pkg.version}`)&&compose.includes(`cardelume-worker:${pkg.version}`),'compose_release_tags');
+assert((compose.match(new RegExp(`APP_VERSION: \"${pkg.version.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\"`,'g'))||[]).length===2,'compose_app_version_parity');
+assert(compose.includes('127.0.0.1:3000:3000'),'origin_not_publicly_bound');
+assert(compose.includes('/health/ready'),'compose_health_is_readiness');
+assert(/cloudflare\/cloudflared:2026\.\d+\.\d+@sha256:[0-9a-f]{64}/.test(compose),'cloudflared_pinned_digest');
+assert(compose.includes('no-new-privileges:true'),'container_no_new_privileges');
+assert(pi.includes('aarch64')&&pi.includes('--profile worker --profile tunnel'),'pi_bootstrap_arch_and_profiles');
+assert(vps.includes('--profile worker --profile tunnel'),'vps_bootstrap_profiles');
+assert(watch.includes('/health/ready')&&watch.includes('docker start')&&watch.includes('docker stop'),'watchdog_readiness_and_tunnel');
+assert(svc.includes('Restart=always'),'watchdog_service_restart');
+assert(cf.includes('same production tunnel token')&&cf.includes('Application-aware failover'),'shared_tunnel_runbook');
+assert(run.includes('0001')&&run.includes('0011'),'runtime_runbook_migration_0011');
+assert(fs.existsSync(path.join(root,'packages/db/migrations/0010_template_portfolio_v2.sql')),'migration_0010_present');
+assert(fs.existsSync(path.join(root,'packages/db/migrations/0011_funnel_and_launch_approvals.sql')),'migration_0011_present');
+console.log(JSON.stringify({ok:true,checks:checks.length,names:checks},null,2));

@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "standard": "OWASP Top 10",
+  "version": "2025",
+  "purpose": "awareness/risk mapping; ASVS 5.0.0 is the verification baseline",
+  "categories": [
+    {
+      "id": "A01",
+      "name": "Broken Access Control",
+      "status": "PARTIAL",
+      "evidence": [
+        "ASVS V8 mappings",
+        "RLS/session/entitlement source boundaries"
+      ],
+      "gap": "real RLS/IDOR/admin authorization staging tests"
+    },
+    {
+      "id": "A02",
+      "name": "Security Misconfiguration",
+      "status": "BLOCKED",
+      "evidence": [
+        "security headers and environment isolation"
+      ],
+      "gap": "CSP is report-only/unsafe-inline; live edge/origin configuration unverified"
+    },
+    {
+      "id": "A03",
+      "name": "Software Supply Chain Failures",
+      "status": "BLOCKED",
+      "evidence": [
+        "digest-pinned base/tunnel images",
+        "source SBOM tooling"
+      ],
+      "gap": "pnpm lock/release SBOM/vulnerability report and Debian font package pinning"
+    },
+    {
+      "id": "A04",
+      "name": "Cryptographic Failures",
+      "status": "PARTIAL",
+      "evidence": [
+        "HMAC-SHA256/SHA-256/CSPRNG inventory"
+      ],
+      "gap": "live TLS, secret storage and rotation evidence"
+    },
+    {
+      "id": "A05",
+      "name": "Injection",
+      "status": "PARTIAL",
+      "evidence": [
+        "tagged/parameterized database access and structured input validation"
+      ],
+      "gap": "full dynamic application security test not executed"
+    },
+    {
+      "id": "A06",
+      "name": "Insecure Design",
+      "status": "PARTIAL",
+      "evidence": [
+        "threat model",
+        "hard payment/IP/security invariants"
+      ],
+      "gap": "abuse-case staging exercise pending"
+    },
+    {
+      "id": "A07",
+      "name": "Authentication Failures",
+      "status": "PARTIAL",
+      "evidence": [
+        "capability/session controls"
+      ],
+      "gap": "template admin still Basic-auth based; identity-aware edge gate required before production"
+    },
+    {
+      "id": "A08",
+      "name": "Software or Data Integrity Failures",
+      "status": "PARTIAL",
+      "evidence": [
+        "immutable template versions, SHA-256 manifests, webhook signatures"
+      ],
+      "gap": "full release artifact/SBOM provenance pending"
+    },
+    {
+      "id": "A09",
+      "name": "Security Logging and Alerting Failures",
+      "status": "PARTIAL",
+      "evidence": [
+        "security/LOGGING_INVENTORY.md",
+        "content-minimized admin/webhook/rate-limit/recovery security event source logging"
+      ],
+      "gap": "centralized sink ACL/retention/alerts and complete staging event validation not executed"
+    },
+    {
+      "id": "A10",
+      "name": "Mishandling of Exceptional Conditions",
+      "status": "PARTIAL",
+      "evidence": [
+        "fail-closed release/isolation/payment/recovery guards"
+      ],
+      "gap": "chaos/outage/error-path staging validation pending"
+    }
+  ]
+}

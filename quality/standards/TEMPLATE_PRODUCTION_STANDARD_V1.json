@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "policy": "A template is production-ready only when legal provenance, originality, renderer safety, multilingual typography and premium/WOW quality all pass. Source-authored code alone is not enough.",
+  "hardGates": [
+    "repo-controlled immutable template/version pair",
+    "all fonts and component assets APPROVED",
+    "no unknown external template/artwork dependency",
+    "originality attestation complete",
+    "third-party visual-similarity review complete",
+    "renderer format/script/photo compatibility pass",
+    "short/medium/long text-pressure pass",
+    "assigned locale typography QA pass",
+    "preview/final render parity pass",
+    "no clipping/overflow/critical contrast defect",
+    "target-segment Golden benchmark median >= 8.5",
+    "target-segment Golden benchmark p10 >= 7.5",
+    "human premium/originality/WOW review pass",
+    "no portfolio concentration or near-duplicate-family warning"
+  ],
+  "designPrinciples": [
+    "typography and emotional hierarchy before ornament",
+    "negative space is intentional",
+    "personalization should influence composition where appropriate",
+    "avoid generic gradients, sparkles, confetti and black/gold luxury shorthand",
+    "avoid cultural/city names as aesthetic stereotypes",
+    "procedural geometry is preferred over third-party decorative assets",
+    "one clear signature move per family",
+    "photo use is optional/creative unless objectively required"
+  ]
+}

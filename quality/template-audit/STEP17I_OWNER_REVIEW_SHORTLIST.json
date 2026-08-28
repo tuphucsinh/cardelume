@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "candidate": "0.4.3-step.17i",
+  "status": "REVIEW_ORDER_ONLY_NOT_APPROVAL",
+  "highConfidenceReviewFirst": [
+    "museum-note",
+    "memory-window",
+    "whispered-type",
+    "night-ledger",
+    "pressed-shadow",
+    "soft-fold"
+  ],
+  "legacyChallengers": [
+    "midnight-lume",
+    "luxury-editorial",
+    "classic-letterpress",
+    "photo-story",
+    "quiet-minimal"
+  ],
+  "controversialChallengers": [
+    "monogram-orbit",
+    "quiet-seal",
+    "ink-pause",
+    "type-celebration",
+    "ribbon-line",
+    "petal-geometry"
+  ],
+  "strongHoldOrReworkConsensus": [
+    "bold-pop",
+    "kawaii-joy",
+    "golden-hour",
+    "watercolor-bloom",
+    "little-wonders"
+  ],
+  "targetLaunchPortfolioGuidance": "roughly 6-8 excellent families spanning genuinely different emotional/visual worlds after human + IP + Golden evidence",
+  "autoApproval": false
+}

@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "status": "EXPERIMENT_ONLY",
+  "policy": "Original CardeLume theses only. Market references may inform abstract principles, never layouts, artwork or traced compositions.",
+  "allowedPrimitives": [
+    "line",
+    "rect",
+    "circle",
+    "ellipse",
+    "bezier-path",
+    "text-zone",
+    "user-photo-mask",
+    "procedural-paper-grain"
+  ],
+  "forbidden": [
+    "external-template-import",
+    "traced-competitor-art",
+    "stock-ornament-without-approved-license",
+    "competitor-layout-reconstruction",
+    "pinterest-layout-copy"
+  ],
+  "concepts": [
+    {
+      "id": "whispered-type",
+      "name": "Whispered Type",
+      "thesis": "One oversized off-center word carries emotion; micro-copy and a hairline create the pause.",
+      "signatureMove": "asymmetric oversized serif anchor",
+      "assetStrategy": "type + line only",
+      "photo": "none",
+      "candidateFonts": [
+        "Cormorant Garamond",
+        "Newsreader"
+      ],
+      "target": [
+        "anniversary",
+        "thank-you",
+        "romantic",
+        "professional"
+      ]
+    },
+    {
+      "id": "museum-note",
+      "name": "Museum Note",
+      "thesis": "Treat the recipient and date like a tiny exhibition label around a quiet central message.",
+      "signatureMove": "editorial label-grid asymmetry",
+      "assetStrategy": "type + rules only",
+      "photo": "optional",
+      "candidateFonts": [
+        "Newsreader",
+        "Plus Jakarta Sans"
+      ],
+      "target": [
+        "thank-you",
+        "anniversary",
+        "professional"
+      ]
+    },
+    {
+      "id": "monogram-orbit",
+      "name": "Monogram Orbit",
+      "thesis": "Generate a unique restrained orbit from recipient initials, date or age; personalization becomes the artwork.",
+      "signatureMove": "brief-derived parametric orbit",
+      "assetStrategy": "procedural circles/lines only",
+      "photo": "none",
+      "candidateFonts": [
+        "Cormorant Garamond",
+        "Plus Jakarta Sans"
+      ],
+      "target": [
+        "birthday",
+        "anniversary",
+        "congratulations"
+      ]
+    },
+    {
+      "id": "ribbon-line",
+      "name": "Ribbon Line",
+      "thesis": "A single continuous Bézier gesture crosses the composition behind the message, creating movement without decoration overload.",
+      "signatureMove": "one authored continuous line",
+      "assetStrategy": "procedural path only",
+      "photo": "none",
+      "candidateFonts": [
+        "Cormorant Garamond",
+        "Newsreader"
+      ],
+      "target": [
+        "romantic",
+        "family",
+        "thank-you"
+      ]
+    },
+    {
+      "id": "pressed-shadow",
+      "name": "Pressed Shadow",
+      "thesis": "Two or three paper-like translucent planes imply emboss/fold depth while typography stays dominant.",
+      "signatureMove": "restrained layered relief",
+      "assetStrategy": "procedural geometry only",
+      "photo": "none",
+      "candidateFonts": [
+        "Newsreader",
+        "Plus Jakarta Sans"
+      ],
+      "target": [
+        "professional",
+        "anniversary",
+        "congratulations"
+      ]
+    },
+    {
+      "id": "ink-pause",
+      "name": "Ink Pause",
+      "thesis": "One procedural ink gesture creates an emotional pause; no flower illustration, no imitation brush asset.",
+      "signatureMove": "seeded abstract brush path",
+      "assetStrategy": "procedural path only",
+      "photo": "none",
+      "candidateFonts": [
+        "Cormorant Garamond",
+        "Fraunces"
+      ],
+      "target": [
+        "thank-you",
+        "romantic",
+        "sensitive"
+      ]
+    },
+    {
+      "id": "memory-window",
+      "name": "Memory Window",
+      "thesis": "A user photo appears as a considered memory fragment with asymmetric margin, date and micro-caption—not a generic photo frame.",
+      "signatureMove": "asymmetric photo window + micro-caption",
+      "assetStrategy": "user photo only",
+      "photo": "optional",
+      "candidateFonts": [
+        "Newsreader",
+        "Plus Jakarta Sans"
+      ],
+      "target": [
+        "birthday",
+        "anniversary",
+        "family",
+        "friend"
+      ]
+    },
+    {
+      "id": "type-celebration",
+      "name": "Type Celebration",
+      "thesis": "Celebration comes from scale, spacing and one controlled rotation—no confetti or random shapes.",
+      "signatureMove": "kinetic but disciplined type hierarchy",
+      "assetStrategy": "type only",
+      "photo": "none",
+      "candidateFonts": [
+        "Fraunces",
+        "Plus Jakarta Sans"
+      ],
+      "target": [
+        "birthday",
+        "congratulations",
+        "friend"
+      ]
+    },
+    {
+      "id": "petal-geometry",
+      "name": "Petal Geometry",
+      "thesis": "Abstract petals are generated from ellipses and spacing rules rather than copied botanical illustration.",
+      "signatureMove": "parametric ellipse cluster",
+      "assetStrategy": "procedural ellipses only",
+      "photo": "none",
+      "candidateFonts": [
+        "Cormorant Garamond",
+        "Plus Jakarta Sans"
+      ],
+      "target": [
+        "birthday",
+        "thank-you",
+        "family"
+      ]
+    },
+    {
+      "id": "night-ledger",
+      "name": "Night Ledger",
+      "thesis": "A nocturne built like a quiet ledger: sparse coordinates, one line of light and personal metadata; not a constellation poster.",
+      "signatureMove": "brief-derived sparse coordinate marks",
+      "assetStrategy": "procedural points/lines only",
+      "photo": "none",
+      "candidateFonts": [
+        "Newsreader",
+        "Plus Jakarta Sans"
+      ],
+      "target": [
+        "anniversary",
+        "romantic",
+        "professional"
+      ]
+    },
+    {
+      "id": "soft-fold",
+      "name": "Soft Fold",
+      "thesis": "Overlapping paper planes create a subtle fold boundary that the message deliberately aligns to.",
+      "signatureMove": "type anchored to fold geometry",
+      "assetStrategy": "procedural planes only",
+      "photo": "optional",
+      "candidateFonts": [
+        "Cormorant Garamond",
+        "Plus Jakarta Sans"
+      ],
+      "target": [
+        "thank-you",
+        "professional",
+        "congratulations"
+      ]
+    },
+    {
+      "id": "quiet-seal",
+      "name": "Quiet Seal",
+      "thesis": "A tiny personal seal generated from initials/occasion acts as the single mark in a formal field of negative space.",
+      "signatureMove": "procedural personalized seal",
+      "assetStrategy": "generated geometry + type only",
+      "photo": "none",
+      "candidateFonts": [
+        "EB Garamond",
+        "Plus Jakarta Sans"
+      ],
+      "target": [
+        "professional",
+        "anniversary",
+        "family"
+      ]
+    }
+  ]
+}

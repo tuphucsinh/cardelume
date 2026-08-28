@@ -1,0 +1,1708 @@
+[
+  {
+    "id": "10000000-0000-4000-8000-000000000001",
+    "familyId": "20000000-0000-4000-8000-000000000001",
+    "versionId": "30000000-0000-4000-8000-000000000001",
+    "version": 1,
+    "slug": "luxury-editorial",
+    "name": "Luxury Editorial",
+    "material": "Cotton · Restrained foil",
+    "visualDirection": "editorial",
+    "rendererTemplateKey": "luxury-editorial",
+    "status": "active",
+    "launchStatus": "candidate",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 97,
+    "maturity": "proven",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.98
+      },
+      {
+        "key": "Warm",
+        "score": 0.72
+      },
+      {
+        "key": "Romantic",
+        "score": 0.68
+      },
+      {
+        "key": "Fun",
+        "score": 0.18
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.8
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.7
+      },
+      {
+        "key": "Thank You",
+        "score": 0.7
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.7
+      },
+      {
+        "key": "New Baby",
+        "score": 0.55
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.7
+      },
+      {
+        "key": "US",
+        "score": 0.91
+      },
+      {
+        "key": "GB",
+        "score": 0.91
+      },
+      {
+        "key": "FR",
+        "score": 0.84
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000002",
+    "familyId": "20000000-0000-4000-8000-000000000002",
+    "versionId": "30000000-0000-4000-8000-000000000002",
+    "version": 1,
+    "slug": "midnight-lume",
+    "name": "Midnight Lume",
+    "material": "Navy · Foil",
+    "visualDirection": "midnight",
+    "rendererTemplateKey": "midnight-lume",
+    "status": "active",
+    "launchStatus": "candidate",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 95,
+    "maturity": "proven",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.93
+      },
+      {
+        "key": "Warm",
+        "score": 0.52
+      },
+      {
+        "key": "Romantic",
+        "score": 0.78
+      },
+      {
+        "key": "Fun",
+        "score": 0.35
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.8
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.7
+      },
+      {
+        "key": "Thank You",
+        "score": 0.7
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.7
+      },
+      {
+        "key": "New Baby",
+        "score": 0.55
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.7
+      },
+      {
+        "key": "US",
+        "score": 0.88
+      },
+      {
+        "key": "KR",
+        "score": 0.82
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000003",
+    "familyId": "20000000-0000-4000-8000-000000000003",
+    "versionId": "30000000-0000-4000-8000-000000000003",
+    "version": 1,
+    "slug": "botanical-poise",
+    "name": "Botanical Poise",
+    "material": "Letterpress · Botanical",
+    "visualDirection": "botanical",
+    "rendererTemplateKey": "botanical-poise",
+    "status": "active",
+    "launchStatus": "candidate",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 96,
+    "maturity": "proven",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.91
+      },
+      {
+        "key": "Warm",
+        "score": 0.92
+      },
+      {
+        "key": "Romantic",
+        "score": 0.8
+      },
+      {
+        "key": "Fun",
+        "score": 0.2
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.8
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.7
+      },
+      {
+        "key": "Thank You",
+        "score": 0.7
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.7
+      },
+      {
+        "key": "New Baby",
+        "score": 0.55
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.7
+      },
+      {
+        "key": "FR",
+        "score": 0.91
+      },
+      {
+        "key": "GB",
+        "score": 0.87
+      },
+      {
+        "key": "VN",
+        "score": 0.82
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000006",
+    "familyId": "20000000-0000-4000-8000-000000000006",
+    "versionId": "30000000-0000-4000-8000-000000000006",
+    "version": 1,
+    "slug": "art-deco-noir",
+    "name": "Art Deco Noir",
+    "material": "Noir · Gold foil",
+    "visualDirection": "deco",
+    "rendererTemplateKey": "art-deco-noir",
+    "status": "active",
+    "launchStatus": "candidate",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 93,
+    "maturity": "proven",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.98
+      },
+      {
+        "key": "Warm",
+        "score": 0.3
+      },
+      {
+        "key": "Romantic",
+        "score": 0.62
+      },
+      {
+        "key": "Fun",
+        "score": 0.36
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.8
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.7
+      },
+      {
+        "key": "Thank You",
+        "score": 0.7
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.7
+      },
+      {
+        "key": "New Baby",
+        "score": 0.55
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.7
+      },
+      {
+        "key": "US",
+        "score": 0.86
+      },
+      {
+        "key": "FR",
+        "score": 0.86
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000007",
+    "familyId": "20000000-0000-4000-8000-000000000007",
+    "versionId": "30000000-0000-4000-8000-000000000007",
+    "version": 1,
+    "slug": "photo-story",
+    "name": "Photo Story",
+    "material": "Photo · Editorial",
+    "visualDirection": "photo",
+    "rendererTemplateKey": "photo-story",
+    "status": "active",
+    "launchStatus": "candidate",
+    "health": "healthy",
+    "photoMode": "required",
+    "editorialScore": 95,
+    "maturity": "proven",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "short",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.84
+      },
+      {
+        "key": "Warm",
+        "score": 0.94
+      },
+      {
+        "key": "Romantic",
+        "score": 0.9
+      },
+      {
+        "key": "Fun",
+        "score": 0.45
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.8
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.7
+      },
+      {
+        "key": "Thank You",
+        "score": 0.7
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.7
+      },
+      {
+        "key": "New Baby",
+        "score": 0.55
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.7
+      },
+      {
+        "key": "US",
+        "score": 0.92
+      },
+      {
+        "key": "KR",
+        "score": 0.88
+      },
+      {
+        "key": "VN",
+        "score": 0.88
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000008",
+    "familyId": "20000000-0000-4000-8000-000000000008",
+    "versionId": "30000000-0000-4000-8000-000000000008",
+    "version": 1,
+    "slug": "quiet-minimal",
+    "name": "Quiet Minimal",
+    "material": "Uncoated · Minimal",
+    "visualDirection": "minimal",
+    "rendererTemplateKey": "quiet-minimal",
+    "status": "active",
+    "launchStatus": "candidate",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 92,
+    "maturity": "proven",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.96
+      },
+      {
+        "key": "Warm",
+        "score": 0.68
+      },
+      {
+        "key": "Romantic",
+        "score": 0.5
+      },
+      {
+        "key": "Fun",
+        "score": 0.1
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.8
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.7
+      },
+      {
+        "key": "Thank You",
+        "score": 0.7
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.7
+      },
+      {
+        "key": "New Baby",
+        "score": 0.55
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.7
+      },
+      {
+        "key": "JP",
+        "score": 0.9
+      },
+      {
+        "key": "DE",
+        "score": 0.88
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000014",
+    "familyId": "20000000-0000-4000-8000-000000000014",
+    "versionId": "30000000-0000-4000-8000-000000000014",
+    "version": 1,
+    "slug": "classic-letterpress",
+    "name": "Classic Letterpress",
+    "material": "Cotton rag · Letterpress",
+    "visualDirection": "letterpress",
+    "rendererTemplateKey": "classic-letterpress",
+    "status": "active",
+    "launchStatus": "candidate",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 98,
+    "maturity": "proven",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "long",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.99
+      },
+      {
+        "key": "Warm",
+        "score": 0.92
+      },
+      {
+        "key": "Romantic",
+        "score": 0.72
+      },
+      {
+        "key": "Fun",
+        "score": 0.08
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.8
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.7
+      },
+      {
+        "key": "Thank You",
+        "score": 0.7
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.7
+      },
+      {
+        "key": "New Baby",
+        "score": 0.55
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.7
+      },
+      {
+        "key": "US",
+        "score": 0.92
+      },
+      {
+        "key": "GB",
+        "score": 0.94
+      },
+      {
+        "key": "FR",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000101",
+    "familyId": "20000000-0000-4000-8000-000000000101",
+    "versionId": "30000000-0000-4000-8000-000000000101",
+    "version": 1,
+    "slug": "whispered-type",
+    "name": "Whispered Type",
+    "material": "Type · Hairline",
+    "visualDirection": "whispered",
+    "rendererTemplateKey": "whispered-type",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 94,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.98
+      },
+      {
+        "key": "Warm",
+        "score": 0.82
+      },
+      {
+        "key": "Romantic",
+        "score": 0.86
+      },
+      {
+        "key": "Fun",
+        "score": 0.18
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.62
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.92
+      },
+      {
+        "key": "Thank You",
+        "score": 0.92
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.72
+      },
+      {
+        "key": "New Baby",
+        "score": 0.35
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000102",
+    "familyId": "20000000-0000-4000-8000-000000000102",
+    "versionId": "30000000-0000-4000-8000-000000000102",
+    "version": 1,
+    "slug": "museum-note",
+    "name": "Museum Note",
+    "material": "Editorial · Rule grid",
+    "visualDirection": "museum",
+    "rendererTemplateKey": "museum-note",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "optional",
+    "editorialScore": 95,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "long",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.98
+      },
+      {
+        "key": "Warm",
+        "score": 0.74
+      },
+      {
+        "key": "Romantic",
+        "score": 0.62
+      },
+      {
+        "key": "Fun",
+        "score": 0.12
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.42
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.86
+      },
+      {
+        "key": "Thank You",
+        "score": 0.96
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.82
+      },
+      {
+        "key": "New Baby",
+        "score": 0.25
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000103",
+    "familyId": "20000000-0000-4000-8000-000000000103",
+    "versionId": "30000000-0000-4000-8000-000000000103",
+    "version": 1,
+    "slug": "monogram-orbit",
+    "name": "Monogram Orbit",
+    "material": "Parametric · Personal mark",
+    "visualDirection": "orbit",
+    "rendererTemplateKey": "monogram-orbit",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 96,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.92
+      },
+      {
+        "key": "Warm",
+        "score": 0.78
+      },
+      {
+        "key": "Romantic",
+        "score": 0.82
+      },
+      {
+        "key": "Fun",
+        "score": 0.52
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.94
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.94
+      },
+      {
+        "key": "Thank You",
+        "score": 0.62
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.94
+      },
+      {
+        "key": "New Baby",
+        "score": 0.45
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000104",
+    "familyId": "20000000-0000-4000-8000-000000000104",
+    "versionId": "30000000-0000-4000-8000-000000000104",
+    "version": 1,
+    "slug": "ribbon-line",
+    "name": "Ribbon Line",
+    "material": "Continuous line · Motion",
+    "visualDirection": "ribbon",
+    "rendererTemplateKey": "ribbon-line",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 94,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.86
+      },
+      {
+        "key": "Warm",
+        "score": 0.94
+      },
+      {
+        "key": "Romantic",
+        "score": 0.96
+      },
+      {
+        "key": "Fun",
+        "score": 0.3
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.72
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.92
+      },
+      {
+        "key": "Thank You",
+        "score": 0.94
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.62
+      },
+      {
+        "key": "New Baby",
+        "score": 0.35
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000105",
+    "familyId": "20000000-0000-4000-8000-000000000105",
+    "versionId": "30000000-0000-4000-8000-000000000105",
+    "version": 1,
+    "slug": "memory-window",
+    "name": "Memory Window",
+    "material": "Photo fragment · Caption",
+    "visualDirection": "memory",
+    "rendererTemplateKey": "memory-window",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "optional",
+    "editorialScore": 96,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "short",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.88
+      },
+      {
+        "key": "Warm",
+        "score": 0.98
+      },
+      {
+        "key": "Romantic",
+        "score": 0.92
+      },
+      {
+        "key": "Fun",
+        "score": 0.48
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.96
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.96
+      },
+      {
+        "key": "Thank You",
+        "score": 0.78
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.72
+      },
+      {
+        "key": "New Baby",
+        "score": 0.75
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000106",
+    "familyId": "20000000-0000-4000-8000-000000000106",
+    "versionId": "30000000-0000-4000-8000-000000000106",
+    "version": 1,
+    "slug": "type-celebration",
+    "name": "Type Celebration",
+    "material": "Kinetic type · Rule",
+    "visualDirection": "typecelebration",
+    "rendererTemplateKey": "type-celebration",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 93,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.55
+      },
+      {
+        "key": "Warm",
+        "score": 0.78
+      },
+      {
+        "key": "Romantic",
+        "score": 0.48
+      },
+      {
+        "key": "Fun",
+        "score": 0.96
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.99
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.52
+      },
+      {
+        "key": "Thank You",
+        "score": 0.58
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.99
+      },
+      {
+        "key": "New Baby",
+        "score": 0.68
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000107",
+    "familyId": "20000000-0000-4000-8000-000000000107",
+    "versionId": "30000000-0000-4000-8000-000000000107",
+    "version": 1,
+    "slug": "quiet-seal",
+    "name": "Quiet Seal",
+    "material": "Personal seal · Negative space",
+    "visualDirection": "seal",
+    "rendererTemplateKey": "quiet-seal",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 97,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "long",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.99
+      },
+      {
+        "key": "Warm",
+        "score": 0.86
+      },
+      {
+        "key": "Romantic",
+        "score": 0.72
+      },
+      {
+        "key": "Fun",
+        "score": 0.08
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.56
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.94
+      },
+      {
+        "key": "Thank You",
+        "score": 0.94
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.88
+      },
+      {
+        "key": "New Baby",
+        "score": 0.45
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000108",
+    "familyId": "20000000-0000-4000-8000-000000000108",
+    "versionId": "30000000-0000-4000-8000-000000000108",
+    "version": 1,
+    "slug": "pressed-shadow",
+    "name": "Pressed Shadow",
+    "material": "Layered relief · Paper depth",
+    "visualDirection": "pressed",
+    "rendererTemplateKey": "pressed-shadow",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 94,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.94
+      },
+      {
+        "key": "Warm",
+        "score": 0.78
+      },
+      {
+        "key": "Romantic",
+        "score": 0.58
+      },
+      {
+        "key": "Fun",
+        "score": 0.24
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.58
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.86
+      },
+      {
+        "key": "Thank You",
+        "score": 0.84
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.96
+      },
+      {
+        "key": "New Baby",
+        "score": 0.4
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000109",
+    "familyId": "20000000-0000-4000-8000-000000000109",
+    "versionId": "30000000-0000-4000-8000-000000000109",
+    "version": 1,
+    "slug": "ink-pause",
+    "name": "Ink Pause",
+    "material": "Abstract ink · Pause",
+    "visualDirection": "ink",
+    "rendererTemplateKey": "ink-pause",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 95,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.9
+      },
+      {
+        "key": "Warm",
+        "score": 0.96
+      },
+      {
+        "key": "Romantic",
+        "score": 0.96
+      },
+      {
+        "key": "Fun",
+        "score": 0.18
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.54
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.88
+      },
+      {
+        "key": "Thank You",
+        "score": 0.98
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.62
+      },
+      {
+        "key": "New Baby",
+        "score": 0.32
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000110",
+    "familyId": "20000000-0000-4000-8000-000000000110",
+    "versionId": "30000000-0000-4000-8000-000000000110",
+    "version": 1,
+    "slug": "petal-geometry",
+    "name": "Petal Geometry",
+    "material": "Parametric ellipse · Botanical abstraction",
+    "visualDirection": "petal",
+    "rendererTemplateKey": "petal-geometry",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 93,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.82
+      },
+      {
+        "key": "Warm",
+        "score": 0.94
+      },
+      {
+        "key": "Romantic",
+        "score": 0.76
+      },
+      {
+        "key": "Fun",
+        "score": 0.34
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.92
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.72
+      },
+      {
+        "key": "Thank You",
+        "score": 0.96
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.78
+      },
+      {
+        "key": "New Baby",
+        "score": 0.64
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000111",
+    "familyId": "20000000-0000-4000-8000-000000000111",
+    "versionId": "30000000-0000-4000-8000-000000000111",
+    "version": 1,
+    "slug": "night-ledger",
+    "name": "Night Ledger",
+    "material": "Nocturne · Coordinate light",
+    "visualDirection": "ledger",
+    "rendererTemplateKey": "night-ledger",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "none",
+    "editorialScore": 97,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "medium",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.98
+      },
+      {
+        "key": "Warm",
+        "score": 0.66
+      },
+      {
+        "key": "Romantic",
+        "score": 0.94
+      },
+      {
+        "key": "Fun",
+        "score": 0.2
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.5
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.98
+      },
+      {
+        "key": "Thank You",
+        "score": 0.64
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.86
+      },
+      {
+        "key": "New Baby",
+        "score": 0.2
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  },
+  {
+    "id": "10000000-0000-4000-8000-000000000112",
+    "familyId": "20000000-0000-4000-8000-000000000112",
+    "versionId": "30000000-0000-4000-8000-000000000112",
+    "version": 1,
+    "slug": "soft-fold",
+    "name": "Soft Fold",
+    "material": "Fold geometry · Quiet plane",
+    "visualDirection": "softfold",
+    "rendererTemplateKey": "soft-fold",
+    "status": "active",
+    "launchStatus": "experiment",
+    "health": "healthy",
+    "photoMode": "optional",
+    "editorialScore": 94,
+    "maturity": "new",
+    "supportedFormats": [
+      "portrait-5x7",
+      "folded-5x7",
+      "square-5x5",
+      "landscape-7x5",
+      "postcard-6x4"
+    ],
+    "scriptSupport": [
+      "latin",
+      "cjk",
+      "hangul"
+    ],
+    "headlineCapacity": "medium",
+    "bodyCapacity": "long",
+    "feelings": [
+      {
+        "key": "Elegant",
+        "score": 0.96
+      },
+      {
+        "key": "Warm",
+        "score": 0.9
+      },
+      {
+        "key": "Romantic",
+        "score": 0.7
+      },
+      {
+        "key": "Fun",
+        "score": 0.12
+      },
+      {
+        "key": "Surprise me",
+        "score": 0.72
+      }
+    ],
+    "occasions": [
+      {
+        "key": "Birthday",
+        "score": 0.56
+      },
+      {
+        "key": "Anniversary",
+        "score": 0.82
+      },
+      {
+        "key": "Thank You",
+        "score": 0.98
+      },
+      {
+        "key": "Congratulations",
+        "score": 0.94
+      },
+      {
+        "key": "New Baby",
+        "score": 0.36
+      },
+      {
+        "key": "Other",
+        "score": 0.58
+      }
+    ],
+    "markets": [
+      {
+        "key": "GLOBAL",
+        "score": 0.9
+      }
+    ],
+    "excludedMarkets": []
+  }
+]

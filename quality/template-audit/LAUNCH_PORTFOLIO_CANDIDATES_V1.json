@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "status": "BENCHMARK_CANDIDATES_NOT_PRODUCTION_APPROVAL",
+  "principle": "Launch portfolio should be smaller, more authored and more diverse than the legacy seed catalog. Human premium/WOW review and Golden benchmark remain the promotion authority.",
+  "retainedLegacyCandidates": [
+    "luxury-editorial",
+    "midnight-lume",
+    "photo-story",
+    "quiet-minimal",
+    "classic-letterpress",
+    "botanical-poise",
+    "art-deco-noir"
+  ],
+  "originalExperimentCandidates": [
+    "whispered-type",
+    "museum-note",
+    "monogram-orbit",
+    "ribbon-line",
+    "memory-window",
+    "type-celebration",
+    "quiet-seal",
+    "pressed-shadow",
+    "ink-pause",
+    "petal-geometry",
+    "night-ledger",
+    "soft-fold"
+  ],
+  "legacyHoldOrReplace": [
+    "washi-elegance",
+    "soft-seoul",
+    "watercolor-bloom",
+    "golden-hour",
+    "quiet-noir",
+    "bold-pop",
+    "kawaii-joy",
+    "celestial-night",
+    "little-wonders"
+  ],
+  "promotionRule": "A candidate may enter the production launch catalog only after immutable implementation/versioning, exact font/asset provenance, originality/similarity review, locale/text-pressure/render QA and target-segment Golden benchmark pass."
+}

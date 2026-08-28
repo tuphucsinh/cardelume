@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "result": "NO_HISTORICAL_LOCKFILE_FOUND",
+  "searchedBasenames": [
+    "npm-shrinkwrap.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock"
+  ],
+  "archives": [
+    {
+      "name": "CARDELUME_BASELINE_0.4.2_GLOBAL_LAUNCH_HARDENING_HERMES_HANDOFF.zip",
+      "sha256": "08d561ca9209d7ff3cd4c300140226bd801109e4145e9cc332a068345d0803e9",
+      "zipEntries": 124,
+      "hits": []
+    },
+    {
+      "name": "CARDELUME_BASELINE_0.4.3_STEP11_REPRODUCIBLE_CONTAINERS_HA_PREFLIGHT_HERMES_HANDOFF.zip",
+      "sha256": "bb8aa72e772ff90fd587533251646dc840cd6d417bb9e5c1b96a462716932454",
+      "zipEntries": 283,
+      "hits": []
+    },
+    {
+      "name": "CARDELUME_BASELINE_0.4.3_STEP12_MANAGED_TEMPLATE_LIBRARY_HERMES_HANDOFF.zip",
+      "sha256": "76ebf6bfd1bc427bd2bf0229817ae62fb346011b433fff5ed1d8dfe8ee258f99",
+      "zipEntries": 315,
+      "hits": []
+    }
+  ]
+}

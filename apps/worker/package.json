@@ -1,0 +1,29 @@
+{
+  "name": "@cardelume/worker",
+  "version": "0.4.3-step.17i",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "node -e \"process.exit(0)\"",
+    "test": "cd ../.. && tsx scripts/generation-queue-source-stress.ts && tsx scripts/renderer-export-stress.ts"
+  },
+  "dependencies": {
+    "@cardelume/ai": "workspace:*",
+    "@cardelume/db": "workspace:*",
+    "@cardelume/queue": "workspace:*",
+    "@cardelume/renderer": "workspace:*",
+    "tsx": "^4.20.5",
+    "@cardelume/storage": "workspace:*",
+    "@cardelume/card-schema": "workspace:*",
+    "zod": "^4.1.5",
+    "@cardelume/templates": "workspace:*",
+    "@cardelume/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2"
+  }
+}

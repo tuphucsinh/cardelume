@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "status": "EXPERIMENT_ONLY",
+  "experiments": [
+    {
+      "id": "ui-sans-vi-parity",
+      "control": "Plus Jakarta Sans (Step17E source candidate)",
+      "variants": [
+        "Be Vietnam Pro",
+        "Inter",
+        "Manrope"
+      ],
+      "reason": "Step 17E retires DM Sans from the web source path because the audited distribution does not provide the required Vietnamese coverage. Validate Plus Jakarta Sans as the global candidate and compare only if another VI-capable sans materially improves quality.",
+      "promoteOnlyIf": [
+        "Vietnamese glyph coverage PASS",
+        "EN/VI/FR/DE/ES/PT/IT layout PASS",
+        "mobile CLS budget PASS",
+        "human premium UI review PASS",
+        "exact package provenance PASS"
+      ]
+    },
+    {
+      "id": "latin-display-premium",
+      "control": "Cormorant Garamond",
+      "variants": [
+        "Newsreader",
+        "Fraunces"
+      ],
+      "reason": "Test whether specific card families benefit from a more intimate or expressive serif without changing brand typography globally.",
+      "promoteOnlyIf": [
+        "Golden benchmark improves targeted family",
+        "no copy-pressure regression",
+        "Vietnamese coverage PASS",
+        "preview/final parity PASS"
+      ]
+    },
+    {
+      "id": "cjk-display-alternates",
+      "control": "Noto Serif CJK",
+      "variants": [
+        "Source Han Serif",
+        "Zen Old Mincho (JP only)",
+        "Gowun Batang (KR only)"
+      ],
+      "reason": "Use only if native-language human review finds Noto too neutral for selected art directions.",
+      "promoteOnlyIf": [
+        "native-speaker naturalness PASS",
+        "glyph coverage PASS",
+        "deterministic render PASS",
+        "license/provenance PASS"
+      ]
+    },
+    {
+      "id": "vi-ui-specialist",
+      "control": "Plus Jakarta Sans",
+      "variants": [
+        "Be Vietnam Pro"
+      ],
+      "reason": "Benchmark a Vietnamese-first sans against the global UI candidate. Do not create a VI-only visual identity unless it materially improves glyph quality/naturalness without hurting brand consistency.",
+      "promoteOnlyIf": [
+        "Vietnamese native review PASS",
+        "diacritics and line metrics PASS",
+        "brand consistency PASS",
+        "exact package provenance PASS"
+      ]
+    },
+    {
+      "id": "editorial-serif-depth",
+      "control": "Cormorant Garamond",
+      "variants": [
+        "Lora",
+        "Spectral",
+        "Source Serif 4",
+        "Literata",
+        "Crimson Pro",
+        "Newsreader"
+      ],
+      "reason": "Build a controlled premium serif bench for targeted template families, not a production font menu. Select only fonts that materially improve emotional tone, copy pressure or renderer parity.",
+      "promoteOnlyIf": [
+        "target-family Golden benchmark improves",
+        "Originality/WOW does not regress",
+        "Vietnamese coverage PASS",
+        "short/medium/long copy pressure PASS",
+        "preview/final parity PASS",
+        "exact package provenance PASS"
+      ]
+    }
+  ]
+}

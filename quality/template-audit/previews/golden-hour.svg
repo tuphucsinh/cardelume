@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="980" viewBox="0 0 700 980">
+  <rect width="100%" height="100%" fill="#f0dfca"/>
+  <circle cx="350" cy="147" r="102" fill="#ce7d55" opacity=".82"/>
+        <path d="M 0 754.6 L 196 646.8 L 350 774.2 L 511 627.2 L 700 735 L 700 980 L 0 980 Z" fill="#806b50" opacity=".55"/>
+        <path d="M 0 823.2 L 245 725.2 L 441 842.8 L 700 764.4 L 700 980 L 0 980 Z" fill="#544d3d" opacity=".44"/>
+  <text x="350" y="480" text-anchor="middle" fill="#45382e" font-family="Georgia, serif" font-size="58" font-weight="500">For you, always</text>
+  <text x="350" y="540" text-anchor="middle" fill="#45382e" opacity=".72" font-family="Arial, sans-serif" font-size="21" letter-spacing="2">A MOMENT MADE PERSONAL</text>
+  <line x1="250" y1="585" x2="450" y2="585" stroke="#d18c54" stroke-width="2" opacity=".45"/>
+  <text x="350" y="900" text-anchor="middle" fill="#45382e" opacity=".55" font-family="Arial, sans-serif" font-size="18">Golden Hour</text>
+</svg>

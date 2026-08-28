@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T12:26:29.179861Z",
+  "candidate": "0.4.3-step.17h",
+  "sourceVerdict": "PASS",
+  "productionVerdict": "NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES",
+  "marketingBoundary": {
+    "productionApprovedOnly": true,
+    "currentProductionMarketingTemplates": 0,
+    "currentStagingReviewableTemplates": 19,
+    "holdRetiredExposed": false,
+    "safeHeroFallbackWhenEmpty": true
+  },
+  "checks": {
+    "fast": {
+      "planned": 8,
+      "durationMs": 1240,
+      "verdict": "PASS"
+    },
+    "release": {
+      "planned": 28,
+      "durationMs": 3520,
+      "verdict": "PASS"
+    },
+    "status": {
+      "planned": 28,
+      "durationMs": 4059,
+      "verdict": "PASS"
+    },
+    "heavy": {
+      "planned": 33,
+      "durationMs": 5174,
+      "pass": 29,
+      "blockedRuntime": 4,
+      "verdict": "PASS"
+    }
+  },
+  "typescriptSyntaxScan": {
+    "files": 112,
+    "errors": 0,
+    "status": "PASS"
+  },
+  "releaseGates": {
+    "ip": "NO_GO",
+    "security": "NO_GO",
+    "fontTemplateQuality": "NO_GO",
+    "secretScan": "PASS_0_FINDINGS",
+    "sourceSbom": "PASS_INCOMPLETE_WITHOUT_LOCKFILE"
+  },
+  "claimsNotMade": [
+    "full frozen dependency install/typecheck/build/test",
+    "real premium model benchmark + human scoring",
+    "real staging DB/R2/Dodo/pg-boss",
+    "browser/native final-render parity and CSP enforcement",
+    "production deployment",
+    "Pi5/Oracle HA and backup-restore rehearsal"
+  ]
+}

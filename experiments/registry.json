@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "experiments": [
+    {
+      "id": "typography-plus-jakarta",
+      "owner": "Lumer",
+      "hypothesis": "Plus Jakarta Sans is the safer global source candidate than the historical DM Sans baseline and must pass staging/native/render evidence before production approval.",
+      "scope": "Validate the Step17E Plus Jakarta Sans source candidate across launch locales; retain DM Sans only as historical comparison evidence, not a production fallback.",
+      "branchWorktree": "exp/typography-plus-jakarta",
+      "featureFlag": "typography_plus_jakarta",
+      "startAt": "2026-08-28T08:35:24.835Z",
+      "endAt": null,
+      "allowedEnvironments": [
+        "experiment",
+        "staging"
+      ],
+      "aiBudget": {
+        "maxCallsPerRun": 60,
+        "maxBenchmarkGenerations": 150,
+        "dailyCostUsd": 10
+      },
+      "successMetric": "No glyph fallback; no material CLS/layout regression; human/native premium review equal or better.",
+      "premiumBenchmarkImpact": "Must preserve or improve CardeLume premium/WOW perception and multilingual typography naturalness.",
+      "securityIpReviewRequirements": [
+        "font-provenance",
+        "ip-license",
+        "glyph-coverage",
+        "security-delta"
+      ],
+      "rollbackKillSwitch": "KILL_TYPOGRAPHY_PLUS_JAKARTA",
+      "status": "candidate",
+      "createdBy": "experiment-lab-v1"
+    },
+    {
+      "id": "original-template-v2",
+      "owner": "Lumer",
+      "hypothesis": "Original procedural typography/personalization-led concepts outperform generic legacy motifs on premium/WOW, originality and anti-sameness.",
+      "scope": "Benchmark all 12 implemented original procedural POCs against the retained/rework legacy families; do not promote generic or culturally reductive legacy motifs by default.",
+      "branchWorktree": "exp/original-template-v2",
+      "featureFlag": "original_template_v2",
+      "startAt": "2026-08-28T08:35:24.874Z",
+      "endAt": null,
+      "allowedEnvironments": [
+        "experiment",
+        "staging"
+      ],
+      "aiBudget": {
+        "maxCallsPerRun": 300,
+        "maxBenchmarkGenerations": 450,
+        "dailyCostUsd": 20
+      },
+      "successMetric": "Higher human Premium Art Direction/Originality/WOW with no render, locale, IP or concentration regression.",
+      "premiumBenchmarkImpact": "Must exceed or match launch floors and improve creative diversity without template quotas.",
+      "securityIpReviewRequirements": [
+        "template-originality",
+        "visual-similarity",
+        "ip-provenance",
+        "security-delta"
+      ],
+      "rollbackKillSwitch": "KILL_ORIGINAL_TEMPLATE_V2",
+      "status": "draft",
+      "createdBy": "experiment-lab-v1"
+    }
+  ]
+}

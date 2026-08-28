@@ -1,0 +1,24 @@
+{
+  "name": "@cardelume/renderer",
+  "version": "0.4.3-step.17i",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@cardelume/card-schema": "workspace:*",
+    "@resvg/resvg-js": "^2.6.2",
+    "sharp": "^0.34.3"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "node -e \"process.exit(0)\"",
+    "test": "tsx ../../scripts/renderer-export-stress.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "@types/node": "^24.3.0"
+  }
+}

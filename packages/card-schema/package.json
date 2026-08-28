@@ -1,0 +1,21 @@
+{
+  "name": "@cardelume/card-schema",
+  "version": "0.4.3-step.17i",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "^4.1.5"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "node -e \"process.exit(0)\"",
+    "test": "cd ../.. && tsx scripts/typography-guard-stress.ts && tsx scripts/photo-palette-contrast-stress.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

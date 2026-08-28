@@ -1,0 +1,30 @@
+{
+  "id": "original-template-v2",
+  "owner": "Lumer",
+  "hypothesis": "Original procedural typography/personalization-led concepts outperform generic legacy motifs on premium/WOW, originality and anti-sameness.",
+  "scope": "Benchmark all 12 implemented original procedural POCs against the retained/rework legacy families; do not promote generic or culturally reductive legacy motifs by default.",
+  "branchWorktree": "exp/original-template-v2",
+  "featureFlag": "original_template_v2",
+  "startAt": "2026-08-28T08:35:24.874Z",
+  "endAt": null,
+  "allowedEnvironments": [
+    "experiment",
+    "staging"
+  ],
+  "aiBudget": {
+    "maxCallsPerRun": 300,
+    "maxBenchmarkGenerations": 450,
+    "dailyCostUsd": 20
+  },
+  "successMetric": "Higher human Premium Art Direction/Originality/WOW with no render, locale, IP or concentration regression.",
+  "premiumBenchmarkImpact": "Must exceed or match launch floors and improve creative diversity without template quotas.",
+  "securityIpReviewRequirements": [
+    "template-originality",
+    "visual-similarity",
+    "ip-provenance",
+    "security-delta"
+  ],
+  "rollbackKillSwitch": "KILL_ORIGINAL_TEMPLATE_V2",
+  "status": "draft",
+  "createdBy": "experiment-lab-v1"
+}

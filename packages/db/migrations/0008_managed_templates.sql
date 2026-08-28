@@ -1,0 +1,405 @@
+-- CARDELUME 0.4.3 step 12: managed template library, immutable render versions,
+-- targeting and privacy-safe template performance events.
+
+create table if not exists template_families (
+  id uuid primary key,
+  name text not null,
+  slug text not null unique,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists templates (
+  id uuid primary key,
+  family_id uuid not null references template_families(id),
+  slug text not null unique,
+  name text not null,
+  material text not null default '',
+  status text not null default 'draft' check(status in ('draft','active','archived')),
+  health text not null default 'healthy' check(health in ('healthy','degraded','invalid')),
+  photo_mode text not null default 'none' check(photo_mode in ('none','optional','required')),
+  editorial_score integer not null default 80 check(editorial_score between 0 and 100),
+  maturity text not null default 'new' check(maturity in ('new','proven','legacy')),
+  current_version_id uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  archived_at timestamptz
+);
+
+create table if not exists template_versions (
+  id uuid primary key,
+  template_id uuid not null references templates(id),
+  version integer not null check(version > 0),
+  renderer_template_key text not null,
+  visual_direction text not null,
+  supported_formats jsonb not null,
+  script_support jsonb not null,
+  headline_capacity text not null check(headline_capacity in ('short','medium','long')),
+  body_capacity text not null check(body_capacity in ('short','medium','long')),
+  preview_asset text,
+  validation_status text not null default 'pending' check(validation_status in ('pending','passed','failed')),
+  validation_notes text,
+  created_at timestamptz not null default now(),
+  unique(template_id,version),
+  unique(template_id,id)
+);
+
+alter table templates drop constraint if exists templates_current_version_id_fkey;
+alter table templates add constraint templates_current_version_id_fkey foreign key(id,current_version_id) references template_versions(template_id,id);
+
+create table if not exists template_targeting (
+  template_id uuid not null references templates(id),
+  dimension text not null check(dimension in ('market','occasion','feeling','exclude_market')),
+  target_key text not null,
+  affinity numeric(5,4) not null default 0 check(affinity between 0 and 1),
+  primary key(template_id,dimension,target_key)
+);
+
+create table if not exists template_events (
+  id uuid primary key,
+  template_id uuid not null references templates(id),
+  template_version_id uuid not null,
+  event_type text not null check(event_type in ('impression','selected','ai_assigned','checkout_started','paid','regenerated')),
+  source text not null check(source in ('ai_direction','recommended','market_pick','show_more')),
+  market text not null,
+  locale text not null,
+  rank_position integer,
+  dedupe_key text unique,
+  created_at timestamptz not null default now()
+);
+
+alter table template_events drop constraint if exists template_events_template_version_pair_fkey;
+alter table template_events add constraint template_events_template_version_pair_fkey foreign key(template_id,template_version_id) references template_versions(template_id,id);
+
+create table if not exists template_metrics_daily (
+  day date not null,
+  template_id uuid not null references templates(id),
+  market text not null,
+  source text not null,
+  impressions integer not null default 0,
+  selected integer not null default 0,
+  ai_assigned integer not null default 0,
+  checkout_started integer not null default 0,
+  paid integer not null default 0,
+  regenerated integer not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key(day,template_id,market,source)
+);
+
+create index if not exists templates_active_idx on templates(status,health,editorial_score desc);
+create index if not exists template_versions_template_idx on template_versions(template_id,version desc);
+create index if not exists template_targeting_lookup_idx on template_targeting(dimension,target_key,affinity desc);
+create index if not exists template_events_rollup_idx on template_events(template_id,created_at,market,source);
+
+alter table card_versions add column if not exists managed_template_id uuid references templates(id);
+alter table card_versions add column if not exists managed_template_version_id uuid references template_versions(id);
+alter table card_versions add column if not exists managed_template_source text;
+alter table card_versions drop constraint if exists card_versions_managed_template_pair_fkey;
+alter table card_versions add constraint card_versions_managed_template_pair_fkey foreign key(managed_template_id,managed_template_version_id) references template_versions(template_id,id);
+alter table card_versions drop constraint if exists card_versions_managed_template_pair_complete_check;
+alter table card_versions add constraint card_versions_managed_template_pair_complete_check check(
+  (managed_template_id is null and managed_template_version_id is null)
+  or
+  (managed_template_id is not null and managed_template_version_id is not null)
+);
+alter table card_versions drop constraint if exists card_versions_managed_template_source_check;
+alter table card_versions add constraint card_versions_managed_template_source_check check(managed_template_source is null or managed_template_source in ('ai_direction','recommended','market_pick','show_more'));
+
+-- Server-only. Public/browser access always goes through CardeLume API filtering.
+alter table template_families enable row level security;
+alter table templates enable row level security;
+alter table template_versions enable row level security;
+alter table template_targeting enable row level security;
+alter table template_events enable row level security;
+alter table template_metrics_daily enable row level security;
+
+-- Stable bootstrap catalog. ON CONFLICT never overwrites operator-managed metadata.
+insert into template_families(id,name,slug) values
+('20000000-0000-4000-8000-000000000001','Luxury Editorial','luxury-editorial'),
+('20000000-0000-4000-8000-000000000002','Midnight Lume','midnight-lume'),
+('20000000-0000-4000-8000-000000000003','Botanical Poise','botanical-poise'),
+('20000000-0000-4000-8000-000000000004','Washi Elegance','washi-elegance'),
+('20000000-0000-4000-8000-000000000005','Soft Seoul','soft-seoul'),
+('20000000-0000-4000-8000-000000000006','Art Deco Noir','art-deco-noir'),
+('20000000-0000-4000-8000-000000000007','Photo Story','photo-story'),
+('20000000-0000-4000-8000-000000000008','Quiet Minimal','quiet-minimal'),
+('20000000-0000-4000-8000-000000000009','Watercolor Bloom','watercolor-bloom'),
+('20000000-0000-4000-8000-000000000010','Golden Hour','golden-hour'),
+('20000000-0000-4000-8000-000000000011','Quiet Noir','quiet-noir'),
+('20000000-0000-4000-8000-000000000012','Bold Pop','bold-pop'),
+('20000000-0000-4000-8000-000000000013','Kawaii Joy','kawaii-joy'),
+('20000000-0000-4000-8000-000000000014','Classic Letterpress','classic-letterpress'),
+('20000000-0000-4000-8000-000000000015','Celestial Night','celestial-night'),
+('20000000-0000-4000-8000-000000000016','Little Wonders','little-wonders')
+on conflict do nothing;
+
+insert into templates(id,family_id,slug,name,material,status,health,photo_mode,editorial_score,maturity) values
+('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','luxury-editorial','Luxury Editorial','Cotton · Restrained foil','active','healthy','none',97,'proven'),
+('10000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002','midnight-lume','Midnight Lume','Navy · Foil','active','healthy','none',95,'proven'),
+('10000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000003','botanical-poise','Botanical Poise','Letterpress · Botanical','active','healthy','none',96,'proven'),
+('10000000-0000-4000-8000-000000000004','20000000-0000-4000-8000-000000000004','washi-elegance','Washi Elegance','Washi · Ink','active','healthy','none',96,'proven'),
+('10000000-0000-4000-8000-000000000005','20000000-0000-4000-8000-000000000005','soft-seoul','Soft Seoul','Hanji · Soft color','active','healthy','none',94,'proven'),
+('10000000-0000-4000-8000-000000000006','20000000-0000-4000-8000-000000000006','art-deco-noir','Art Deco Noir','Noir · Gold foil','active','healthy','none',93,'proven'),
+('10000000-0000-4000-8000-000000000007','20000000-0000-4000-8000-000000000007','photo-story','Photo Story','Photo · Editorial','active','healthy','required',95,'proven'),
+('10000000-0000-4000-8000-000000000008','20000000-0000-4000-8000-000000000008','quiet-minimal','Quiet Minimal','Uncoated · Minimal','active','healthy','none',92,'proven'),
+('10000000-0000-4000-8000-000000000009','20000000-0000-4000-8000-000000000009','watercolor-bloom','Watercolor Bloom','Cold press · Watercolor','active','healthy','none',91,'proven'),
+('10000000-0000-4000-8000-000000000010','20000000-0000-4000-8000-000000000010','golden-hour','Golden Hour','Retro stock · Sun print','active','healthy','none',88,'proven'),
+('10000000-0000-4000-8000-000000000011','20000000-0000-4000-8000-000000000011','quiet-noir','Quiet Noir','Matte black · Blind emboss','active','healthy','none',92,'proven'),
+('10000000-0000-4000-8000-000000000012','20000000-0000-4000-8000-000000000012','bold-pop','Bold Pop','Risograph · Graphic','active','healthy','none',86,'proven'),
+('10000000-0000-4000-8000-000000000013','20000000-0000-4000-8000-000000000013','kawaii-joy','Kawaii Joy','Pearl paper · Kawaii','active','healthy','none',87,'proven'),
+('10000000-0000-4000-8000-000000000014','20000000-0000-4000-8000-000000000014','classic-letterpress','Classic Letterpress','Cotton rag · Letterpress','active','healthy','none',98,'proven'),
+('10000000-0000-4000-8000-000000000015','20000000-0000-4000-8000-000000000015','celestial-night','Celestial Night','Navy · Constellation','active','healthy','none',91,'proven'),
+('10000000-0000-4000-8000-000000000016','20000000-0000-4000-8000-000000000016','little-wonders','Little Wonders','Gouache · Cut paper','active','healthy','none',89,'proven')
+on conflict do nothing;
+
+insert into template_versions(id,template_id,version,renderer_template_key,visual_direction,supported_formats,script_support,headline_capacity,body_capacity,validation_status) values
+('30000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',1,'luxury-editorial','editorial','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000002',1,'midnight-lume','midnight','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000003','10000000-0000-4000-8000-000000000003',1,'botanical-poise','botanical','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000004','10000000-0000-4000-8000-000000000004',1,'washi-elegance','washi','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000005','10000000-0000-4000-8000-000000000005',1,'soft-seoul','seoul','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000006','10000000-0000-4000-8000-000000000006',1,'art-deco-noir','deco','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000007','10000000-0000-4000-8000-000000000007',1,'photo-story','photo','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','short','passed'),
+('30000000-0000-4000-8000-000000000008','10000000-0000-4000-8000-000000000008',1,'quiet-minimal','minimal','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000009','10000000-0000-4000-8000-000000000009',1,'watercolor-bloom','watercolor','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000010','10000000-0000-4000-8000-000000000010',1,'golden-hour','golden','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000011','10000000-0000-4000-8000-000000000011',1,'quiet-noir','quietnoir','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000012','10000000-0000-4000-8000-000000000012',1,'bold-pop','boldpop','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000013','10000000-0000-4000-8000-000000000013',1,'kawaii-joy','kawaii','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000014','10000000-0000-4000-8000-000000000014',1,'classic-letterpress','letterpress','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','long','passed'),
+('30000000-0000-4000-8000-000000000015','10000000-0000-4000-8000-000000000015',1,'celestial-night','celestial','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed'),
+('30000000-0000-4000-8000-000000000016','10000000-0000-4000-8000-000000000016',1,'little-wonders','gouache','["portrait-5x7","folded-5x7","square-5x5","landscape-7x5","postcard-6x4"]','["latin","cjk","hangul"]','medium','medium','passed')
+on conflict do nothing;
+
+update templates t set current_version_id=v.id,updated_at=now()
+from template_versions v
+where v.template_id=t.id and v.version=1 and t.current_version_id is null;
+
+-- Exact bootstrap targeting. Mutable later through admin; seed only establishes launch priors.
+insert into template_targeting(template_id,dimension,target_key,affinity) values
+('10000000-0000-4000-8000-000000000001','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000001','market','US',0.9100),
+('10000000-0000-4000-8000-000000000001','market','GB',0.9100),
+('10000000-0000-4000-8000-000000000001','market','FR',0.8400),
+('10000000-0000-4000-8000-000000000001','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000001','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000001','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000001','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000001','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000001','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000001','feeling','Elegant',0.9800),
+('10000000-0000-4000-8000-000000000001','feeling','Warm',0.7200),
+('10000000-0000-4000-8000-000000000001','feeling','Romantic',0.6800),
+('10000000-0000-4000-8000-000000000001','feeling','Fun',0.1800),
+('10000000-0000-4000-8000-000000000001','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000002','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000002','market','US',0.8800),
+('10000000-0000-4000-8000-000000000002','market','KR',0.8200),
+('10000000-0000-4000-8000-000000000002','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000002','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000002','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000002','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000002','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000002','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000002','feeling','Elegant',0.9300),
+('10000000-0000-4000-8000-000000000002','feeling','Warm',0.5200),
+('10000000-0000-4000-8000-000000000002','feeling','Romantic',0.7800),
+('10000000-0000-4000-8000-000000000002','feeling','Fun',0.3500),
+('10000000-0000-4000-8000-000000000002','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000003','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000003','market','FR',0.9100),
+('10000000-0000-4000-8000-000000000003','market','GB',0.8700),
+('10000000-0000-4000-8000-000000000003','market','VN',0.8200),
+('10000000-0000-4000-8000-000000000003','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000003','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000003','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000003','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000003','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000003','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000003','feeling','Elegant',0.9100),
+('10000000-0000-4000-8000-000000000003','feeling','Warm',0.9200),
+('10000000-0000-4000-8000-000000000003','feeling','Romantic',0.8000),
+('10000000-0000-4000-8000-000000000003','feeling','Fun',0.2000),
+('10000000-0000-4000-8000-000000000003','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000004','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000004','market','JP',0.9900),
+('10000000-0000-4000-8000-000000000004','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000004','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000004','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000004','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000004','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000004','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000004','feeling','Elegant',0.9800),
+('10000000-0000-4000-8000-000000000004','feeling','Warm',0.7600),
+('10000000-0000-4000-8000-000000000004','feeling','Romantic',0.7000),
+('10000000-0000-4000-8000-000000000004','feeling','Fun',0.1200),
+('10000000-0000-4000-8000-000000000004','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000005','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000005','market','KR',0.9900),
+('10000000-0000-4000-8000-000000000005','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000005','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000005','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000005','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000005','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000005','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000005','feeling','Elegant',0.8600),
+('10000000-0000-4000-8000-000000000005','feeling','Warm',0.9500),
+('10000000-0000-4000-8000-000000000005','feeling','Romantic',0.8200),
+('10000000-0000-4000-8000-000000000005','feeling','Fun',0.3500),
+('10000000-0000-4000-8000-000000000005','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000006','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000006','market','US',0.8600),
+('10000000-0000-4000-8000-000000000006','market','FR',0.8600),
+('10000000-0000-4000-8000-000000000006','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000006','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000006','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000006','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000006','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000006','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000006','feeling','Elegant',0.9800),
+('10000000-0000-4000-8000-000000000006','feeling','Warm',0.3000),
+('10000000-0000-4000-8000-000000000006','feeling','Romantic',0.6200),
+('10000000-0000-4000-8000-000000000006','feeling','Fun',0.3600),
+('10000000-0000-4000-8000-000000000006','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000007','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000007','market','US',0.9200),
+('10000000-0000-4000-8000-000000000007','market','KR',0.8800),
+('10000000-0000-4000-8000-000000000007','market','VN',0.8800),
+('10000000-0000-4000-8000-000000000007','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000007','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000007','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000007','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000007','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000007','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000007','feeling','Elegant',0.8400),
+('10000000-0000-4000-8000-000000000007','feeling','Warm',0.9400),
+('10000000-0000-4000-8000-000000000007','feeling','Romantic',0.9000),
+('10000000-0000-4000-8000-000000000007','feeling','Fun',0.4500),
+('10000000-0000-4000-8000-000000000007','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000008','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000008','market','JP',0.9000),
+('10000000-0000-4000-8000-000000000008','market','DE',0.8800),
+('10000000-0000-4000-8000-000000000008','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000008','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000008','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000008','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000008','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000008','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000008','feeling','Elegant',0.9600),
+('10000000-0000-4000-8000-000000000008','feeling','Warm',0.6800),
+('10000000-0000-4000-8000-000000000008','feeling','Romantic',0.5000),
+('10000000-0000-4000-8000-000000000008','feeling','Fun',0.1000),
+('10000000-0000-4000-8000-000000000008','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000009','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000009','market','FR',0.8600),
+('10000000-0000-4000-8000-000000000009','market','VN',0.8600),
+('10000000-0000-4000-8000-000000000009','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000009','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000009','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000009','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000009','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000009','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000009','feeling','Elegant',0.7500),
+('10000000-0000-4000-8000-000000000009','feeling','Warm',0.9500),
+('10000000-0000-4000-8000-000000000009','feeling','Romantic',0.9600),
+('10000000-0000-4000-8000-000000000009','feeling','Fun',0.3200),
+('10000000-0000-4000-8000-000000000009','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000010','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000010','market','US',0.8400),
+('10000000-0000-4000-8000-000000000010','market','VN',0.8200),
+('10000000-0000-4000-8000-000000000010','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000010','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000010','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000010','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000010','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000010','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000010','feeling','Elegant',0.5500),
+('10000000-0000-4000-8000-000000000010','feeling','Warm',0.9500),
+('10000000-0000-4000-8000-000000000010','feeling','Romantic',0.6200),
+('10000000-0000-4000-8000-000000000010','feeling','Fun',0.7800),
+('10000000-0000-4000-8000-000000000010','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000011','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000011','market','DE',0.8800),
+('10000000-0000-4000-8000-000000000011','market','FR',0.8600),
+('10000000-0000-4000-8000-000000000011','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000011','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000011','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000011','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000011','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000011','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000011','feeling','Elegant',0.9800),
+('10000000-0000-4000-8000-000000000011','feeling','Warm',0.3800),
+('10000000-0000-4000-8000-000000000011','feeling','Romantic',0.5000),
+('10000000-0000-4000-8000-000000000011','feeling','Fun',0.2000),
+('10000000-0000-4000-8000-000000000011','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000012','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000012','market','US',0.9000),
+('10000000-0000-4000-8000-000000000012','market','KR',0.8200),
+('10000000-0000-4000-8000-000000000012','occasion','Birthday',0.9600),
+('10000000-0000-4000-8000-000000000012','occasion','Anniversary',0.4800),
+('10000000-0000-4000-8000-000000000012','occasion','Thank You',0.6200),
+('10000000-0000-4000-8000-000000000012','occasion','Congratulations',0.9800),
+('10000000-0000-4000-8000-000000000012','occasion','New Baby',0.7000),
+('10000000-0000-4000-8000-000000000012','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000012','feeling','Elegant',0.2800),
+('10000000-0000-4000-8000-000000000012','feeling','Warm',0.7200),
+('10000000-0000-4000-8000-000000000012','feeling','Romantic',0.4000),
+('10000000-0000-4000-8000-000000000012','feeling','Fun',0.9900),
+('10000000-0000-4000-8000-000000000012','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000013','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000013','market','JP',0.9600),
+('10000000-0000-4000-8000-000000000013','occasion','Birthday',0.9800),
+('10000000-0000-4000-8000-000000000013','occasion','Anniversary',0.4200),
+('10000000-0000-4000-8000-000000000013','occasion','Thank You',0.6500),
+('10000000-0000-4000-8000-000000000013','occasion','Congratulations',0.8600),
+('10000000-0000-4000-8000-000000000013','occasion','New Baby',0.9200),
+('10000000-0000-4000-8000-000000000013','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000013','feeling','Elegant',0.3500),
+('10000000-0000-4000-8000-000000000013','feeling','Warm',0.9000),
+('10000000-0000-4000-8000-000000000013','feeling','Romantic',0.5500),
+('10000000-0000-4000-8000-000000000013','feeling','Fun',0.9900),
+('10000000-0000-4000-8000-000000000013','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000014','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000014','market','US',0.9200),
+('10000000-0000-4000-8000-000000000014','market','GB',0.9400),
+('10000000-0000-4000-8000-000000000014','market','FR',0.9000),
+('10000000-0000-4000-8000-000000000014','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000014','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000014','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000014','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000014','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000014','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000014','feeling','Elegant',0.9900),
+('10000000-0000-4000-8000-000000000014','feeling','Warm',0.9200),
+('10000000-0000-4000-8000-000000000014','feeling','Romantic',0.7200),
+('10000000-0000-4000-8000-000000000014','feeling','Fun',0.0800),
+('10000000-0000-4000-8000-000000000014','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000015','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000015','market','US',0.8600),
+('10000000-0000-4000-8000-000000000015','market','KR',0.8400),
+('10000000-0000-4000-8000-000000000015','occasion','Birthday',0.8000),
+('10000000-0000-4000-8000-000000000015','occasion','Anniversary',0.7000),
+('10000000-0000-4000-8000-000000000015','occasion','Thank You',0.7000),
+('10000000-0000-4000-8000-000000000015','occasion','Congratulations',0.7000),
+('10000000-0000-4000-8000-000000000015','occasion','New Baby',0.5500),
+('10000000-0000-4000-8000-000000000015','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000015','feeling','Elegant',0.9000),
+('10000000-0000-4000-8000-000000000015','feeling','Warm',0.6300),
+('10000000-0000-4000-8000-000000000015','feeling','Romantic',0.8800),
+('10000000-0000-4000-8000-000000000015','feeling','Fun',0.4500),
+('10000000-0000-4000-8000-000000000015','feeling','Surprise me',0.7200),
+('10000000-0000-4000-8000-000000000016','market','GLOBAL',0.7000),
+('10000000-0000-4000-8000-000000000016','market','US',0.8200),
+('10000000-0000-4000-8000-000000000016','market','VN',0.8000),
+('10000000-0000-4000-8000-000000000016','occasion','Birthday',0.9000),
+('10000000-0000-4000-8000-000000000016','occasion','Anniversary',0.3500),
+('10000000-0000-4000-8000-000000000016','occasion','Thank You',0.7200),
+('10000000-0000-4000-8000-000000000016','occasion','Congratulations',0.7500),
+('10000000-0000-4000-8000-000000000016','occasion','New Baby',0.9900),
+('10000000-0000-4000-8000-000000000016','occasion','Other',0.5800),
+('10000000-0000-4000-8000-000000000016','feeling','Elegant',0.5800),
+('10000000-0000-4000-8000-000000000016','feeling','Warm',0.9600),
+('10000000-0000-4000-8000-000000000016','feeling','Romantic',0.5500),
+('10000000-0000-4000-8000-000000000016','feeling','Fun',0.9200),
+('10000000-0000-4000-8000-000000000016','feeling','Surprise me',0.7200)
+on conflict(template_id,dimension,target_key) do update set affinity=excluded.affinity;

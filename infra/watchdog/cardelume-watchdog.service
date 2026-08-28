@@ -1,0 +1,18 @@
+[Unit]
+Description=CardeLume local application health watchdog
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/opt/cardelume/infra/watchdog/cardelume-health-watchdog.sh
+Restart=always
+RestartSec=2
+Environment=HEALTH_URL=http://127.0.0.1:3000/health/ready
+Environment=TUNNEL_CONTAINER=cardelume-cloudflared
+Environment=WATCHDOG_INTERVAL=3
+Environment=FAIL_THRESHOLD=3
+Environment=RECOVERY_THRESHOLD=3
+
+[Install]
+WantedBy=multi-user.target
