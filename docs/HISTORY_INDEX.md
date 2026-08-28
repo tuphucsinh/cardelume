@@ -11,15 +11,16 @@ Read these first:
 1. `MASTER_SPEC_V7.md`
 2. `ARCHITECTURE_V7_LUMER_OPERATIONS.md`
 3. `ROADMAP_V7.md`
-4. `PRODUCT_UX_INTEGRATION_0.4.3_STEP17F.md`
-5. `GOVERNANCE_COMPRESSION_0.4.3_STEP17G.md`
-6. `MARKETING_APPROVAL_BOUNDARY_0.4.3_STEP17H.md`
-7. `VALIDATION_REPORT_0.4.3_STEP17H.md`
-8. `STEP17H_HERMES_LUMER_HANDOFF.md`
-9. `STEP18_CONTROLLED_RUNTIME_RUNBOOK.md`
-10. `KNOWN_ISSUES.md`
+4. `GOVERNANCE_COMPRESSION_0.4.3_STEP17G.md`
+5. `MARKETING_APPROVAL_BOUNDARY_0.4.3_STEP17H.md`
+6. `PREMIUM_EXPERIENCE_CONVERGENCE_0.4.3_STEP17I.md` — historical product convergence delta
+7. `MATERIAL_MAGIC_GALLERY_PREMIUM_CONVERGENCE_0.4.3_STEP17J.md` — current product/UX delta
+8. `VALIDATION_REPORT_0.4.3_STEP17J.md` — current source/offline evidence
+9. `STEP17J_HERMES_LUMER_HANDOFF.md` — current handoff
+10. `STEP18_CONTROLLED_RUNTIME_RUNBOOK.md` — next execution contract
+11. `KNOWN_ISSUES.md`
 
-The detailed Step 13 Creative Director docs and `VALIDATION_REPORT_0.4.3_STEP13.md` remain in this baseline because Step 13 is the creative-authority core and later governance must not silently reinterpret it.
+The detailed Step 13 Creative Director docs and `VALIDATION_REPORT_0.4.3_STEP13.md` remain because Step 13 is the creative-authority core and later governance must not silently reinterpret it.
 
 ## Detailed domain docs intentionally retained
 
@@ -36,4 +37,13 @@ Do not infer that a removed historical report was invalid. It is simply **histor
 - `VALIDATION_REPORT_0.4.3_STEP17I.md`
 - `STEP17I_HERMES_LUMER_HANDOFF.md`
 
-Step17I is the current baseline authority; Step17H and earlier artifacts remain historical evidence only.
+Step17I is historical convergence evidence; Step17J is the current baseline authority.
+
+
+## Step17J current lineage
+
+- `MATERIAL_MAGIC_GALLERY_PREMIUM_CONVERGENCE_0.4.3_STEP17J.md`
+- `VALIDATION_REPORT_0.4.3_STEP17J.md`
+- `STEP17J_HERMES_LUMER_HANDOFF.md`
+
+Step17J is the current source baseline. Step17I and earlier remain historical evidence.

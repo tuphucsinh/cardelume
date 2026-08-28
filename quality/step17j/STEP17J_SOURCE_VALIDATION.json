@@ -1,13 +1,10 @@
 {
   "schemaVersion": 1,
-  "frozenAt": "2026-08-28T16:21:08.147536Z",
-  "product": "CardeLume",
-  "version": "0.4.3-step.17j",
+  "generatedAt": "2026-08-28T16:21:08.147536Z",
+  "candidate": "0.4.3-step.17j",
   "baseline": "CARDELUME_BASELINE_0.4.3_STEP17J_MATERIAL_MAGIC_GALLERY_PREMIUM_CONVERGENCE",
-  "latestMigration": "0011_funnel_and_launch_approvals.sql",
   "sourceVerdict": "PASS",
   "productionVerdict": "NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES",
-  "creativeAuthority": "Hard constraints veto. Soft evidence informs. Premium AI makes the final creative decision.",
   "step17j": {
     "purpose": "Material Magic, Gallery Power & Premium Convergence",
     "strategy": "0.4.1 product power + Step17I brand refinement",
@@ -71,6 +68,5 @@
     "Pi5 + Oracle/VPS HA/failover/backup-restore rehearsal"
   ],
   "productionActionsPerformed": false,
-  "secretsIntentionallyIncluded": false,
-  "manifest": "PROJECT_SHA256SUMS.txt"
+  "secretsIntentionallyIncluded": false
 }

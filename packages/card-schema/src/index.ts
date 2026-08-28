@@ -228,4 +228,4 @@ export function shortenCardBody(value:string,locale="en",targetVisual?:number){
   return clipped+(script==="cjk"?"…":"…");
 }
 
-export * from "./photo-contrast";
+export * from "./photo-contrast.ts";

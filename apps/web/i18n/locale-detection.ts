@@ -1,4 +1,4 @@
-import { supportedLocales, type LocaleCode } from "./messages";
+import { supportedLocales, type LocaleCode } from "./messages.ts";
 
 export const LOCALE_COOKIE="cardelume_locale";
 export const LOCALE_COOKIE_MAX_AGE=60*60*24*365;

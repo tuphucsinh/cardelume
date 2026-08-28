@@ -1,6 +1,6 @@
 # Step 18 Controlled Runtime Validation Runbook
 
-> Execute this runbook from the current **Step17I baseline (`0.4.3-step.17i`)**. Source/offline PASS does not substitute for any runtime evidence below.
+> Execute this runbook from the current **Step17J baseline (`0.4.3-step.17j`)**. Source/offline PASS does not substitute for any runtime evidence below.
 
 This runbook is prepared in Step 17B. **It is not evidence that Step 18 has run.** Execute on Pi5/Lumer against isolated staging/test services first.
 
@@ -25,7 +25,7 @@ pnpm build
 pnpm test
 ```
 
-This Step17I Hermes package intentionally has no authoritative historical lockfile. If `pnpm-lock.yaml` is absent, create a **new candidate lockfile** in a dedicated branch/worktree (`pnpm install --lockfile-only`), review the resolved graph/install scripts/native dependencies, commit it as new Step18 evidence, then restart from a clean state with `pnpm install --frozen-lockfile`. Never describe the new lock as recovered historical state.
+This Step17J Hermes package intentionally has no authoritative historical lockfile. If `pnpm-lock.yaml` is absent, create a **new candidate lockfile** in a dedicated branch/worktree (`pnpm install --lockfile-only`), review the resolved graph/install scripts/native dependencies, commit it as new Step18 evidence, then restart from a clean state with `pnpm install --frozen-lockfile`. Never describe the new lock as recovered historical state.
 
 ## 2. Supply-chain evidence
 

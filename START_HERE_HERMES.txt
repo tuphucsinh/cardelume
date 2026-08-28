@@ -1,4 +1,4 @@
-CARDELUME 0.4.3 STEP 17I — HERMES / PI5 START HERE
+CARDELUME 0.4.3 STEP 17J — HERMES / PI5 START HERE
 
 1) This directory is already a complete Hermes-ready project. Do NOT run new-project inside it.
 2) Read AGENTS.md first.

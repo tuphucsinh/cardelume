@@ -57,7 +57,7 @@ await heartbeat();
 const heartbeatTimer=setInterval(()=>{void heartbeat().catch(error=>log("worker_heartbeat_failed",{error:error instanceof Error?error.message:"unknown"}));},int("WORKER_HEARTBEAT_INTERVAL_SECONDS",15)*1000);
 heartbeatTimer.unref();
 
-await boss.work(QUEUES.aiPlan,{teamSize:int("AI_PLAN_CONCURRENCY",1),teamConcurrency:int("AI_PLAN_CONCURRENCY",1)},async job=>tracked(async()=>{
+await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},async jobs=>tracked(async()=>{const job=jobs[0];if(!job)return;
   const payload=GenerationJobSchema.safeParse(job.data);if(!payload.success)throw new Error("invalid_ai_plan_job_payload");
   log("ai_plan_start",{queueJobId:job.id,jobId:payload.data.jobId});
   const claim=await claimGenerationJob({jobId:payload.data.jobId});if(claim.state==="ready"){log("ai_plan_already_ready",{jobId:payload.data.jobId});return;}
@@ -94,7 +94,7 @@ await boss.work(QUEUES.aiPlan,{teamSize:int("AI_PLAN_CONCURRENCY",1),teamConcurr
     if(risks.includes("creative_range")&&candidatePool.length<12)candidatePool=expandedCreativeCandidatePool(catalog,rankInput,16);
     if(risks.some(r=>criticTriggers.has(r))){const criticStarted=Date.now();try{const repaired=await criticRepairDirections(provider,brief,result,candidatePool,risks);result=repaired.result;if(repaired.telemetry.latencyMs>0)await persistAiTelemetry(payload.data.jobId,repaired.telemetry);}catch(error){await persistAiTelemetry(payload.data.jobId,{phase:"critic_repair",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-criticStarted,success:false,errorCode:error instanceof Error?error.message:"ai_critic_failed"});if(risks.some(r=>premiumCritical.has(r)))throw error;}const remaining=creativeQualityRisks(result,brief,recentStyles);if(remaining.some(r=>premiumCritical.has(r)))throw new Error("ai_premium_quality_not_met");}
     await completeGenerationJob({jobId:payload.data.jobId,result});
-    await Promise.all(result.directions.flatMap((direction,index)=>direction.templateId?[recordTemplateEvent({eventId:randomUUID(),templateId:direction.templateId,templateVersionId:direction.templateVersionId,eventType:"ai_assigned",source:"ai_direction",market:brief.market,locale:brief.locale,rankPosition:index+1})]:[])).catch(()=>undefined);
+    await Promise.all(result.directions.flatMap((direction,index)=>direction.templateId&&direction.templateVersionId?[recordTemplateEvent({eventId:randomUUID(),templateId:direction.templateId,templateVersionId:direction.templateVersionId,eventType:"ai_assigned",source:"ai_direction",market:brief.market,locale:brief.locale,rankPosition:index+1})]:[])).catch(()=>undefined);
     log("ai_plan_complete",{jobId:payload.data.jobId,directionCount:result.directions.length});
   }catch(error){
     const raw=error instanceof Error?error.message:"generation_provider_failed";
@@ -104,7 +104,7 @@ await boss.work(QUEUES.aiPlan,{teamSize:int("AI_PLAN_CONCURRENCY",1),teamConcurr
   }
 }));
 
-await boss.work(QUEUES.final,{teamSize:int("FINAL_RENDER_CONCURRENCY",1)},async job=>tracked(async()=>{
+await boss.work(QUEUES.final,{localConcurrency:int("FINAL_RENDER_CONCURRENCY",1)},async jobs=>tracked(async()=>{const job=jobs[0];if(!job)return;
   const parsed=FinalRenderJobSchema.safeParse(job.data);
   if(!parsed.success)throw new Error("invalid_final_render_job_payload");
   const payload=parsed.data;
@@ -159,7 +159,7 @@ await boss.work(QUEUES.final,{teamSize:int("FINAL_RENDER_CONCURRENCY",1)},async 
   });
 }));
 
-await boss.work(QUEUES.cleanup,{teamSize:int("CLEANUP_CONCURRENCY",1)},async job=>tracked(async()=>{
+await boss.work(QUEUES.cleanup,{localConcurrency:int("CLEANUP_CONCURRENCY",1)},async jobs=>tracked(async()=>{const job=jobs[0];if(!job)return;
   log("cleanup_start",{jobId:job.id});
   const expiredGenerationJobs=await failStaleGenerationJobs({olderThanMinutes:int("GENERATION_JOB_TTL_MINUTES",5)});
   const candidates=await listPhotoAssetCleanupCandidates({olderThanMinutes:int("PHOTO_QUARANTINE_TTL_MINUTES",120),limit:25});

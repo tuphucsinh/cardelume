@@ -10,7 +10,7 @@ export function generationRequestHash(brief:GenerationBrief){return createHash("
 
 let bossPromise:Promise<ReturnType<typeof createBoss>>|undefined;
 async function sender(){
-  if(!bossPromise)bossPromise=(async()=>{const boss=createBoss();boss.on("error",error=>console.error(JSON.stringify({level:"error",event:"queue_sender_error",error:error instanceof Error?error.message:"unknown"})));await boss.start();await ensureCardeLumeQueues(boss);return boss;})();
+  if(!bossPromise)bossPromise=(async()=>{const boss=createBoss();boss.on("error",(error:unknown)=>console.error(JSON.stringify({level:"error",event:"queue_sender_error",error:error instanceof Error?error.message:"unknown"})));await boss.start();await ensureCardeLumeQueues(boss);return boss;})();
   return bossPromise;
 }
 export async function createAndEnqueueGeneration(input:{jobId:string;cardId:string;userId:string;idempotencyKey:string;brief:GenerationBrief}){

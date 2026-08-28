@@ -5067,3 +5067,7 @@ Locked product rules after Step 17F:
 - legal/security production gates fail closed when owner/runtime evidence is missing.
 
 Migration authority now extends through `0011_funnel_and_launch_approvals.sql`.
+
+
+### Current source delta — Step17J
+See `docs/MATERIAL_MAGIC_GALLERY_PREMIUM_CONVERGENCE_0.4.3_STEP17J.md` and `docs/VALIDATION_REPORT_0.4.3_STEP17J.md`. Step17I is historical.

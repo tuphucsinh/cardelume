@@ -1,4 +1,4 @@
-import { getCardFormatSpec, inchesToPoints, type CardFormat } from "./formats";
+import { getCardFormatSpec, inchesToPoints, type CardFormat } from "./formats.ts";
 
 type PdfObject={id:number;body:Uint8Array};
 

@@ -1,3 +1,20 @@
+# Release Notes — CardeLume 0.4.3 Step 17J
+
+## Step 17J — Material Magic, Gallery Power & Premium Convergence
+
+- Keeps Step17I customer-flow restraint while restoring the strongest 0.4.1 showroom/material richness as a governed 16-family review target.
+- Prioritizes 10 0.4.1 families, then 6 later concepts; target order is review/showroom evidence only and never changes launch approval state.
+- Adds material-world metadata (`materialWorld`, `materialCues`, `energy`, `colorWorld`, `motionProfile`, locale/print strengths) to template intelligence.
+- Extends deterministic candidate diversity and AI context so three directions are encouraged to differ by material/color/energy, not merely family ID.
+- Restores automatic progressive-enhancement material interaction: pointer/touch 3D tilt, dynamic light/foil response, paper depth and existing haptics/gyro capability without customer-facing technical controls.
+- Restores the 0.4.1-style premium showroom: large card object, material tag, large Cormorant family name, distinct material-world background; production remains approved-only.
+- Adds Palette Bloom on existing lightweight photo-palette extraction, and replaces print-layout text selection with visual layout choices while retaining digital-only clarity.
+- Keeps 16-market pricing and dormant Holiday Bundle logic; Holiday Bundle remains hidden from paid customer UI.
+- Keeps Cormorant Garamond + Plus Jakarta Sans as flagship English typography and locale-specific Noto mappings for CJK.
+- Source/offline validation remains fail-closed. Production remains NO_GO until Step18 runtime and owner/IP/Golden/legal gates close.
+
+---
+
 # Release Notes — CardeLume 0.4.3 Step 17I
 
 ## Step 17I — Premium Experience Convergence

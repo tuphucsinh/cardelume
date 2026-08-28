@@ -10,11 +10,11 @@ import {
 } from "@cardelume/card-schema";
 import { Resvg } from "@resvg/resvg-js";
 import sharp from "sharp";
-import { createPrintPdfFromJpeg } from "./pdf";
-import { getCardFormatSpec, type CardFormatSpec } from "./formats";
-import { rendererFontConfig } from "./fonts";
-import { assertRendererTemplateId, templateArtSvg } from "./template-art";
-import { templateLayoutProfile, type TemplateTextAnchor } from "./template-layout";
+import { createPrintPdfFromJpeg } from "./pdf.ts";
+import { getCardFormatSpec, type CardFormatSpec } from "./formats.ts";
+import { rendererFontConfig } from "./fonts.ts";
+import { assertRendererTemplateId, templateArtSvg } from "./template-art.ts";
+import { templateLayoutProfile, type TemplateTextAnchor } from "./template-layout.ts";
 
 export const CURRENT_RENDERER_VERSION="0.4.3-step.5" as const;
 
@@ -214,8 +214,8 @@ export function renderSafeSvg(input:CardDocument,options:RenderSvgOptions={}):st
     const kickerY=Math.round(h*layout.kickerYPct),headlineCenter=Math.round(h*layout.headlineYPct),bodyCenter=Math.round(h*layout.bodyYPct);
     const headlineStart=headlineCenter-Math.max(0,headlineLines.length-1)*hp*hLeading/2;
     const bodyStart=bodyCenter-Math.max(0,bodyLines.length-1)*bp*bLeading/2;
-    assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:false,headlineMaxWidthPct,bodyMaxWidthPct,locale:doc.locale,textX,anchor:textAnchor});
-    return`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:false,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:bodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+    return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
       <rect width="${w}" height="${h}" fill="${palette.bg}"/>
       <image x="${photoX}" y="${photoY}" width="${photoW}" height="${photoH}" preserveAspectRatio="xMidYMid slice" href="${base64Asset(photo)}"/>
       ${art}
@@ -233,8 +233,8 @@ export function renderSafeSvg(input:CardDocument,options:RenderSvgOptions={}):st
     const bodyCenter=Math.round(copyTop+h*.33);
     const headlineStart=headlineCenter-Math.max(0,headlineLines.length-1)*hp*hLeading/2;
     const bodyStart=bodyCenter-Math.max(0,bodyLines.length-1)*bp*bLeading/2;
-    assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:true,headlineMaxWidthPct,bodyMaxWidthPct,locale:doc.locale,textX,anchor:textAnchor});
-    return`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:true,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:bodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+    return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
       <rect width="${w}" height="${h}" fill="${palette.bg}"/>
       <image x="0" y="0" width="${w}" height="${photoH}" preserveAspectRatio="xMidYMid slice" href="${base64Asset(photo)}"/>
       <rect x="0" y="${photoH}" width="${w}" height="${h-photoH}" fill="${palette.bg}"/>
@@ -248,8 +248,8 @@ export function renderSafeSvg(input:CardDocument,options:RenderSvgOptions={}):st
   const kickerY=Math.round(h*layout.kickerYPct),headlineCenter=Math.round(h*layout.headlineYPct),bodyCenter=Math.round(h*layout.bodyYPct),sparkY=Math.round(h*layout.signatureYPct);
   const headlineStart=headlineCenter-Math.max(0,headlineLines.length-1)*hp*hLeading/2;
   const bodyStart=bodyCenter-Math.max(0,bodyLines.length-1)*bp*bLeading/2;
-  assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:false,headlineMaxWidthPct,bodyMaxWidthPct,locale:doc.locale,textX,anchor:textAnchor});
-  return`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:false,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:bodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+  return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
     <rect width="${w}" height="${h}" rx="${Math.max(6,Math.round(18*scale))}" fill="${palette.bg}"/>
     ${art}
     ${layout.showBorder?`<rect x="${borderInset}" y="${borderInset}" width="${w-borderInset*2}" height="${h-borderInset*2}" rx="${Math.max(2,Math.round(4*scale))}" fill="none" stroke="${palette.accent}" stroke-width="${borderWidth}" opacity=".68"/>`:""}
@@ -322,10 +322,10 @@ export async function renderProductionPreview(input:CardDocument,options:{assets
   return{jpg:new Uint8Array(jpg),width,height};
 }
 
-export { createPrintPdfFromJpeg } from "./pdf";
-export { getCardFormatSpec } from "./formats";
-export { rendererFontConfig } from "./fonts";
-export { rendererTemplateIds, assertRendererTemplateId } from "./template-art";
+export { createPrintPdfFromJpeg } from "./pdf.ts";
+export { getCardFormatSpec } from "./formats.ts";
+export { rendererFontConfig } from "./fonts.ts";
+export { rendererTemplateIds, assertRendererTemplateId } from "./template-art.ts";
 
 export function assertRendererFontsReady(){
   for(const locale of ["en","ja","ko","zh"] as const)rendererFontConfig(locale);

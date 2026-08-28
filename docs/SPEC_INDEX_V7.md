@@ -10,7 +10,7 @@
 6. V7 planned operating specs below.
 7. Historical documents only where not superseded.
 
-**Important:** Steps 14–17I now have implementation/source evidence in the current baseline; Steps 18–21 remain controlled-runtime/production/soft-launch work. Never infer runtime PASS from the V7 spec alone.
+**Important:** Steps 14–17J now have implementation/source evidence in the current baseline; Steps 18–21 remain controlled-runtime/production/soft-launch work. Never infer runtime PASS from the V7 spec alone.
 
 ## V7 new documents
 
@@ -28,9 +28,12 @@
 - `V7_IMPLEMENTATION_CHECKLIST.md`
 - `GOVERNANCE_COMPRESSION_0.4.3_STEP17G.md`
 - `MARKETING_APPROVAL_BOUNDARY_0.4.3_STEP17H.md`
-- `PREMIUM_EXPERIENCE_CONVERGENCE_0.4.3_STEP17I.md`
-- `VALIDATION_REPORT_0.4.3_STEP17I.md`
-- `STEP17I_HERMES_LUMER_HANDOFF.md`
+- `PREMIUM_EXPERIENCE_CONVERGENCE_0.4.3_STEP17I.md` — historical Step17I product delta; superseded by Step17J.
+- `MATERIAL_MAGIC_GALLERY_PREMIUM_CONVERGENCE_0.4.3_STEP17J.md`
+- `VALIDATION_REPORT_0.4.3_STEP17J.md`
+- `STEP17J_HERMES_LUMER_HANDOFF.md`
+- `VALIDATION_REPORT_0.4.3_STEP17I.md` — historical Step17I evidence
+- `STEP17I_HERMES_LUMER_HANDOFF.md` — historical Step17I handoff
 
 > **Control Center:** remains an optional post-core operating-surface concept; there is no standalone canonical Control Center spec in the current compressed baseline.
 

@@ -1,6 +1,6 @@
 {
   "name": "@cardelume/worker",
-  "version": "0.4.3-step.17i",
+  "version": "0.4.3-step.17j",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "node -e \"process.exit(0)\"",
-    "test": "cd ../.. && tsx scripts/generation-queue-source-stress.ts && tsx scripts/renderer-export-stress.ts"
+    "test": "cd ../.. && tsx scripts/generation-queue-source-stress.ts && node --experimental-strip-types scripts/renderer-export-stress.ts"
   },
   "dependencies": {
     "@cardelume/ai": "workspace:*",

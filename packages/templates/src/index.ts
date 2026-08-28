@@ -10,6 +10,10 @@ export type TemplateHealth="healthy"|"degraded"|"invalid";
 export type TemplateScript="latin"|"cjk"|"hangul";
 export type TextCapacity="short"|"medium"|"long";
 export type TemplateSurfaceSource="ai_direction"|"recommended"|"market_pick"|"show_more";
+export type TemplateMaterialWorld="editorial_luxury"|"nocturne_foil"|"letterpress_tactile"|"photo_keepsake"|"quiet_modern"|"personal_mark"|"celebration_energy";
+export type TemplateEnergy="quiet"|"warm"|"cinematic"|"tactile"|"bold"|"personal";
+export type TemplateColorWorld="ivory"|"navy"|"sage"|"warm"|"soft_color"|"noir"|"photo";
+export type TemplateMotionProfile="static_paper"|"foil_light"|"pressed_depth"|"photo_palette"|"personal_mark"|"quiet_plane";
 
 export type Affinity={key:string;score:number};
 export type TemplateMeta = {
@@ -36,6 +40,13 @@ export type TemplateMeta = {
   occasions:Affinity[];
   markets:Affinity[];
   excludedMarkets:string[];
+  materialWorld:TemplateMaterialWorld;
+  materialCues:string[];
+  energy:TemplateEnergy;
+  colorWorld:TemplateColorWorld;
+  motionProfile:TemplateMotionProfile;
+  localeStrengths:string[];
+  printFormatStrength:string[];
   impressions?:number;
   selected?:number;
   paid?:number;
@@ -146,8 +157,11 @@ function creativeDistance(candidate:RankedTemplate,chosen:RankedTemplate[]){
   for(const prior of chosen){
     let similarity=0;
     if(candidate.template.familyId===prior.template.familyId)similarity=1;
-    else if(candidate.template.visualDirection===prior.template.visualDirection)similarity=.8;
-    else if(templateArchetype(candidate.template)===templateArchetype(prior.template))similarity=.55;
+    else if(candidate.template.visualDirection===prior.template.visualDirection)similarity=.82;
+    else if(candidate.template.materialWorld===prior.template.materialWorld)similarity=.66;
+    else if(templateArchetype(candidate.template)===templateArchetype(prior.template))similarity=.52;
+    if(candidate.template.colorWorld===prior.template.colorWorld)similarity=Math.max(similarity,.32);
+    if(candidate.template.energy===prior.template.energy)similarity=Math.max(similarity,.24);
     closest=Math.max(closest,similarity);
   }
   return 1-closest;
@@ -179,12 +193,12 @@ export function expandedCreativeCandidatePool(templates:TemplateMeta[],input:Tem
 }
 
 function diversePick(pool:RankedTemplate[],count:number,used=new Set<string>()){
-  const out:RankedTemplate[]=[];const families=new Set<string>();const directions=new Set<VisualDirection>();
+  const out:RankedTemplate[]=[];const families=new Set<string>();const directions=new Set<VisualDirection>();const worlds=new Set<TemplateMaterialWorld>();
   for(const item of pool){
     if(used.has(item.template.id))continue;
-    const familyPenalty=families.has(item.template.familyId);const directionPenalty=directions.has(item.template.visualDirection);
-    if((familyPenalty||directionPenalty)&&pool.length>count*2)continue;
-    out.push(item);used.add(item.template.id);families.add(item.template.familyId);directions.add(item.template.visualDirection);if(out.length===count)break;
+    const familyPenalty=families.has(item.template.familyId);const directionPenalty=directions.has(item.template.visualDirection);const worldPenalty=worlds.has(item.template.materialWorld);
+    if((familyPenalty||directionPenalty||worldPenalty)&&pool.length>count*2)continue;
+    out.push(item);used.add(item.template.id);families.add(item.template.familyId);directions.add(item.template.visualDirection);worlds.add(item.template.materialWorld);if(out.length===count)break;
   }
   if(out.length<count)for(const item of pool){if(!used.has(item.template.id)){out.push(item);used.add(item.template.id);if(out.length===count)break;}}
   return out;
@@ -273,48 +287,64 @@ const seed=(n:number,name:string,visualDirection:VisualDirection,material:string
   version:1,slug:name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,""),name,material,visualDirection,rendererTemplateKey:({
     editorial:"luxury-editorial",midnight:"midnight-lume",botanical:"botanical-poise",washi:"washi-elegance",seoul:"soft-seoul",deco:"art-deco-noir",photo:"photo-story",minimal:"quiet-minimal",watercolor:"watercolor-bloom",golden:"golden-hour",quietnoir:"quiet-noir",boldpop:"bold-pop",kawaii:"kawaii-joy",letterpress:"classic-letterpress",celestial:"celestial-night",gouache:"little-wonders",
     whispered:"whispered-type",museum:"museum-note",orbit:"monogram-orbit",ribbon:"ribbon-line",memory:"memory-window",typecelebration:"type-celebration",seal:"quiet-seal",pressed:"pressed-shadow",ink:"ink-pause",petal:"petal-geometry",ledger:"night-ledger",softfold:"soft-fold"
-  } as Record<VisualDirection,string>)[visualDirection],status:"active",launchStatus:"candidate",health:"healthy",photoMode:visualDirection==="photo"?"required":"none",editorialScore:88,maturity:"proven",supportedFormats:F,scriptSupport:ALL_SCRIPTS,headlineCapacity:"medium",bodyCapacity:"medium",feelings:FE(),occasions:O(),markets:M(),excludedMarkets:[],...overrides
+  } as Record<VisualDirection,string>)[visualDirection],status:"active",launchStatus:"candidate",health:"healthy",photoMode:visualDirection==="photo"?"required":"none",editorialScore:88,maturity:"proven",supportedFormats:F,scriptSupport:ALL_SCRIPTS,headlineCapacity:"medium",bodyCapacity:"medium",feelings:FE(),occasions:O(),markets:M(),excludedMarkets:[],materialWorld:"editorial_luxury",materialCues:["paper grain"],energy:"warm",colorWorld:"ivory",motionProfile:"static_paper",localeStrengths:["en"],printFormatStrength:["portrait-5x7"],...overrides
 });
 
 export const bootstrapTemplates:TemplateMeta[]=[
-  seed(1,"Luxury Editorial","editorial","Cotton · Restrained foil",{editorialScore:97,photoMode:"none",feelings:FE(.98,.72,.68,.18),markets:M(["US",.91],["GB",.91],["FR",.84])}),
-  seed(2,"Midnight Lume","midnight","Navy · Foil",{editorialScore:95,photoMode:"none",feelings:FE(.93,.52,.78,.35),markets:M(["US",.88],["KR",.82])}),
-  seed(3,"Botanical Poise","botanical","Letterpress · Botanical",{editorialScore:96,feelings:FE(.91,.92,.8,.2),markets:M(["FR",.91],["GB",.87],["VN",.82])}),
-  seed(4,"Washi Elegance","washi","Washi · Ink",{launchStatus:"hold",editorialScore:96,photoMode:"none",feelings:FE(.98,.76,.7,.12),markets:M(["JP",.99]),scriptSupport:["latin","cjk"]}),
-  seed(5,"Soft Seoul","seoul","Hanji · Soft color",{launchStatus:"hold",editorialScore:94,feelings:FE(.86,.95,.82,.35),markets:M(["KR",.99]),scriptSupport:["latin","hangul"]}),
-  seed(6,"Art Deco Noir","deco","Noir · Gold foil",{editorialScore:93,photoMode:"none",feelings:FE(.98,.3,.62,.36),markets:M(["US",.86],["FR",.86])}),
-  seed(7,"Photo Story","photo","Photo · Editorial",{editorialScore:95,photoMode:"required",bodyCapacity:"short",feelings:FE(.84,.94,.9,.45),markets:M(["US",.92],["KR",.88],["VN",.88])}),
-  seed(8,"Quiet Minimal","minimal","Uncoated · Minimal",{editorialScore:92,photoMode:"none",feelings:FE(.96,.68,.5,.1),markets:M(["JP",.9],["DE",.88])}),
+  seed(1,"Luxury Editorial","editorial","Cotton · Foil",{editorialScore:97,photoMode:"none",feelings:FE(.98,.72,.68,.18),markets:M(["US",.91],["GB",.91],["FR",.84]),materialWorld:"editorial_luxury",materialCues:["cotton paper","restrained foil","hairline frame"],energy:"quiet",colorWorld:"ivory",motionProfile:"foil_light",localeStrengths:["en","fr","de","vi"],printFormatStrength:["portrait-5x7","folded-5x7"]}),
+  seed(2,"Midnight Lume","midnight","Navy · Foil",{editorialScore:95,photoMode:"none",feelings:FE(.93,.52,.78,.35),markets:M(["US",.88],["KR",.82]),materialWorld:"nocturne_foil",materialCues:["navy stock","gold foil","constellation light"],energy:"cinematic",colorWorld:"navy",motionProfile:"foil_light",localeStrengths:["en","ko","vi"],printFormatStrength:["portrait-5x7","square-5x5"]}),
+  seed(3,"Botanical Poise","botanical","Letterpress · Botanical",{editorialScore:96,feelings:FE(.91,.92,.8,.2),markets:M(["FR",.91],["GB",.87],["VN",.82]),materialWorld:"letterpress_tactile",materialCues:["letterpress linework","botanical ink","cotton grain"],energy:"warm",colorWorld:"sage",motionProfile:"pressed_depth",localeStrengths:["en","fr","vi"],printFormatStrength:["portrait-5x7","folded-5x7"]}),
+  seed(4,"Washi Elegance","washi","Washi · Ink",{launchStatus:"hold",editorialScore:96,photoMode:"none",feelings:FE(.98,.76,.7,.12),markets:M(["JP",.99]),scriptSupport:["latin","cjk"],materialWorld:"letterpress_tactile",materialCues:["washi fiber","sumi-style ink","restrained metallic rule"],energy:"quiet",colorWorld:"warm",motionProfile:"static_paper",localeStrengths:["ja","en"],printFormatStrength:["portrait-5x7","postcard-6x4"]}),
+  seed(5,"Soft Seoul","seoul","Hanji · Soft color",{launchStatus:"hold",editorialScore:94,feelings:FE(.86,.95,.82,.35),markets:M(["KR",.99]),scriptSupport:["latin","hangul"],materialWorld:"quiet_modern",materialCues:["hanji grain","soft color fields","airy paper depth"],energy:"warm",colorWorld:"soft_color",motionProfile:"quiet_plane",localeStrengths:["ko","en"],printFormatStrength:["portrait-5x7","square-5x5"]}),
+  seed(6,"Art Deco Noir","deco","Noir · Gold foil",{editorialScore:93,photoMode:"none",feelings:FE(.98,.3,.62,.36),markets:M(["US",.86],["FR",.86]),materialWorld:"nocturne_foil",materialCues:["matte noir","gold foil frame","architectural geometry"],energy:"cinematic",colorWorld:"noir",motionProfile:"foil_light",localeStrengths:["en","fr"],printFormatStrength:["portrait-5x7","folded-5x7"]}),
+  seed(7,"Photo Story","photo","Photo · Editorial",{editorialScore:95,photoMode:"required",bodyCapacity:"short",feelings:FE(.84,.94,.9,.45),markets:M(["US",.92],["KR",.88],["VN",.88]),materialWorld:"photo_keepsake",materialCues:["editorial photo window","film grain","paper caption"],energy:"personal",colorWorld:"photo",motionProfile:"photo_palette",localeStrengths:["en","ko","vi"],printFormatStrength:["portrait-5x7","landscape-7x5","postcard-6x4"]}),
+  seed(8,"Quiet Minimal","minimal","Uncoated · Minimal",{editorialScore:92,photoMode:"none",feelings:FE(.96,.68,.5,.1),markets:M(["JP",.9],["DE",.88]),materialWorld:"quiet_modern",materialCues:["uncoated paper","blind emboss","negative space"],energy:"quiet",colorWorld:"ivory",motionProfile:"pressed_depth",localeStrengths:["en","ja","de"],printFormatStrength:["portrait-5x7","square-5x5"]}),
   seed(9,"Watercolor Bloom","watercolor","Cold press · Watercolor",{launchStatus:"hold",editorialScore:91,feelings:FE(.75,.95,.96,.32),markets:M(["FR",.86],["VN",.86])}),
   seed(10,"Golden Hour","golden","Retro stock · Sun print",{launchStatus:"hold",editorialScore:88,feelings:FE(.55,.95,.62,.78),markets:M(["US",.84],["VN",.82])}),
   seed(11,"Quiet Noir","quietnoir","Matte black · Blind emboss",{launchStatus:"hold",editorialScore:92,photoMode:"none",feelings:FE(.98,.38,.5,.2),markets:M(["DE",.88],["FR",.86])}),
   seed(12,"Bold Pop","boldpop","Risograph · Graphic",{launchStatus:"hold",editorialScore:86,feelings:FE(.28,.72,.4,.99),occasions:O(.96,.48,.62,.98,.7),markets:M(["US",.9],["KR",.82])}),
   seed(13,"Kawaii Joy","kawaii","Pearl paper · Kawaii",{launchStatus:"hold",editorialScore:87,feelings:FE(.35,.9,.55,.99),occasions:O(.98,.42,.65,.86,.92),markets:M(["JP",.96]),scriptSupport:["latin","cjk"]}),
-  seed(14,"Classic Letterpress","letterpress","Cotton rag · Letterpress",{editorialScore:98,photoMode:"none",bodyCapacity:"long",feelings:FE(.99,.92,.72,.08),markets:M(["US",.92],["GB",.94],["FR",.9])}),
-  seed(15,"Celestial Night","celestial","Navy · Constellation",{launchStatus:"hold",editorialScore:91,photoMode:"none",feelings:FE(.9,.63,.88,.45),markets:M(["US",.86],["KR",.84])}),
+  seed(14,"Classic Letterpress","letterpress","Cotton rag · Letterpress",{editorialScore:98,photoMode:"none",bodyCapacity:"long",feelings:FE(.99,.92,.72,.08),markets:M(["US",.92],["GB",.94],["FR",.9]),materialWorld:"letterpress_tactile",materialCues:["cotton rag","debossed type","pressed edge"],energy:"tactile",colorWorld:"ivory",motionProfile:"pressed_depth",localeStrengths:["en","fr","vi"],printFormatStrength:["portrait-5x7","folded-5x7"]}),
+  seed(15,"Celestial Night","celestial","Navy · Constellation",{launchStatus:"hold",editorialScore:91,photoMode:"none",feelings:FE(.9,.63,.88,.45),markets:M(["US",.86],["KR",.84]),materialWorld:"nocturne_foil",materialCues:["constellation foil","night paper","star point light"],energy:"cinematic",colorWorld:"navy",motionProfile:"foil_light",localeStrengths:["en","ko"],printFormatStrength:["portrait-5x7","square-5x5"]}),
   seed(16,"Little Wonders","gouache","Gouache · Cut paper",{launchStatus:"hold",editorialScore:89,feelings:FE(.58,.96,.55,.92),occasions:O(.9,.35,.72,.75,.99),markets:M(["US",.82],["VN",.8])})
 ];
 
 export const portfolioV2ExperimentTemplates:TemplateMeta[]=[
-  seed(101,"Whispered Type","whispered","Type · Hairline",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:94,feelings:FE(.98,.82,.86,.18),occasions:O(.62,.92,.92,.72,.35),markets:M(["GLOBAL",.9])}),
-  seed(102,"Museum Note","museum","Editorial · Rule grid",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:95,photoMode:"optional",bodyCapacity:"long",feelings:FE(.98,.74,.62,.12),occasions:O(.42,.86,.96,.82,.25),markets:M(["GLOBAL",.9])}),
-  seed(103,"Monogram Orbit","orbit","Parametric · Personal mark",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:96,feelings:FE(.92,.78,.82,.52),occasions:O(.94,.94,.62,.94,.45),markets:M(["GLOBAL",.9])}),
+  seed(101,"Whispered Type","whispered","Type · Hairline",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:94,feelings:FE(.98,.82,.86,.18),occasions:O(.62,.92,.92,.72,.35),markets:M(["GLOBAL",.9]),materialWorld:"editorial_luxury",materialCues:["oversized type","hairline rule","soft paper"],energy:"quiet",colorWorld:"ivory",motionProfile:"static_paper",localeStrengths:["en","fr","de"],printFormatStrength:["portrait-5x7"]}),
+  seed(102,"Museum Note","museum","Editorial · Rule grid",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:95,photoMode:"optional",bodyCapacity:"long",feelings:FE(.98,.74,.62,.12),occasions:O(.42,.86,.96,.82,.25),markets:M(["GLOBAL",.9]),materialWorld:"editorial_luxury",materialCues:["museum label grid","archival stock","micro-rule detail"],energy:"quiet",colorWorld:"ivory",motionProfile:"static_paper",localeStrengths:["en","ja","vi"],printFormatStrength:["portrait-5x7","postcard-6x4"]}),
+  seed(103,"Monogram Orbit","orbit","Parametric · Personal mark",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:96,feelings:FE(.92,.78,.82,.52),occasions:O(.94,.94,.62,.94,.45),markets:M(["GLOBAL",.9]),materialWorld:"personal_mark",materialCues:["parametric orbit","personal seal","metallic point"],energy:"personal",colorWorld:"sage",motionProfile:"personal_mark",localeStrengths:["en","vi","ja"],printFormatStrength:["portrait-5x7","square-5x5"]}),
   seed(104,"Ribbon Line","ribbon","Continuous line · Motion",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:94,feelings:FE(.86,.94,.96,.30),occasions:O(.72,.92,.94,.62,.35),markets:M(["GLOBAL",.9])}),
-  seed(105,"Memory Window","memory","Photo fragment · Caption",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:96,photoMode:"optional",bodyCapacity:"short",feelings:FE(.88,.98,.92,.48),occasions:O(.96,.96,.78,.72,.75),markets:M(["GLOBAL",.9])}),
+  seed(105,"Memory Window","memory","Photo fragment · Caption",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:96,photoMode:"optional",bodyCapacity:"short",feelings:FE(.88,.98,.92,.48),occasions:O(.96,.96,.78,.72,.75),markets:M(["GLOBAL",.9]),materialWorld:"photo_keepsake",materialCues:["layered photo fragment","paper window","caption rail"],energy:"personal",colorWorld:"photo",motionProfile:"photo_palette",localeStrengths:["en","ko","vi"],printFormatStrength:["portrait-5x7","landscape-7x5"]}),
   seed(106,"Type Celebration","typecelebration","Kinetic type · Rule",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:93,feelings:FE(.55,.78,.48,.96),occasions:O(.99,.52,.58,.99,.68),markets:M(["GLOBAL",.9])}),
   seed(107,"Quiet Seal","seal","Personal seal · Negative space",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:97,bodyCapacity:"long",feelings:FE(.99,.86,.72,.08),occasions:O(.56,.94,.94,.88,.45),markets:M(["GLOBAL",.9])}),
-  seed(108,"Pressed Shadow","pressed","Layered relief · Paper depth",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:94,feelings:FE(.94,.78,.58,.24),occasions:O(.58,.86,.84,.96,.40),markets:M(["GLOBAL",.9])}),
+  seed(108,"Pressed Shadow","pressed","Layered relief · Paper depth",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:94,feelings:FE(.94,.78,.58,.24),occasions:O(.58,.86,.84,.96,.40),markets:M(["GLOBAL",.9]),materialWorld:"letterpress_tactile",materialCues:["layered relief","pressed paper","directional shadow"],energy:"tactile",colorWorld:"warm",motionProfile:"pressed_depth",localeStrengths:["en","vi"],printFormatStrength:["portrait-5x7","square-5x5"]}),
   seed(109,"Ink Pause","ink","Abstract ink · Pause",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:95,feelings:FE(.90,.96,.96,.18),occasions:O(.54,.88,.98,.62,.32),markets:M(["GLOBAL",.9])}),
   seed(110,"Petal Geometry","petal","Parametric ellipse · Botanical abstraction",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:93,feelings:FE(.82,.94,.76,.34),occasions:O(.92,.72,.96,.78,.64),markets:M(["GLOBAL",.9])}),
-  seed(111,"Night Ledger","ledger","Nocturne · Coordinate light",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:97,feelings:FE(.98,.66,.94,.20),occasions:O(.50,.98,.64,.86,.20),markets:M(["GLOBAL",.9])}),
+  seed(111,"Night Ledger","ledger","Nocturne · Coordinate light",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:97,feelings:FE(.98,.66,.94,.20),occasions:O(.50,.98,.64,.86,.20),markets:M(["GLOBAL",.9]),materialWorld:"nocturne_foil",materialCues:["night ledger grid","coordinate light","restrained foil"],energy:"cinematic",colorWorld:"navy",motionProfile:"foil_light",localeStrengths:["en","fr","ko"],printFormatStrength:["portrait-5x7"]}),
   seed(112,"Soft Fold","softfold","Fold geometry · Quiet plane",{status:"active",launchStatus:"experiment",maturity:"new",editorialScore:94,photoMode:"optional",bodyCapacity:"long",feelings:FE(.96,.90,.70,.12),occasions:O(.56,.82,.98,.94,.36),markets:M(["GLOBAL",.9])})
 ];
 
 export const portfolioV2AllTemplates=[...bootstrapTemplates,...portfolioV2ExperimentTemplates];
 
-// Marketing/customer-facing template surfaces follow the same production approval boundary
-// as generation/catalog reads. Non-production may deliberately expose candidate/experiment
-// families for review, but HOLD/RETIRED families remain hidden everywhere.
+// Step17J visual target: 10 proven 0.4.1 families first, then 6 later concepts.
+// This is a review/showroom order only; it NEVER changes launch_status or owner approval.
+export const step17jPortfolioSlugs=[
+  "luxury-editorial","midnight-lume","botanical-poise","washi-elegance","soft-seoul","art-deco-noir","photo-story","quiet-minimal","classic-letterpress","celestial-night",
+  "museum-note","memory-window","whispered-type","night-ledger","pressed-shadow","monogram-orbit"
+] as const;
+const step17jOrder=new Map<string,number>(step17jPortfolioSlugs.map((slug,index)=>[slug,index]));
+export const step17jPortfolioTemplates=portfolioV2AllTemplates.filter(t=>step17jOrder.has(t.slug)).sort((a,b)=>(step17jOrder.get(a.slug)??99)-(step17jOrder.get(b.slug)??99));
+
+// Customer-facing production surfaces remain APPROVED-only. Review/staging can render the
+// curated 16-family target (including HOLD/experiment) solely so owner/human review can judge
+// the intended gallery before statuses are changed through the immutable approval workflow.
+export function step17jShowcaseTemplatesForEnvironment(appEnv:string|undefined){
+  const healthy=step17jPortfolioTemplates.filter(t=>t.status==="active"&&t.health==="healthy"&&t.launchStatus!=="retired");
+  return appEnv==="production"?healthy.filter(t=>t.launchStatus==="approved"):healthy;
+}
+
+// Backward-compatible generic marketing helper. Production is still approved-only; non-prod
+// excludes HOLD because this helper is used outside the explicit Step17J owner-review showroom.
 export function featuredTemplatesForEnvironment(appEnv:string|undefined){
   const reviewable=portfolioV2AllTemplates.filter(t=>t.status==="active"&&t.health==="healthy"&&t.launchStatus!=="hold"&&t.launchStatus!=="retired");
   return appEnv==="production"?reviewable.filter(t=>t.launchStatus==="approved"):reviewable;

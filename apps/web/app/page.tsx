@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
-import { featuredTemplatesForEnvironment } from "@cardelume/templates";
+import { step17jShowcaseTemplatesForEnvironment } from "@cardelume/templates";
 import { SiteHeader } from "../components/site-header";
 import { CardVisual } from "../components/card-visual";
 import { BrandMark } from "../components/brand-mark";
@@ -10,6 +10,7 @@ import { styleDisplay } from "../i18n/display-copy";
 import { launchCopy } from "../i18n/launch-copy";
 import { singleOffer } from "../lib/market-pricing.server";
 import { MobileStickyCta } from "../components/mobile-sticky-cta";
+import { PhysicalCardSurface } from "../components/physical-effects";
 
 export default async function HomePage({searchParams}:{searchParams:Promise<{lang?:string|string[];market?:string|string[]}>}) {
   const params=await searchParams;
@@ -19,7 +20,7 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
   const price=await singleOffer(params.market);
   const marketQuery=(process.env.APP_MODE ?? "mock")==="mock" && params.market ? `&market=${Array.isArray(params.market)?params.market[0]:params.market}` : "";
   const createHref=`/create${marketQuery?`?${marketQuery.slice(1)}`:""}`;
-  const marketingTemplates=featuredTemplatesForEnvironment(process.env.APP_ENV);
+  const marketingTemplates=step17jShowcaseTemplatesForEnvironment(process.env.APP_ENV);
   const samples=[
     {k:m.studio.copy.birthdayKicker,h:m.studio.copy.editorialHeadline,b:m.studio.copy.editorialBody},
     {k:m.studio.copy.birthdayKicker,h:m.studio.copy.midnightHeadline,b:m.studio.copy.midnightBody},
@@ -52,31 +53,38 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
             <div className="hero-folio-back hero-folio-back-one"/>
             <div className="hero-folio-back hero-folio-back-two"/>
             <div className="hero-material-card">
-              {marketingTemplates.length>0?(()=>{const t=marketingTemplates[0];const sample=samples[0];return <CardVisual direction={t.visualDirection} compact locale={locale} kicker={sample.k} headline={sample.h} body={sample.b}/>;})():<div className="hero-brand-paper hero-brand-object"><BrandMark className="hero-brand-mark"/><small>CARDELUME</small><strong>{m.home.footerTagline}</strong><span/></div>}
+              <PhysicalCardSurface className="hero-physical" intensity={1.08}>
+                {marketingTemplates.length>0?(()=>{const t=marketingTemplates[0];const sample=samples[0];return <CardVisual direction={t.visualDirection} compact locale={locale} kicker={sample.k} headline={sample.h} body={sample.b}/>;})():<div className="hero-brand-paper hero-brand-object"><BrandMark className="hero-brand-mark"/><small>CARDELUME</small><strong>{m.home.footerTagline}</strong><span/></div>}
+              </PhysicalCardSurface>
             </div>
             <div className="hero-material-caption"><i/><span>{m.home.footerTagline}</span></div>
           </div>
         </section>
 
-        {marketingTemplates.length>0?<section className="paper-section deferred-section" id="styles">
-          <div className="shell section-head">
+        {marketingTemplates.length>0?<section className="paper-section gallery-showroom deferred-section" id="styles">
+          <div className="shell section-head gallery-head">
             <div>
               <span className="eyebrow">{m.home.galleryEyebrow}</span>
               <h2><span className="display-line">{m.home.galleryA}</span>{" "}<span className="display-line">{m.home.galleryB}</span></h2>
             </div>
             <p>{m.home.galleryDesc}</p>
           </div>
-          <div className="shell style-grid">
-            {marketingTemplates.slice(0,8).map((t,index)=>{
+          <div className="shell showroom-note"><span>16 art-directed worlds</span><i/><span>Collection presentation · AI still chooses 3 in Studio</span></div>
+          <div className="shell style-grid step17j-style-grid">
+            {marketingTemplates.slice(0,16).map((t,index)=>{
               const display=styleDisplay(locale,t.name,t.material);
-              const sample=samples[index] ?? samples[0];
-              return <article className="style-card" key={t.id}>
-                <div className="style-stage"><CardVisual direction={t.visualDirection} compact locale={locale} kicker={sample.k} headline={sample.h} body={sample.b}/></div>
-                <div className="style-meta"><small>{display.material}</small><h3>{display.name}</h3></div>
+              const sample=samples[index%samples.length] ?? samples[0];
+              return <article className={`style-card step17j-style-card gallery-world-${t.materialWorld}`} key={t.id} data-template-slug={t.slug}>
+                <div className="style-stage step17j-style-stage">
+                  <PhysicalCardSurface className="gallery-physical" intensity={.92}>
+                    <CardVisual direction={t.visualDirection} compact locale={locale} kicker={sample.k} headline={sample.h} body={sample.b}/>
+                  </PhysicalCardSurface>
+                </div>
+                <div className="style-meta step17j-style-meta"><small>{display.material}</small><h3>{display.name}</h3></div>
               </article>;
             })}
           </div>
-          <div className="center-action"><Link className="button button-secondary" href={createHref}>{m.home.galleryCta}</Link></div>
+          <div className="center-action gallery-cta"><Link className="button button-secondary" href={createHref}>{m.home.galleryCta}</Link><small>Browse the collection here. In Studio, CardeLume keeps the work simple and composes three directions for you.</small></div>
         </section>:null}
 
         <section className="shell how-section deferred-section">

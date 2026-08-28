@@ -1,4 +1,4 @@
-import PgBoss from "pg-boss";
+import { PgBoss } from "pg-boss";
 
 export const QUEUES={aiPlan:"ai_plan",final:"final_render",cleanup:"cleanup"} as const;
 export type PlatformJobIdentity={productKey:string;resourceId:string;jobId:string};

@@ -2,12 +2,12 @@
 
 > Keep this file synchronized with `../MASTERPLAN.MD`. The root file is the canonical owner-facing plan.
 
-# CARDELUME MASTERPLAN — Remaining Phases After Step17I
+# CARDELUME MASTERPLAN — Remaining Phases After Step17J
 
-**Project:** CardeLume  
-**Source baseline:** `0.4.3-step.17i` — Premium Experience Convergence  
-**Execution target:** Raspberry Pi 5 first; Oracle Free/VPS as production fallback/HA  
-**Current production status:** `NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES`  
+**Project:** CardeLume
+**Source baseline:** `0.4.3-step.17j` — Material Magic, Gallery Power & Premium Convergence
+**Execution target:** Raspberry Pi 5 first; Oracle Free/VPS as production fallback/HA
+**Current production status:** `NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES`
 **Plan authority:** this file + `AGENTS.md` + `HANDOFF.md`; detailed specs remain under `docs/`.
 
 > Product invariant: **small brief → CardeLume intelligence → 3 genuinely different premium directions → choose → minimal finish → preview → pay once → secure JPG/PDF.**
@@ -31,6 +31,7 @@ Completed before this package:
 - Step17G governance compression.
 - Step17H production marketing approval boundary.
 - Step17I premium experience convergence: material hero, folio reveal, bounded customer rationale, reversible wording refinement, simpler finish, print-layout clarity, accessibility focus transfer, keepsake/recovery messaging.
+- **Step17J premium convergence:** restores 0.4.1 gallery/material power, targets 16 best-of-both families, adds material-world AI diversity, automatic 3D/dynamic light, visual print layouts and Palette Bloom while preserving the simple 3-direction Studio.
 
 Still intentionally open:
 
@@ -61,7 +62,7 @@ Recommended:
 ```bash
 mkdir -p ~/projects
 cd ~/projects
-unzip CARDELUME_STEP17I_HERMES_PI5_PROJECT.zip
+unzip CARDELUME_STEP17J_HERMES_PI5_PROJECT.zip
 cd cardelume
 ```
 
@@ -95,7 +96,7 @@ npm run check:status
 Expected source identity:
 
 ```text
-0.4.3-step.17i
+0.4.3-step.17j
 ```
 
 `check:status` may remain NO_GO because runtime/owner evidence is deliberately missing.
@@ -124,7 +125,7 @@ Populate **staging/test** values only for Step18. Never commit `.env` or product
 ## Acceptance criteria
 
 - package hash manifest verifies 100%;
-- `package.json` is `0.4.3-step.17i`;
+- `package.json` is `0.4.3-step.17j`;
 - FAST and RELEASE source suites pass;
 - project is attached to Hermes/Lumer;
 - Git working tree is clean before Step18 changes;
@@ -385,7 +386,7 @@ Use the Step14 protocol.
 
 ## Milestone 18.9 — Launch template human/owner gate
 
-Start with the Step17I shortlist, not the whole catalog.
+Start with the Step17J 16-family target, then approve only the strongest 6–10 exact versions; do not treat the target list as approval.
 
 Candidate review pool should prioritize:
 

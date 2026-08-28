@@ -1,4 +1,4 @@
-# Known Bugs / Open Gates — Step17I Hermes Package
+# Known Bugs / Open Gates — Step17J Hermes Package
 
 This file mixes confirmed open defects and deliberately unproven runtime gates. Do not call a runtime gate a source bug unless evidence supports it.
 
@@ -45,6 +45,14 @@ This file mixes confirmed open defects and deliberately unproven runtime gates. 
 
 - Studio **does** use progressive disclosure; do not convert it into a multi-screen wizard by default.
 - physical-effects control component is not intended as a primary customer control.
-- web UI uses Plus Jakarta Sans in Step17I; old DM Sans/VI review notes are historical/stale for UI source.
+- web UI uses Plus Jakarta Sans in Step17J; old DM Sans/VI review notes are historical/stale for UI source.
 - Dodo source architecture already contains signature verification, idempotency/reconciliation; the open item is real E2E evidence.
 - production admin routes have source-level proxy/edge/basic-auth/mutation protections; open item is runtime Cloudflare Access validation.
+
+
+## Step17J-specific open evidence
+
+- 16-family showroom target is not launch approval. HOLD/experiment statuses remain until immutable approval gates pass.
+- Material Magic requires real-device FPS/INP/reduced-motion verification in Step18.
+- Gallery visual quality must be browser-reviewed with the real font binaries.
+- Material-world diversity is a source prior; real 3-direction diversity still requires Golden + human review.

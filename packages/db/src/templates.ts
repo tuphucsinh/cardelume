@@ -1,5 +1,5 @@
 import postgres from "postgres";
-import { templateArchetype, type Affinity, type TemplateMeta, type TemplatePhotoMode, type TemplateStatus, type TemplateLaunchStatus, type TemplateHealth, type TemplateScript, type TextCapacity, type VisualDirection, type TemplateSurfaceSource } from "@cardelume/templates";
+import { portfolioV2AllTemplates, templateArchetype, type Affinity, type TemplateMeta, type TemplatePhotoMode, type TemplateStatus, type TemplateLaunchStatus, type TemplateHealth, type TemplateScript, type TextCapacity, type VisualDirection, type TemplateSurfaceSource } from "@cardelume/templates";
 
 function dbUrl(value?:string){const url=value??process.env.DATABASE_URL;if(!url)throw new Error("DATABASE_URL is required");return url;}
 function client(connectionString?:string){return postgres(dbUrl(connectionString),{max:2,prepare:false});}
@@ -33,10 +33,11 @@ export async function listManagedTemplates(input:{includeInactive?:boolean;conne
   const targets=await sql<Array<{template_id:string;dimension:string;target_key:string;affinity:number|string}>>`
     select template_id,dimension,target_key,affinity from template_targeting where template_id=any(${ids}::uuid[])
   `;
-  return rows.map(r=>{const tt=targets.filter(x=>x.template_id===r.id);return{
+  return rows.map(r=>{const tt=targets.filter(x=>x.template_id===r.id);const canonical=portfolioV2AllTemplates.find(t=>t.rendererTemplateKey===r.renderer_template_key);return{
     id:r.id,familyId:r.family_id,versionId:r.version_id,version:r.version,slug:r.slug,name:r.name,material:r.material,status:r.status,launchStatus:r.launch_status,health:r.health,photoMode:r.photo_mode,editorialScore:r.editorial_score,maturity:r.maturity,
     rendererTemplateKey:r.renderer_template_key,visualDirection:r.visual_direction,supportedFormats:arr(r.supported_formats),scriptSupport:arr(r.script_support) as TemplateScript[],headlineCapacity:r.headline_capacity,bodyCapacity:r.body_capacity,
     feelings:affinity(tt,"feeling"),occasions:affinity(tt,"occasion"),markets:affinity(tt,"market"),excludedMarkets:tt.filter(x=>x.dimension==="exclude_market").map(x=>x.target_key),
+    materialWorld:canonical?.materialWorld??"quiet_modern",materialCues:canonical?.materialCues??[],energy:canonical?.energy??"quiet",colorWorld:canonical?.colorWorld??"ivory",motionProfile:canonical?.motionProfile??"static_paper",localeStrengths:canonical?.localeStrengths??[],printFormatStrength:canonical?.printFormatStrength??[],
     impressions:r.impressions,selected:r.selected,paid:r.paid,regenerated:r.regenerated,aiAssigned:r.ai_assigned,checkoutStarted:r.checkout_started
   };});
  }finally{await sql.end({timeout:2});}

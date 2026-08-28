@@ -1,4 +1,4 @@
-# CardeLume UI/UX — Current Step17I Direction
+# CardeLume UI/UX — Current Step17J Direction
 
 ## Brand promise
 
@@ -100,3 +100,17 @@ Signature reveal should feel like a folio/opening/arrival, then land into the ac
 ## Portfolio principle
 
 Prefer **6–8 excellent approved launch families** over a broad uneven catalog. Human Premium/WOW/originality + Golden evidence is mandatory before `approved`.
+
+
+## Step17J locked direction — 0.4.1 power + Step17I taste
+
+- **Collection:** preserve 0.4.1 showroom presentation; 16 target tiles, with 10 0.4.1 families first.
+- **Studio:** never a collection browser. Customer gives brief and receives exactly 3 art-directed directions.
+- **Material Magic:** automatic pointer/touch tilt, dynamic light, foil/paper depth and graceful static fallback. No customer FX settings panel.
+- **Hero:** Step17I hierarchy + one strong physical card object. First paint is crisp; motion begins only as enhancement.
+- **Palette Bloom:** photo colors visibly but quietly influence the card; no particles/neon.
+- **Print layout:** visual optional picker; clear digital JPG/PDF/no physical shipping language.
+- **Magic Typography:** visible benefit, invisible mechanics. No font/leading/tracking controls.
+- **Typography:** EN flagship Cormorant Garamond + Plus Jakarta Sans; locale-specific alternatives are allowed to preserve premium quality.
+- **Completion:** keepsake/download moment remains emotional and clear; bundle is hidden.
+- **Performance:** static state must already feel premium; lag is anti-luxury.

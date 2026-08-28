@@ -1,6 +1,6 @@
 {
   "name": "@cardelume/ai",
-  "version": "0.4.3-step.17i",
+  "version": "0.4.3-step.17j",
   "private": true,
   "type": "module",
   "exports": {
@@ -17,6 +17,7 @@
     "test": "node -e \"process.exit(0)\""
   },
   "devDependencies": {
+    "@types/node": "^24.3.0",
     "typescript": "^5.9.2"
   }
 }

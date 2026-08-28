@@ -7,7 +7,7 @@ import {
   shortenCardBody,
   type CardDocument
 } from "@cardelume/card-schema";
-import { magicTypography } from "../apps/web/components/magic-typography";
+import { magicTypography } from "../apps/web/components/magic-typography.ts";
 import { CURRENT_RENDERER_VERSION, fitTypography, renderFinalSvg } from "@cardelume/renderer";
 
 const cases=[

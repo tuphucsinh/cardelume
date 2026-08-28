@@ -484,7 +484,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode}:{lo
                   {photoPalette?<div className="palette-feedback show"><div className="palette-swatches"><i style={{background:photoPalette.primary}}/><i style={{background:photoPalette.secondary}}/><i style={{background:photoPalette.accent}}/></div><p>{localizedPaletteNote(locale,photoPalette,launch.paletteSoftened)}</p></div>:null}
                 </div>
                 <div className="format-detail-grid">
-                  <div><label className="sub-label" htmlFor="format">{experience.printLayout}</label><select id="format" value={format} onChange={e=>setFormat(e.target.value)}>{formatValues.map((x,i)=><option key={x} value={x}>{formatLabels[locale][i]}</option>)}</select><small className="field-hint">{experience.printLayoutHint}</small></div>
+                  <div className="print-layout-field"><label className="sub-label" id="print-layout-label">{experience.printLayout}</label><div className="print-layout-picker" role="radiogroup" aria-labelledby="print-layout-label">{formatValues.map((x,i)=><button type="button" key={x} className={`print-layout-choice ${format===x?"selected":""}`} role="radio" aria-checked={format===x} onClick={()=>setFormat(x)}><span className={`print-layout-thumb print-layout-thumb-${i}`} aria-hidden="true"><i/></span><span>{formatLabels[locale][i]}</span></button>)}</div><small className="field-hint">{experience.printLayoutHint}</small></div>
                   <div><label className="sub-label" htmlFor="detail">{m.detail}</label><textarea id="detail" value={detail} onChange={e=>setDetail(e.target.value)} placeholder={m.detailPlaceholder} rows={2} maxLength={180}/></div>
                 </div>
               </div>

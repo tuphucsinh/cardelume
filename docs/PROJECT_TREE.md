@@ -36,6 +36,9 @@ quality/
 - Product authority: `docs/MASTER_SPEC_V7.md`
 - Architecture: `docs/ARCHITECTURE_V7_LUMER_OPERATIONS.md`
 - Governance execution: `governance/README.md`
-- Current validation: `docs/VALIDATION_REPORT_0.4.3_STEP17I.md`
+- Current validation: `docs/VALIDATION_REPORT_0.4.3_STEP17J.md`
 - Runtime next step: `docs/STEP18_CONTROLLED_RUNTIME_RUNBOOK.md`
 - Historical evidence policy: `docs/HISTORY_INDEX.md`
+
+- Current Step17J product delta: `docs/MATERIAL_MAGIC_GALLERY_PREMIUM_CONVERGENCE_0.4.3_STEP17J.md`
+- Current validation: `docs/VALIDATION_REPORT_0.4.3_STEP17J.md`

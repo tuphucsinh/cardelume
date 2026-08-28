@@ -24,3 +24,8 @@ This is the concise decision index. Detailed rationale lives in `docs/`.
 | Unknown asset/license provenance = no publish | Hard gate | Commercial/IP protection |
 | Production/destructive changes explicit owner approval | Hard gate | Human authority over high-impact operations |
 | Optional account deferred to evidence | Locked | Avoid premature loyalty/platform scope |
+
+| 2026-08-28 | 16-family best-of-both portfolio, 0.4.1 priority | Locked Step17J | Preserve product richness while keeping Step17I governance/AI |
+| 2026-08-28 | Material Magic progressive enhancement; no customer FX controls | Locked Step17J | Restore WOW without increasing customer effort |
+| 2026-08-28 | Gallery is marketing showroom; Studio stays 3 directions | Locked Step17J | Preserve collection richness without Canva mental model |
+| 2026-08-28 | Cormorant Garamond + Plus Jakarta Sans flagship English | Locked Step17J | Maximize EN premium quality; locale font parity is not required |

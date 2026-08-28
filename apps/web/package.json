@@ -1,6 +1,6 @@
 {
   "name": "@cardelume/web",
-  "version": "0.4.3-step.17i",
+  "version": "0.4.3-step.17j",
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0 --port 3000",
@@ -8,7 +8,7 @@
     "start": "next start --hostname 0.0.0.0 --port 3000",
     "lint": "next lint || true",
     "typecheck": "tsc --noEmit",
-    "test": "cd ../.. && tsx scripts/payment-boundary-source-stress.ts && tsx scripts/photo-upload-boundary-stress.ts && tsx scripts/generation-fallback-stress.ts"
+    "test": "cd ../.. && tsx scripts/payment-boundary-source-stress.ts && tsx scripts/photo-upload-boundary-stress.ts && node --experimental-strip-types scripts/generation-fallback-stress.ts"
   },
   "dependencies": {
     "@cardelume/card-schema": "workspace:*",

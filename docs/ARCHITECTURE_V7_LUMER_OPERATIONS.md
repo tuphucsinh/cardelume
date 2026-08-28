@@ -2,16 +2,18 @@
 
 ## 0. Document role
 
-This document is the **current technical architecture map** for the V7 / Step 17I baseline.
+This document is the **current technical architecture map** for the V7 / Step 17J baseline.
 
 Use together with:
 
 1. `MASTER_SPEC_V7.md` — product/governance authority.
 2. `TEMPLATE_SYSTEM_SPEC_0.4.3_STEP12.md` + Step 13 AI Creative Director docs — detailed template/creative contracts.
 3. `GOVERNANCE_COMPRESSION_0.4.3_STEP17G.md` — current validation execution model.
-4. `PREMIUM_EXPERIENCE_CONVERGENCE_0.4.3_STEP17I.md` — current customer-experience source delta.
-5. `VALIDATION_REPORT_0.4.3_STEP17I.md` — current claims/evidence boundary.
-6. `STEP18_CONTROLLED_RUNTIME_RUNBOOK.md` — controlled-runtime execution contract.
+4. `PREMIUM_EXPERIENCE_CONVERGENCE_0.4.3_STEP17I.md` — historical customer-experience delta.
+5. `MATERIAL_MAGIC_GALLERY_PREMIUM_CONVERGENCE_0.4.3_STEP17J.md` — current customer-experience/product source delta.
+6. `VALIDATION_REPORT_0.4.3_STEP17J.md` — current claims/evidence boundary.
+7. `STEP17J_HERMES_LUMER_HANDOFF.md` — current implementation handoff.
+8. `STEP18_CONTROLLED_RUNTIME_RUNBOOK.md` — controlled-runtime execution contract.
 
 Historical Step evidence lives in previously frozen baselines; see `HISTORY_INDEX.md`. Current implementation-backed documents win over superseded plans.
 

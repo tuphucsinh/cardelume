@@ -1,9 +1,9 @@
-# HANDOFF — CardeLume Step17I → Pi5 / Step18
+# HANDOFF — CardeLume Step17J → Pi5 / Step18
 
 ## Current state
 
-**Release identity:** `0.4.3-step.17i`  
-**Baseline:** `STEP17I_PREMIUM_EXPERIENCE_CONVERGENCE`  
+**Release identity:** `0.4.3-step.17j`
+**Baseline:** `STEP17J_MATERIAL_MAGIC_GALLERY_PREMIUM_CONVERGENCE`
 **Status:** source/offline validated; production `NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES`.
 
 This package is prepared for direct extraction as a Hermes project on Raspberry Pi 5.
@@ -22,7 +22,18 @@ This package is prepared for direct extraction as a Hermes project on Raspberry 
 - Lumer project-local toolkit;
 - compressed FAST/RELEASE/STATUS/HEAVY governance entry points.
 
-## Step17I UX invariants
+
+## Step17J convergence summary
+
+- Keep the 0.4.1-style premium gallery/showroom presentation.
+- Target 16 families, prioritizing 10 from 0.4.1; status remains governed.
+- Material Magic is automatic progressive enhancement: pointer/touch tilt, dynamic lighting, foil/paper depth, haptics where supported.
+- Studio remains brief → 3 AI directions → minimal Finish. No template browser.
+- AI ranking/Creative Director now sees material world, color world and energy for stronger diversity.
+- Multi-market pricing stays 16 markets; Holiday Bundle logic is retained but UI hidden.
+- English flagship typography: Cormorant Garamond + Plus Jakarta Sans.
+
+## Step17J UX invariants
 
 Preserve:
 
@@ -56,7 +67,7 @@ Do not jump to production deployment just because Pi5 can build the app.
 
 ## Current template gate
 
-There are **0 approved production templates**. Use the Step17I shortlist for owner/human review; do not auto-promote candidates.
+There are **0 approved production templates**. Use the Step17J 16-family portfolio target for owner/human review; do not auto-promote candidates.
 
 ## Recommended read order
 

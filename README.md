@@ -1,7 +1,7 @@
-# CardeLume — Hermes-ready Step17I Project
+# CardeLume — Hermes-ready Step17J Project
 
-**Release:** `0.4.3-step.17i`  
-**Baseline:** Premium Experience Convergence  
+**Release:** `0.4.3-step.17j`
+**Baseline:** Material Magic, Gallery Power & Premium Convergence
 **Status:** source/offline validated; production `NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES`.
 
 CardeLume is a premium international AI greeting-card product:
@@ -100,3 +100,12 @@ Canonical documents include:
 - `docs/FAILOVER_TEST_PLAN.md`
 
 See `docs/SPEC_INDEX_V7.md` and `docs/HISTORY_INDEX.md` for the broader documentation map.
+
+## Step17J current product delta
+
+- `docs/MATERIAL_MAGIC_GALLERY_PREMIUM_CONVERGENCE_0.4.3_STEP17J.md`
+- `docs/VALIDATION_REPORT_0.4.3_STEP17J.md`
+- `docs/STEP17J_HERMES_LUMER_HANDOFF.md`
+- `quality/template-audit/STEP17J_PORTFOLIO_TARGET.md`
+
+Step17I remains historical source evidence. Step17J is the current product/UX authority before Step18 runtime validation.

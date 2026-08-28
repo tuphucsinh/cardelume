@@ -20,9 +20,9 @@ type Ctx={
   haptic:(kind?:"reveal"|"select"|"confirm")=>void;
 };
 
-const defaults:Prefs={master:false,haptics:false,gyro:false,lighting:false};
+const defaults:Prefs={master:true,haptics:true,gyro:true,lighting:true};
 const EffectsContext=createContext<Ctx|null>(null);
-const STORAGE="cardelume.physical-effects.v1";
+const STORAGE="cardelume.physical-effects.v2";
 
 type Copy={
   button:string; title:string; subtitle:string;
@@ -249,18 +249,36 @@ export function PhysicalEffectsControl({locale}:{locale:LocaleCode}){
 export function PhysicalCardSurface({children,className="",intensity=1}:{children:ReactNode;className?:string;intensity?:number}){
   const {prefs,reducedMotion,performancePaused}=usePhysicalEffects();
   const ref=useRef<HTMLDivElement>(null);
+  const pointerRaf=useRef<number|undefined>(undefined);
   const onPointerMove=(e:ReactPointerEvent<HTMLDivElement>)=>{
-    if(!prefs.master||!prefs.lighting||reducedMotion||performancePaused)return;
-    if(e.pointerType==="touch")return;
-    const rect=e.currentTarget.getBoundingClientRect();
-    const x=clamp(((e.clientX-rect.left)/rect.width)*100,0,100);
-    const y=clamp(((e.clientY-rect.top)/rect.height)*100,0,100);
-    e.currentTarget.style.setProperty("--pointer-light-x",`${x}%`);
-    e.currentTarget.style.setProperty("--pointer-light-y",`${y}%`);
-    e.currentTarget.style.setProperty("--pointer-light-opacity",String(.12*intensity));
+    if(!prefs.master||reducedMotion||performancePaused)return;
+    const node=e.currentTarget;
+    const rect=node.getBoundingClientRect();
+    const px=clamp((e.clientX-rect.left)/rect.width,0,1);
+    const py=clamp((e.clientY-rect.top)/rect.height,0,1);
+    if(pointerRaf.current)cancelAnimationFrame(pointerRaf.current);
+    pointerRaf.current=requestAnimationFrame(()=>{
+      const maxTilt=e.pointerType==="touch"?1.35:2.6;
+      node.style.setProperty("--pointer-ry",`${((px-.5)*maxTilt*2*intensity).toFixed(2)}deg`);
+      node.style.setProperty("--pointer-rx",`${((.5-py)*maxTilt*1.55*intensity).toFixed(2)}deg`);
+      if(prefs.lighting){
+        node.style.setProperty("--pointer-light-x",`${(px*100).toFixed(1)}%`);
+        node.style.setProperty("--pointer-light-y",`${(py*100).toFixed(1)}%`);
+        node.style.setProperty("--pointer-light-opacity",String((e.pointerType==="touch"?.07:.13)*intensity));
+      }
+      node.dataset.physicalActive="true";
+    });
   };
-  const onPointerLeave=(e:ReactPointerEvent<HTMLDivElement>)=>{
-    e.currentTarget.style.setProperty("--pointer-light-opacity","0");
+  const resetPointer=(node:HTMLDivElement)=>{
+    if(pointerRaf.current)cancelAnimationFrame(pointerRaf.current);
+    pointerRaf.current=requestAnimationFrame(()=>{
+      node.style.setProperty("--pointer-light-opacity","0");
+      node.style.setProperty("--pointer-rx","0deg");
+      node.style.setProperty("--pointer-ry","0deg");
+      delete node.dataset.physicalActive;
+    });
   };
-  return <div ref={ref} className={`physical-card-surface ${className}`} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>{children}</div>;
+  const onPointerLeave=(e:ReactPointerEvent<HTMLDivElement>)=>resetPointer(e.currentTarget);
+  const onPointerCancel=(e:ReactPointerEvent<HTMLDivElement>)=>resetPointer(e.currentTarget);
+  return <div ref={ref} className={`physical-card-surface ${className}`} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave} onPointerCancel={onPointerCancel}>{children}</div>;
 }

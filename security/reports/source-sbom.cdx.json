@@ -2,13 +2,13 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
   "version": 1,
-  "serialNumber": "urn:uuid:1db0f662-4a41-4b80-bafc-fa519cb11e0e",
+  "serialNumber": "urn:uuid:4792aff1-20c1-4dd9-9552-5e02ffbc9a4c",
   "metadata": {
-    "timestamp": "2026-08-28T13:51:28.816Z",
+    "timestamp": "2026-08-28T17:20:30.367Z",
     "component": {
       "type": "application",
       "name": "cardelume",
-      "version": "0.4.3-step.17i"
+      "version": "0.4.3-step.17j"
     },
     "properties": [
       {
@@ -495,6 +495,54 @@
         {
           "name": "cardelume:declaredBy",
           "value": "apps/worker/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cardelume/card-schema",
+      "version": "workspace:*",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cardelume/renderer",
+      "version": "workspace:*",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "sharp",
+      "version": "^0.34.3",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "package.json"
         },
         {
           "name": "cardelume:versionKind",

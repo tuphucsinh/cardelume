@@ -7,7 +7,6 @@ import type { LocaleCode } from "../i18n/messages";
 import type { PhotoPalette } from "./photo-palette";
 import { CardVisual } from "./card-visual";
 import { PhysicalCardSurface, usePhysicalEffects } from "./physical-effects";
-import { HolidayBundleCheckout } from "./holiday-bundle";
 import type { ResolvedPrice } from "../lib/pricing";
 import { trackFunnelEvent } from "../lib/analytics-events";
 
@@ -68,6 +67,6 @@ export function PaidUnlock({
         <a className="button button-secondary" href={safeHref(pdfDownloadHref)} download onClick={()=>trackFunnelEvent("download_pdf",{locale,purchaseKind:"single",direction})}><FileText size={16}/>{t.pdf}</a>
       </div>
     </div>
-    {holidayBundle?<HolidayBundleCheckout locale={locale} enabled={holidayBundle.enabled} price={holidayBundle.price} priceQuote={holidayBundle.priceQuote} finishedCardIds={holidayBundle.finishedCardIds}/>:null}
+    {/* Holiday bundle logic remains dormant and intentionally hidden in Step17J. */}
   </section>;
 }

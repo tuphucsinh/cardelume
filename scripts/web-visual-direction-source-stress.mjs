@@ -10,9 +10,9 @@ const missingCss=directions.filter(d=>!css.includes(`.card-${d}`));
 if(missingCopy.length)throw new Error(`web_preview_copy_missing:${missingCopy.join(',')}`);
 if(missingCss.length)throw new Error(`web_preview_css_missing:${missingCss.join(',')}`);
 if(!visual.includes('direction==="photo"||direction==="memory"'))throw new Error('memory_photo_window_preview_missing');
-if(!template.includes('featuredTemplatesForEnvironment')||!template.includes('t.launchStatus==="approved"'))throw new Error('production_marketing_approval_filter_missing');
+if(!template.includes('step17jShowcaseTemplatesForEnvironment')||!template.includes('t.launchStatus==="approved"'))throw new Error('production_marketing_approval_filter_missing');
 const home=fs.readFileSync('apps/web/app/page.tsx','utf8');
-if(!home.includes('featuredTemplatesForEnvironment(process.env.APP_ENV)'))throw new Error('homepage_marketing_environment_gate_missing');
+if(!home.includes('step17jShowcaseTemplatesForEnvironment(process.env.APP_ENV)'))throw new Error('homepage_marketing_environment_gate_missing');
 if(/direction="(?:editorial|botanical|midnight)"/.test(home))throw new Error('homepage_hardcoded_managed_direction_bypass');
 const studio=fs.readFileSync('apps/web/components/card-studio.tsx','utf8');
 for(const held of ['golden','watercolor','boldpop','washi']){

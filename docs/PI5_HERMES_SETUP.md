@@ -5,7 +5,7 @@
 ```bash
 mkdir -p ~/projects
 cd ~/projects
-unzip CARDELUME_STEP17I_HERMES_PI5_PROJECT.zip
+unzip CARDELUME_STEP17J_HERMES_PI5_PROJECT.zip
 cd cardelume
 ```
 

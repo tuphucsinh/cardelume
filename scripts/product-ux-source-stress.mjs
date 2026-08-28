@@ -17,18 +17,21 @@ const assertions=[
   [!studio.includes('PhysicalEffectsControl'),'physical_effects_not_customer_control'],
   [studio.includes('customOccasion')&&studio.includes('customRelation'),'low_friction_custom_personalization'],
   [templates.includes('featuredTemplatesForEnvironment')&&templates.includes('t.launchStatus==="approved"'),'production_marketing_approved_only'],
-  [home.includes('featuredTemplatesForEnvironment(process.env.APP_ENV)'),'homepage_uses_environment_marketing_gate'],
-  [home.includes('marketingTemplates.length>0')&&!home.includes('featuredTemplates.slice'),'homepage_hides_unapproved_gallery'],
+  [home.includes('step17jShowcaseTemplatesForEnvironment(process.env.APP_ENV)'),'homepage_uses_step17j_showroom_gate'],
+  [home.includes('marketingTemplates.length>0')&&home.includes('marketingTemplates.slice(0,16)'),'homepage_showroom_bounded_to_16'],
   [home.includes('hero-material-stage')&&home.includes('marketingTemplates[0]')&&home.includes('hero-brand-object'),'hero_uses_one_approved_material_object_or_brand_fallback'],
   [studio.includes('customerRationale')&&!studio.includes('generated?.creativeThesis'),'customer_safe_rationale_only'],
   [studio.includes('messageUndo')&&studio.includes('undoMessage'),'rewrite_has_undo'],
   [studio.includes('messageRef.current!==sourceMessage'),'rewrite_does_not_clobber_inflight_manual_edit'],
   [studio.includes('reveal-folio')&&studio.includes('viewTransitionName:`card-'),'folio_reveal_to_results_transition'],
-  [studio.includes('Print layout (optional)')&&studio.includes('no physical card'),'digital_print_layout_clarity'],
+  [studio.includes('Print layout (optional)')&&studio.includes('no physical card')&&studio.includes('print-layout-picker'),'digital_print_layout_visual_clarity'],
   [studio.includes('useState<""|(typeof relations)[number]>("")'),'relationship_has_neutral_default'],
   [(studio.match(/onClick=\{\(\)=>setAccentMode\(/g)||[]).length<=3,'finish_color_choices_reduced'],
   [studio.includes('data-phase-focus')&&studio.includes('querySelector<HTMLElement>("[data-phase-focus]")'),'phase_focus_management'],
-  [fs.readFileSync('apps/web/app/d/[recoveryId]/page.tsx','utf8').includes('recovery-keepsake'),'post_pay_keepsake_handoff']
+  [fs.readFileSync('apps/web/app/d/[recoveryId]/page.tsx','utf8').includes('recovery-keepsake'),'post_pay_keepsake_handoff'],
+  [templates.includes('step17jPortfolioSlugs')&&templates.includes('materialWorld'),'step17j_material_portfolio_metadata'],
+  [home.includes('gallery-world-${t.materialWorld}')&&home.includes('gallery-physical'),'step17j_041_showroom_presentation'],
+  [studio.includes('palette-feedback show')||studio.includes('palette-feedback show'), 'palette_feedback_present']
 ];
 for(const [ok,name] of assertions)if(!ok)throw new Error(`product_ux_source_failed:${name}`);
 console.log(JSON.stringify({ok:true,checks:assertions.length},null,2));

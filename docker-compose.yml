@@ -5,12 +5,12 @@ services:
     build:
       context: .
       dockerfile: docker/web.Dockerfile
-    image: cardelume-web:0.4.3-step.17i
+    image: cardelume-web:0.4.3-step.17j
     container_name: cardelume-web
     restart: unless-stopped
     env_file: .env
     environment:
-      APP_VERSION: "0.4.3-step.17i"
+      APP_VERSION: "0.4.3-step.17j"
       HOSTNAME: "0.0.0.0"
       PORT: "3000"
     ports:
@@ -31,12 +31,12 @@ services:
     build:
       context: .
       dockerfile: docker/worker.Dockerfile
-    image: cardelume-worker:0.4.3-step.17i
+    image: cardelume-worker:0.4.3-step.17j
     container_name: cardelume-worker
     restart: unless-stopped
     env_file: .env
     environment:
-      APP_VERSION: "0.4.3-step.17i"
+      APP_VERSION: "0.4.3-step.17j"
     tmpfs:
       - /tmp:size=1g
     security_opt:

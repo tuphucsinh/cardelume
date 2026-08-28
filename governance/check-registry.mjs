@@ -1,6 +1,6 @@
 export const CHECKS = [
   // FAST: cheap invariants on every meaningful source change.
-  { id: 'product.integration', tier: 'fast', domain: 'product', node: ['scripts/step17i-integration-source-stress.mjs'] },
+  { id: 'product.integration', tier: 'fast', domain: 'product', node: ['scripts/step17j-integration-source-stress.mjs'] },
   { id: 'product.visual-directions', tier: 'fast', domain: 'product', node: ['scripts/web-visual-direction-source-stress.mjs'] },
   { id: 'product.ux-contract', tier: 'fast', domain: 'product', node: ['scripts/product-ux-source-stress.mjs'] },
   { id: 'creative.director-authority', tier: 'fast', domain: 'creative', node: ['--experimental-strip-types', 'scripts/ai-creative-director-source-stress.ts'] },

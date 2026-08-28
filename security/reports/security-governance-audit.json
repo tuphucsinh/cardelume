@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-28T13:51:28.600Z",
-  "candidate": "0.4.3-step.17i",
+  "generatedAt": "2026-08-28T17:20:30.133Z",
+  "candidate": "0.4.3-step.17j",
   "status": "PASS",
   "meaning": "PASS means the governance tooling/source audit executed correctly; it does NOT mean production security is approved.",
   "releaseEligible": false,
