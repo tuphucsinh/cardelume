@@ -86,9 +86,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .language-switcher{position:relative}
 .language-button{min-width:104px;justify-content:space-between!important;gap:10px!important;padding:0 14px!important;font-weight:700}
 .language-caret{font-size:10px;opacity:.62;transition:transform .18s ease}
-.language-switcher.open .language-caret{transform:rotate(180deg)}
-.language-menu{position:absolute;right:0;top:calc(100% + 10px);width:270px;padding:10px;border:1px solid rgba(11,23,48,.1);border-radius:20px;background:rgba(255,255,255,.985);box-shadow:0 24px 64px rgba(11,23,48,.15);z-index:90}
-.language-option{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 12px;border-radius:14px;color:var(--navy)}
+.language-switcher[open] .language-caret{transform:rotate(180deg)}
+.language-switcher>summary{list-style:none}
+.language-switcher>summary::-webkit-details-marker{display:none}
+.language-menu{position:absolute;right:0;top:calc(100% + 10px);width:270px;padding:8px;border:1px solid rgba(11,23,48,.1);border-radius:20px;background:rgba(255,255,255,.985);box-shadow:0 24px 64px rgba(11,23,48,.15);z-index:90}
+.language-option{display:flex;align-items:center;gap:12px;min-height:50px;padding:8px 12px;border-radius:14px;color:var(--navy)}
 .language-option:hover,.language-option.active{background:rgba(11,23,48,.052)}
 .language-option-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
 .language-option-copy strong{font-size:13px;line-height:1.15}
@@ -113,7 +115,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 
 .deferred-section{content-visibility:auto;contain-intrinsic-size:800px}
 @media(pointer:coarse){.hero-stack:hover .hero-left{transform:translateX(-78%) rotate(-9deg) translateY(20px)}.hero-stack:hover .hero-center{transform:translateX(-50%)}.hero-stack:hover .hero-right{transform:translateX(-22%) rotate(9deg) translateY(24px)}.style-card:hover{transform:none;box-shadow:none}}
-@media(max-width:720px){.language-menu{width:min(84vw,270px);right:-4px}.flag-icon{width:22px;height:16px;flex-basis:22px}.language-button{min-width:88px!important}.language-option{min-height:54px}.topbar{backdrop-filter:none}}
+@media(max-width:720px){.language-menu{width:min(84vw,270px);right:-4px}.flag-icon{width:22px;height:16px;flex-basis:22px}.language-button{min-width:88px!important}.language-option{min-height:46px}.topbar{backdrop-filter:none}}
 @media(prefers-reduced-motion:reduce){.language-caret{transition:none}}
 
 .paper-card[lang="ja"] .card-copy h3{font-family:"Yu Mincho","Hiragino Mincho ProN",serif}
@@ -322,7 +324,6 @@ html[data-gyro-effects="on"] .physical-card-surface{transform:perspective(1000px
 .language-native{display:inline;white-space:nowrap;font-size:12px;font-weight:650}
 .language-code{display:none}
 .language-button{min-width:124px!important}
-.language-menu{max-height:min(70vh,620px);overflow:auto}
 
 /* Studio owns optional physical effects; the global header stays quiet. */
 .studio-top-actions{display:flex;align-items:center;gap:10px}
@@ -387,8 +388,8 @@ html[data-gyro-effects="on"] .physical-card-surface{transform:perspective(1000px
   .style-card{contain-intrinsic-size:310px 220px}
 }
 @media(max-width:420px){
-  .language-code{display:none}
-  .language-button{min-width:44px!important;width:44px!important}
+  .language-code{display:inline;font-size:10px;font-weight:700}
+  .language-button{min-width:54px!important;width:54px!important;gap:4px!important;padding:0 5px!important}
 }
 @media(prefers-reduced-motion:reduce){
   .mobile-sticky-cta{transition:none}
