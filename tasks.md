@@ -4,7 +4,9 @@ Canonical phase details: `MASTERPLAN.MD`.
 
 Legend: `[ ]` not started · `[~]` in progress · `[x]` evidence complete · `[!]` blocked.
 
-> Scope note (2026-08-29): the detailed Phase 18/19/20 blocks below are regenerated against the current `MASTERPLAN.MD`. Phase 0/21 summaries are legacy, non-execution-ready notes until separately reconciled. Per owner gate clarification, Phase 19 staging/evidence work may start while production promotion remains blocked; public launch remains NO_GO.
+> Scope note (2026-08-29): the detailed Phase 18/19/20 blocks below are regenerated against the current `MASTERPLAN.MD`. Phase 0/21 summaries are legacy, non-execution-ready notes until separately reconciled. Per owner gate clarification, Phase 19 staging/evidence work may start while production promotion remains blocked; public launch remains `NO_GO`.
+
+> Review handoff: P19M1T01 is evidence-complete. P19M1T02 is active preparation only; calibration packet and cost/call bounds are prepared, but no real-model call, human score or external rater contact has occurred. Review artifacts are under `/home/pi5/hermes-artifacts/cardelume/phase19/61266c937a5b11a18c9ca8e5d8cae6a5e5c7469f/`.
 
 ## Phase 0 — Pi5/Hermes import
 
@@ -20,7 +22,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` evidence complete · `[!
 
 ## Phase 18 — Reproducible and Reviewable Baseline
 
-**Entry/exit boundary**: this phase creates the reviewed dependency/IP baseline only. It does not apply migrations, start production services, run paid AI/human review, approve templates, perform checkout, or claim runtime/browser PASS. Phase 19 depends on the exit gate below; DB/RLS, queue, storage, payment, browser-runtime and restore evidence belong to Phase 21.
+**Entry/exit boundary**: this phase creates the reviewed dependency/IP baseline only. It does not apply migrations, start production services, run paid AI/human review, approve templates, perform checkout, or claim runtime/browser PASS. Phase 19 staging/evidence work may proceed under the explicit owner clarification, but Phase 18 dependency/template/runtime blockers still block production promotion; DB/RLS, queue, storage, payment, browser-runtime and restore evidence remain open.
 
 ## Milestone M1 — Dependency freeze
 
@@ -380,7 +382,7 @@ interface EligibilityReport { reviewPool: string[]; eligible: string[]; blocked:
 
 **Constraints**:
 - No fabricated PASS, no re-baselining to hide regressions, no runtime claim from source-only evidence.
-- If any gate is not proven, exit is `BLOCKED` and Phase 19 remains closed.
+- If any gate is not proven, the affected production/promotion gate is `BLOCKED`; Phase 19 staging/evidence work may proceed only within the owner-approved non-production boundary.
 
 **Definition of Done**:
 - `REPRODUCIBLE_INSTALL PASS`, `SEMANTIC_BUILD PASS`, `SUPPLY_CHAIN PASS`, `FONT_ASSET_ELIGIBILITY PASS` and `BASELINE_SHA RECORDED` are all evidenced, or the report is explicitly `BLOCKED`.
@@ -449,6 +451,7 @@ interface FrozenPremiumProtocol {
 **Context hiện có**:
 - `scripts/premium-benchmark-runner.ts` hỗ trợ `--require-real-model`, repeat/limit/offset, budget attribution và JSONL.
 - `scripts/premium-benchmark-lab.mjs` sinh review sheet và deterministic summary.
+- Calibration packet: `/home/pi5/hermes-artifacts/cardelume/phase19/61266c937a5b11a18c9ca8e5d8cae6a5e5c7469f/calibration-review-packet.json`; trạng thái `PREPARED_WAITING_FOR_APPROVAL`, chưa có model output/rater score.
 
 **Concrete changes**:
 1. Chốt experiment/budget ID, source SHA, provider/model/config hash, calibration count 30–50 và artifact root `/home/pi5/hermes-artifacts/cardelume/phase19/<source-sha>/calibration/`; chuẩn bị anonymized packet và estimated API/model cost trước khi gọi bên ngoài.

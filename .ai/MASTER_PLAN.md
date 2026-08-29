@@ -16,12 +16,20 @@
 
 ## 0. Current evidence and plan reset
 
+### Review snapshot — 2026-08-29
+
+- **Reviewed implementation anchor:** `61266c937a5b11a18c9ca8e5d8cae6a5e5c7469f`; P19M1T01 protocol freeze/validation is complete and source-stress, tamper and path-guard checks pass.
+- **Phase 18:** reproducible install, build, supply-chain and font/asset baseline evidence pass; dependency/native, template eligibility and runtime evidence remain open. These risks block production promotion only; development, Git operations, controlled staging and evidence collection are allowed by owner clarification.
+- **Phase 19:** staging/evidence work may proceed. P19M1T02 is preparation-only: the calibration packet exists, but no real-model call, human score or external rater contact has occurred.
+- **Current launch classification:** Development `GO`; commit/push `GO`; Pi5 staging `GO`; evidence/remediation `GO`; production promotion `BLOCKED`; public launch `NO_GO`.
+- **Review artifacts:** frozen protocol and calibration packet are under `/home/pi5/hermes-artifacts/cardelume/phase19/61266c937a5b11a18c9ca8e5d8cae6a5e5c7469f/`; Phase 18 exit evidence is `.ai/evidence/phase18-exit.json`.
+
 ### Verified foundation
 
 - Step13–Step17J source architecture and offline governance exist.
 - The core Studio flow, payment/recovery boundaries, private uploads, template approval boundary and privacy-minimized funnel are implemented at source level.
 - The project is already imported, tracked in Git and attached to the CardeLume workspace; the old bootstrap Phase 0 is complete and removed from the forward plan.
-- Current source-level tests/build have passed, but the repository still lacks an authoritative reviewed lockfile and controlled runtime proof.
+- Current strict lint, typecheck, tests, build and frozen-install checks pass on the reviewed candidate; the reviewed lockfile is tracked. Controlled Pi5 staging is available for evidence, but complete runtime/security proof is still missing.
 
 ### Material blockers
 
@@ -125,7 +133,7 @@ Before any paid human scoring, run `npm run ip:collect-font-evidence` and `npm r
 - any ineligible family is removed or repaired before benchmark sampling;
 - final immutable-version attestation remains required at approval, but no expensive review is performed on a family that cannot legally ship.
 
-## Phase 18 exit gate
+## Phase 18 baseline gate results
 
 ```text
 REPRODUCIBLE_INSTALL PASS
@@ -134,6 +142,8 @@ SUPPLY_CHAIN PASS
 FONT_ASSET_ELIGIBILITY PASS
 BASELINE_SHA RECORDED
 ```
+
+These are baseline evidence results, not production approval. The current classification is: development/commit-push/Pi5 staging/evidence collection `GO`; production promotion `BLOCKED`; public launch `NO_GO`.
 
 ---
 
@@ -152,19 +162,32 @@ Improve and prove that CardeLume produces work customers and independent reviewe
 - **Truth:** material effects may communicate craft but must not imply CardeLume ships a physical card.
 - **Evidence:** exact browser screenshots and final JPG/PDF renders at agreed desktop/mobile/print sizes.
 
-## Milestone 19.1 — Baseline Golden benchmark and independent scoring
+## Milestone 19.1 — Calibration and Final Golden benchmark
+
+### Calibration stage — current bounded execution
 
 Use the existing Step14 tooling with:
 
-- 150 representative briefs across enabled launch locales/scripts;
+- 30–50 representative briefs; the current frozen protocol uses 30, within this bound, across enabled launch locales/scripts;
 - photo/no-photo, short/long/edge copy and diverse relationships/occasions;
 - three independent model runs per brief/config for automated stability metrics;
-- a blinded human review subset of at least 30 representative briefs, stratified and frozen before output inspection across launch scripts/locales, photo/no-photo, short/medium/long copy pressure and key occasion/relationship groups;
+- an anonymized, stratified and frozen human-review subset prepared before output inspection;
+- an initial target of three independent raters for calibration, with conflicts disclosed before assignment and owner/developers excluded from scoring;
+- the anonymized review packet and estimated API/model cost prepared before any external model call or human contact;
+- no model cost incurred and no external rater message sent without separate approval;
+- aggregation deterministic from sealed individual score sheets, with recorded latency, token cost, fallback/failure rate and regeneration rate.
+
+### Final Golden stage — after the bounded improvement loop
+
+Only after Milestone 19.2 produces a stable candidate set of 6–8 families, run the final sealed benchmark with:
+
+- 100–150 representative briefs across enabled launch locales/scripts;
+- three independent model runs per brief/config for automated stability metrics;
+- a blinded human-review subset of at least 30 representative briefs, stratified and frozen before output inspection across launch scripts/locales, photo/no-photo, short/medium/long copy pressure and key occasion/relationship groups;
 - at least five independent raters for the human subset, with outputs anonymized and order-randomized;
-- raters are independent of product development, disclose conflicts before assignment, and owner/developers do not score the human subset;
-- the rater roster, conflicts and rubric version are frozen in evidence before outputs are revealed;
-- at least 20% legally sourced private-review reference stimuli are mixed into the blind set to anchor premium and average-quality bands; record source URL, retrieval date, license/internal-review use basis, stimulus SHA-256 and external artifact reference in `.ai/evidence/premium-reference-stimuli.json`; never ship, train on, reuse as CardeLume assets or commit binaries without redistribution rights;
-- aggregation is deterministic and performed from sealed individual score sheets before model/template identities are revealed;
+- raters independent of product development, conflicts disclosed before assignment, owner/developers excluded from scoring, and the roster/conflicts/rubric frozen before outputs are revealed;
+- at least 20% legally sourced private-review reference stimuli mixed into the blind set to anchor premium and average-quality bands; record source URL, retrieval date, license/internal-review use basis, stimulus SHA-256 and external artifact reference in `.ai/evidence/premium-reference-stimuli.json`; never ship, train on, reuse as CardeLume assets or commit binaries without redistribution rights;
+- aggregation deterministic and performed from sealed individual score sheets before model/template identities are revealed;
 - recorded latency, token cost, fallback/failure rate and regeneration rate.
 
 Score separately: emotional fit; Premium perception; WOW/memorability; originality/brand distinctiveness; copy–design harmony; typography/copy pressure; honest material realism; three-direction diversity; locale naturalness; and photo use.
@@ -179,14 +202,14 @@ Score separately: emotional fit; Premium perception; WOW/memorability; originali
 - no approved family has a material IP, compatibility, accessibility or rendering blocker;
 - production model/prompt selection fits the documented latency and unit economics budget.
 
-The first sealed run is the immutable baseline, not a launch gate. It identifies failure clusters for Milestone 19.2; no family is approved from baseline results alone.
+The calibration run is diagnostic and not a launch gate; it identifies failure clusters for Milestone 19.2. The Final Golden run is the immutable final benchmark after the improvement loop; no family is approved from calibration results alone.
 
 ## Milestone 19.2 — Bounded Premium/WOW improvement loop
 
 - rank failures by exact template/version, locale/script, copy pressure, photo mode and rubric dimension;
 - select the smallest intervention class per hypothesis: template composition/type/material, creative recipe/ranking, or AI prompt/model/critic threshold;
 - change one primary cause per candidate, preserve baseline output and record candidate SHA/config hash;
-- run one frozen representative calibration slice after each change; run the full sealed benchmark only after the slice shows measurable uplift without material regression;
+- run one frozen representative calibration slice after each change; run the 100–150-brief Final Golden benchmark only after the slice shows measurable uplift without material regression and the candidate set is stable at 6–8 families;
 - stop after two failed iterations of the same hypothesis; preserve the failure, then cull the family/configuration or write a new hypothesis instead of cosmetic looping;
 - never change the Golden set, blind-review subset, rubric, rater roster or thresholds after outputs are revealed.
 
@@ -213,7 +236,7 @@ The first sealed run is the immutable baseline, not a launch gate. It identifies
 
 ## Milestone 19.4 — Final rerun and curate 6–8 flagship families
 
-After all pixel/prompt/model changes are frozen, rerun the full sealed benchmark. Start from the Step17J owner-review pool but approve only exact immutable versions that pass:
+After all pixel/prompt/model changes are frozen and the candidate set is stable at 6–8 families, run the 100–150-brief Final Golden benchmark. Start from the Step17J owner-review pool but approve only exact immutable versions that pass:
 
 - Golden evidence;
 - blind Premium/WOW/originality review;
@@ -593,4 +616,12 @@ No agent may:
 
 ## Current execution boundary
 
-Phase 19/20 WBS is generated in `tasks.md` and R4 plan review is PASS; execution remains blocked by the Phase 18 exit gate. R4 is not implementation, owner creative approval, runtime E2E or production approval. Do not mix existing homepage-copy changes into any plan-only commit, and do not commit/push/deploy without separate authorization.
+Phase 19/20 WBS is generated in `tasks.md` and R4 plan review is PASS. Per the owner gate clarification, Phase 19 staging/evidence work may proceed; Phase 18 dependency/template/runtime blockers still block production promotion and keep public launch `NO_GO`. R4 is not implementation, owner creative approval, runtime E2E or production approval. Current authorization covers the reviewed commits/push and controlled Pi5 staging; it does not authorize external model spend/rater contact without separate approval, production promotion or public launch.
+
+## External review handoff
+
+Please review the plan against these bounded questions:
+
+- Does the calibration-first sequence preserve the final quality bar while keeping the first real-model run within a known cost/call envelope?
+- Are the dependency/native, template/IP and runtime blockers classified correctly as staging-allowed but production-blocking?
+- Are evidence claims kept separate: source/offline checks, browser/runtime evidence, blind human scoring, owner approval and public launch?

@@ -16,12 +16,20 @@
 
 ## 0. Current evidence and plan reset
 
+### Review snapshot — 2026-08-29
+
+- **Reviewed implementation anchor:** `61266c937a5b11a18c9ca8e5d8cae6a5e5c7469f`; P19M1T01 protocol freeze/validation is complete and source-stress, tamper and path-guard checks pass.
+- **Phase 18:** reproducible install, build, supply-chain and font/asset baseline evidence pass; dependency/native, template eligibility and runtime evidence remain open. These risks block production promotion only; development, Git operations, controlled staging and evidence collection are allowed by owner clarification.
+- **Phase 19:** staging/evidence work may proceed. P19M1T02 is preparation-only: the calibration packet exists, but no real-model call, human score or external rater contact has occurred.
+- **Current launch classification:** Development `GO`; commit/push `GO`; Pi5 staging `GO`; evidence/remediation `GO`; production promotion `BLOCKED`; public launch `NO_GO`.
+- **Review artifacts:** frozen protocol and calibration packet are under `/home/pi5/hermes-artifacts/cardelume/phase19/61266c937a5b11a18c9ca8e5d8cae6a5e5c7469f/`; Phase 18 exit evidence is `.ai/evidence/phase18-exit.json`.
+
 ### Verified foundation
 
 - Step13–Step17J source architecture and offline governance exist.
 - The core Studio flow, payment/recovery boundaries, private uploads, template approval boundary and privacy-minimized funnel are implemented at source level.
 - The project is already imported, tracked in Git and attached to the CardeLume workspace; the old bootstrap Phase 0 is complete and removed from the forward plan.
-- Current source-level tests/build have passed, but the repository still lacks an authoritative reviewed lockfile and controlled runtime proof.
+- Current strict lint, typecheck, tests, build and frozen-install checks pass on the reviewed candidate; the reviewed lockfile is tracked. Controlled Pi5 staging is available for evidence, but complete runtime/security proof is still missing.
 
 ### Material blockers
 
@@ -125,7 +133,7 @@ Before any paid human scoring, run `npm run ip:collect-font-evidence` and `npm r
 - any ineligible family is removed or repaired before benchmark sampling;
 - final immutable-version attestation remains required at approval, but no expensive review is performed on a family that cannot legally ship.
 
-## Phase 18 exit gate
+## Phase 18 baseline gate results
 
 ```text
 REPRODUCIBLE_INSTALL PASS
@@ -134,6 +142,8 @@ SUPPLY_CHAIN PASS
 FONT_ASSET_ELIGIBILITY PASS
 BASELINE_SHA RECORDED
 ```
+
+These are baseline evidence results, not production approval. The current classification is: development/commit-push/Pi5 staging/evidence collection `GO`; production promotion `BLOCKED`; public launch `NO_GO`.
 
 ---
 
@@ -606,4 +616,12 @@ No agent may:
 
 ## Current execution boundary
 
-Phase 19/20 WBS is generated in `tasks.md` and R4 plan review is PASS. Per the owner gate clarification, Phase 19 staging/evidence work may proceed; Phase 18 dependency/template/runtime blockers still block production promotion and keep public launch NO_GO. R4 is not implementation, owner creative approval, runtime E2E or production approval. Do not mix existing homepage-copy changes into any plan-only commit; commit/push/deploy require separate authorization, which is granted for the current reviewed candidate and controlled Pi5 staging only.
+Phase 19/20 WBS is generated in `tasks.md` and R4 plan review is PASS. Per the owner gate clarification, Phase 19 staging/evidence work may proceed; Phase 18 dependency/template/runtime blockers still block production promotion and keep public launch `NO_GO`. R4 is not implementation, owner creative approval, runtime E2E or production approval. Current authorization covers the reviewed commits/push and controlled Pi5 staging; it does not authorize external model spend/rater contact without separate approval, production promotion or public launch.
+
+## External review handoff
+
+Please review the plan against these bounded questions:
+
+- Does the calibration-first sequence preserve the final quality bar while keeping the first real-model run within a known cost/call envelope?
+- Are the dependency/native, template/IP and runtime blockers classified correctly as staging-allowed but production-blocking?
+- Are evidence claims kept separate: source/offline checks, browser/runtime evidence, blind human scoring, owner approval and public launch?
