@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "task": "P18M2T02",
+  "generatedOn": "2026-08-29",
+  "baselineHead": "3305b4b061749513a6c731b5158835aa54aec929",
+  "toolchain": {"node": "v24.19.0", "corepack": "0.35.0", "pnpm": "10.15.0"},
+  "commands": {
+    "webLint": {"command": "corepack pnpm --filter @cardelume/web lint", "status": "PASS", "filesChecked": 85, "errors": 0, "warnings": 2},
+    "rootLint": {"command": "PATH=/tmp/cardelume-phase18-pnpm-bin:$PATH corepack pnpm lint", "status": "PASS", "tasks": "11/11"},
+    "typecheck": {"command": "PATH=/tmp/cardelume-phase18-pnpm-bin:$PATH corepack pnpm typecheck", "status": "PASS", "tasks": "11/11"},
+    "test": {"command": "PATH=/tmp/cardelume-phase18-pnpm-bin:$PATH corepack pnpm test", "status": "PASS", "tasks": "11/11"},
+    "build": {"command": "PATH=/tmp/cardelume-phase18-pnpm-bin:$PATH corepack pnpm build", "status": "PASS", "tasks": "11/11", "next": "16.3.3"},
+    "checkFast": {"command": "PATH=/tmp/cardelume-phase18-pnpm-bin:$PATH corepack pnpm check:fast", "status": "PASS"},
+    "checkRelease": {"command": "PATH=/tmp/cardelume-phase18-pnpm-bin:$PATH corepack pnpm check:release", "status": "PASS", "checks": "28/28"},
+    "checkStatus": {"command": "PATH=/tmp/cardelume-phase18-pnpm-bin:$PATH corepack pnpm check:status", "status": "PASS"},
+    "checkHeavy": {"command": "PATH=/tmp/cardelume-phase18-pnpm-bin:$PATH corepack pnpm check:heavy", "sourceAndRenderStatus": "PASS", "exitClassification": "BLOCKED_RUNTIME", "exitCode": 2}
+  },
+  "runtimeBoundary": "No production service, database, payment, storage or browser-runtime PASS was claimed.",
+  "negativeLintProof": {"status": "PASS", "fixture": "apps/web/lib/.phase18-negative-lint.ts", "expectedExitCode": 1, "observedDiagnostic": "Parsing error: Expression expected", "fixtureRemoved": true},
+  "verdict": "PASS_SOURCE_ONLY"
+}

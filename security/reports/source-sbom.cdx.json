@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
   "version": 1,
-  "serialNumber": "urn:uuid:4792aff1-20c1-4dd9-9552-5e02ffbc9a4c",
+  "serialNumber": "urn:uuid:8c8c136c-8a8d-4ab6-9675-47cb592e2dae",
   "metadata": {
-    "timestamp": "2026-08-28T17:20:30.367Z",
+    "timestamp": "2026-08-29T10:09:49.525Z",
     "component": {
       "type": "application",
       "name": "cardelume",
@@ -13,7 +13,7 @@
     "properties": [
       {
         "name": "cardelume:sbomCompleteness",
-        "value": "partial-source-manifests-no-lockfile"
+        "value": "source-manifest-plus-lock-present-but-not-resolved-by-this-tool"
       },
       {
         "name": "cardelume:releaseAuthority",
@@ -361,7 +361,7 @@
     {
       "type": "library",
       "name": "sharp",
-      "version": "^0.34.3",
+      "version": "^0.35.0",
       "scope": "runtime",
       "properties": [
         {
@@ -442,6 +442,38 @@
       "type": "library",
       "name": "@types/react-dom",
       "version": "^19.1.9",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "eslint",
+      "version": "^9.21.0",
+      "scope": "development",
+      "properties": [
+        {
+          "name": "cardelume:declaredBy",
+          "value": "apps/web/package.json"
+        },
+        {
+          "name": "cardelume:versionKind",
+          "value": "declared-range-or-workspace-reference"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "eslint-config-next",
+      "version": "16.3.3",
       "scope": "development",
       "properties": [
         {
@@ -537,7 +569,7 @@
     {
       "type": "library",
       "name": "sharp",
-      "version": "^0.34.3",
+      "version": "^0.35.0",
       "scope": "development",
       "properties": [
         {
@@ -585,7 +617,7 @@
     {
       "type": "library",
       "name": "drizzle-orm",
-      "version": "^0.44.5",
+      "version": "^0.45.2",
       "scope": "runtime",
       "properties": [
         {

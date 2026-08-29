@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "task": "P18M4T03",
+  "generatedOn": "2026-08-29",
+  "decision": "OWNER_APPROVED_FOR_HUMAN_REVIEW_ONLY",
+  "productionApproval": false,
+  "humanReviewRequired": true,
+  "sourceOnly": true,
+  "ownerDecision": "Owner approved the seven source-only candidates for human originality/similarity review; this is not production approval.",
+  "candidates": [
+    {
+      "templateSeed": 101,
+      "conceptId": "whispered-type",
+      "name": "Whispered Type",
+      "version": 1
+    },
+    {
+      "templateSeed": 102,
+      "conceptId": "museum-note",
+      "name": "Museum Note",
+      "version": 1
+    },
+    {
+      "templateSeed": 105,
+      "conceptId": "memory-window",
+      "name": "Memory Window",
+      "version": 1
+    },
+    {
+      "templateSeed": 111,
+      "conceptId": "night-ledger",
+      "name": "Night Ledger",
+      "version": 1
+    },
+    {
+      "templateSeed": 108,
+      "conceptId": "pressed-shadow",
+      "name": "Pressed Shadow",
+      "version": 1
+    },
+    {
+      "templateSeed": 103,
+      "conceptId": "monogram-orbit",
+      "name": "Monogram Orbit",
+      "version": 1
+    },
+    {
+      "templateSeed": 14,
+      "conceptId": "classic-letterpress",
+      "name": "Classic Letterpress",
+      "version": 1
+    }
+  ],
+  "requiredNextGates": [
+    "blind human originality review",
+    "third-party similarity review",
+    "multilingual rendered artifact review",
+    "promotion/owner approval"
+  ],
+  "blockedUntil": [
+    "humanReviewEvidence",
+    "template provenance approval",
+    "runtime and production gates"
+  ],
+  "unchangedPolicy": "All other template records remain UNKNOWN; no template is production eligible from this shortlist alone."
+}

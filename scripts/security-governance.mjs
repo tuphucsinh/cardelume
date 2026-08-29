@@ -16,7 +16,7 @@ const writeJson=(p,v)=>{fs.mkdirSync(path.dirname(abs(p)),{recursive:true});fs.w
 const NOW=()=>new Date().toISOString();
 const reportDir='security/reports';
 
-const SKIP_DIRS=new Set(['.git','node_modules','.next','dist','coverage','.pnpm-store','benchmark-results']);
+const SKIP_DIRS=new Set(['.git','node_modules','.next','dist','coverage','.pnpm-store','benchmark-results','.turbo']);
 const TEXT_EXT=new Set(['.ts','.tsx','.js','.jsx','.mjs','.cjs','.json','.md','.yaml','.yml','.toml','.txt','.sh','.html','.css','.env','.example','']);
 function walk(dir='.',out=[]){
   for(const e of fs.readdirSync(abs(dir),{withFileTypes:true})){

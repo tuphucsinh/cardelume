@@ -16,12 +16,13 @@ const typography=readJson('experiments/typography/TYPOGRAPHY_CANDIDATES_V1.json'
 const webPkg=readJson('apps/web/package.json');
 const css=read('apps/web/app/globals.css');
 const art=read('packages/renderer/src/template-art.ts');
+const fontCollector=read('scripts/font-provenance-collect.mjs');
 
 assert(fonts.items.length===12,'all current + selected replacement font source entries are governed');
 assert(fonts.items.every(x=>x.familyLicenseResearch?.license==='OFL-1.1'),'all current font families researched as OFL-1.1');
 assert(fonts.items.every(x=>x.familyLicenseResearch?.commercialDesignUse==='ALLOWED'),'current font family-level commercial design use recorded');
-assert(fonts.items.every(x=>x.productionBinaryVerdict==='PENDING_EXACT_VERSION_HASH_AND_LICENSE_EVIDENCE'),'exact font binary approval remains fail-closed');
-assert(fonts.items.every(x=>x.status==='UNKNOWN'),'Step17C does not fake production APPROVED font status');
+assert(fonts.items.filter(x=>x.status==='APPROVED').every(x=>x.exactVersion&&x.contentSha256&&x.licenseEvidencePath&&x.reviewer&&x.reviewedAt&&x.productionBinaryVerdict==='APPROVED_EXACT_VERSION_HASH_AND_LICENSE_EVIDENCE'),'APPROVED font records have exact version, content hash, license evidence, reviewer, reviewedAt, and approval verdict');
+assert(fonts.items.filter(x=>x.status!=='APPROVED').every(x=>x.status==='UNKNOWN'&&x.productionBinaryVerdict==='PENDING_EXACT_VERSION_HASH_AND_LICENSE_EVIDENCE'),'non-APPROVED font records remain fail-closed UNKNOWN status and PENDING verdict');
 const dm=fonts.items.find(x=>x.assetId==='web.dm-sans');
 assert(dm?.vietnameseCoverageVerified===false,'DM Sans Vietnamese distribution gap is explicitly recorded');
 
@@ -33,6 +34,9 @@ assert(workerDocker.includes('fonts-ebgaramond=0.016+git20210310.42d4f9f2-1'),'w
 assert(workerDocker.includes('fonts-lato=2.0-2.1'),'worker Lato Debian version exact-pinned');
 assert(workerDocker.includes('fonts-noto-cjk=1:20220127+repack1-1'),'worker Noto CJK Debian version exact-pinned');
 assert(workerDocker.includes('/usr/share/doc/fonts-ebgaramond/copyright')&&workerDocker.includes('/usr/share/doc/fonts-lato/copyright')&&workerDocker.includes('/usr/share/doc/fonts-noto-cjk/copyright'),'worker image checks packaged font copyright evidence exists');
+
+assert(fontCollector.includes('worker-image-provenance.json'),'font provenance collector references canonical worker-image-provenance.json');
+assert(!fontCollector.includes('dpkg-query')&&!fontCollector.includes('dpkg'),'font provenance collector does not reference host dpkg-query/dpkg probing');
 
 assert(candidates.candidates.length>=10,'font candidate catalog is substantive');
 assert(candidates.candidates.every(x=>x.license==='OFL-1.1'&&x.commercialUseAllowed===true),'candidate catalog contains only researched commercial-use OFL families');

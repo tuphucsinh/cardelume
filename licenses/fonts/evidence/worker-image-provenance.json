@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "image": "cardelume-worker-font-evidence@sha256:5d65aa4618f3e0c7e98253a87951e1cf675dfb79817e221bf3db1ce01874e988",
+  "platform": "linux/arm64",
+  "dockerfile": "docker/worker.Dockerfile",
+  "acquiredAt": "2026-08-29T10:02:53Z",
+  "packages": {
+    "fonts-ebgaramond": {
+      "version": "0.016+git20210310.42d4f9f2-1",
+      "contentSha256": "15a1a58824ec12e038238a667ffe6e4c0505157c0598af1b637a263f774d55c8",
+      "licenseEvidencePath": "licenses/fonts/evidence/worker.eb-garamond-0_016_git20210310.42d4f9f2-1.txt"
+    },
+    "fonts-lato": {
+      "version": "2.0-2.1",
+      "contentSha256": "276a00b90a5576dd080f384142c1f9fc458783107a154c075572c352dd86417b",
+      "licenseEvidencePath": "licenses/fonts/evidence/worker.lato-2.0-2.1.txt"
+    },
+    "fonts-noto-cjk": {
+      "version": "1:20220127+repack1-1",
+      "contentSha256": "ade247cc2dd766e990de1712a16bf1b85fc393d678b42fa6961b84acff4bcbe5",
+      "licenseEvidencePath": "licenses/fonts/evidence/worker.noto-cjk-1_20220127_repack1-1.txt"
+    }
+  }
+}

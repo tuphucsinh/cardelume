@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "task": "P18M1T03",
+  "generatedOn": "2026-08-29",
+  "reviewer": "Mika",
+  "baselineHead": "3305b4b061749513a6c731b5158835aa54aec929",
+  "lockSha256": "27c10db4e31a36703b7ca6958dd800bd8759703beba1d408ad94066cf2f8e9b7",
+  "lockfile": {
+    "path": "pnpm-lock.yaml",
+    "bytes": 187928,
+    "lines": 5793,
+    "version": "9.0",
+    "workspaceProjects": 12,
+    "frozenInstall": {
+      "command": "corepack pnpm install --frozen-lockfile",
+      "status": "PASS",
+      "scope": "all 12 workspace projects"
+    }
+  },
+  "dependencyChanges": [
+    "eslint@9.39.5 and eslint-config-next@16.3.3 added for Next 16 flat lint",
+    "sharp direct ranges raised from ^0.34.3 to ^0.35.0 in root, web and renderer",
+    "drizzle-orm direct range raised from ^0.44.5 to ^0.45.2 in db"
+  ],
+  "audit": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 1,
+    "low": 0,
+    "remainingModerate": "esbuild@0.18.20 through drizzle-kit dev tooling"
+  },
+  "nativeAndInstallScriptRisks": [
+    "sharp@0.35.4 and @resvg/resvg-js require architecture-specific validation for ARM64/AMD64",
+    "pnpm reported ignored build script for unrs-resolver@1.12.2 from eslint-import-resolver-typescript",
+    "drizzle-kit retains a dev-only esbuild@0.18.20 advisory path"
+  ],
+  "verdict": "BLOCKED",
+  "blockers": [
+    "Owner/technical acceptance is still required for the ignored native build script and remaining dev-only advisory path.",
+    "Cross-architecture native package validation is not proven by this Pi5 install alone."
+  ],
+  "rollback": "Restore manifests and pnpm-lock.yaml to baseline HEAD together."
+}

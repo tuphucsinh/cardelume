@@ -9,7 +9,7 @@ const out=path.join(root,'security/reports/release-sbom.cdx.json');
 const die=(m,c=2)=>{console.error(m);process.exit(c);};
 if(!fs.existsSync(lock))die('release_sbom_requires_pnpm_lock');
 const pnpm=process.env.PNPM_BIN||'pnpm';
-const r=spawnSync(pnpm,['list','-r','--json','--depth','Infinity'],{cwd:root,encoding:'utf8',maxBuffer:32*1024*1024});
+const r=spawnSync(pnpm,['list','-r','--prod','--json','--depth','Infinity'],{cwd:root,encoding:'utf8',maxBuffer:32*1024*1024});
 if(r.error||r.status!==0)die(`pnpm_list_failed:${r.error?.message||r.stderr||r.status}`);
 let roots;try{roots=JSON.parse(r.stdout);}catch{die('pnpm_list_json_invalid');}
 const components=new Map();

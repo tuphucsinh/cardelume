@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "task": "P18M3T01",
+  "generatedOn": "2026-08-29",
+  "lockSha256": "27c10db4e31a36703b7ca6958dd800bd8759703beba1d408ad94066cf2f8e9b7",
+  "releaseSbom": {
+    "command": "corepack pnpm security:sbom-release",
+    "status": "PASS",
+    "path": "security/reports/release-sbom.cdx.json",
+    "components": 215,
+    "completeness": "resolved-installed-pnpm-graph",
+    "lockBindingVerified": true
+  },
+  "dependencyScan": {
+    "command": "corepack pnpm security:dependency-scan",
+    "status": "PASS",
+    "path": "security/reports/dependency-vulnerability-report.json",
+    "severity": {"critical": 0, "high": 0, "moderate": 1, "low": 0},
+    "unresolved": {"status": "BLOCKED", "package": "esbuild@0.18.20", "path": "drizzle-kit dev tooling", "ownerAcceptance": "NOT_GRANTED"}
+  },
+  "verdict": "PASS_WITH_REVIEWED_RESIDUAL_RISK",
+  "releaseImpact": "The remaining dev-only Moderate advisory and install-script/native review are carried into phase18-dependency-freeze.json; no owner acceptance was fabricated."
+}

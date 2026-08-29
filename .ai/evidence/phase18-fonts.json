@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "task": "P18M4T01",
+  "generatedOn": "2026-08-29",
+  "collector": {
+    "command": "corepack pnpm ip:collect-font-evidence",
+    "status": "PASS",
+    "collectedExactNpmRecords": 8,
+    "collectedExactDebianRecords": 3,
+    "missingOrUnknownRecords": 1,
+    "missing": ["web.dm-sans"],
+    "manifest": "licenses/fonts/FONT_LICENSE_MANIFEST.json",
+    "evidenceDirectory": "licenses/fonts/evidence/",
+    "hostCollectorNote": "The host collector does not have the Debian worker packages installed; the three Debian records below come from the pinned ARM64 worker image probe."
+  },
+  "exactEvidence": "Eight active web font records contain exact version 5.2.6, content SHA-256 and retained license evidence paths; three Debian worker records contain exact package version, ARM64 image font-tree SHA-256 and retained copyright evidence. All eleven active records are approved under the reviewed OFL-1.1 conditions.",
+  "debianImageEvidence": {"image": "cardelume-worker-font-evidence@sha256:5d65aa4618f3e0c7e98253a87951e1cf675dfb79817e221bf3db1ce01874e988", "platform": "linux/arm64", "dockerfile": "docker/worker.Dockerfile", "probeStatus": "PASS", "packages": ["fonts-ebgaramond=0.016+git20210310.42d4f9f2-1", "fonts-lato=2.0-2.1", "fonts-noto-cjk=1:20220127+repack1-1"]},
+  "approvalBoundary": "Approval covers the eleven active exact records used by the web/worker paths. DM Sans is historical and retired from the web source path; it is intentionally not eligible for shipping.",
+  "approvedActiveRecords": 11,
+  "unapprovedOrMissingRecords": 1,
+  "verdict": "PASS_EXACT_ACTIVE_FONTS_APPROVED"
+}

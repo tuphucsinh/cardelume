@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "task": "P18M3T02",
+  "generatedOn": "2026-08-29",
+  "sourceChecks": {
+    "secretScan": {"status": "PASS", "findings": 0},
+    "securityAudit": {"status": "PASS", "sourceChecks": "source governance executed"},
+    "ipAudit": {"status": "PASS", "releaseEligible": false, "unresolvedCount": 29},
+    "securityReleaseCheck": {"status": "NO_GO", "reason": "CSP enforcement, runtime ASVS evidence and production-approved IP catalog are not present"},
+    "ipReleaseCheck": {"status": "NO_GO", "reason": "template provenance/approval remains unresolved; DM Sans is historical and retired, while all active fonts and brand assets are approved"}
+  },
+  "securityGovernanceReport": "security/reports/security-governance-audit.json",
+  "secretScanReport": "security/reports/secret-scan.json",
+  "ipEvidence": "security/reports/security-governance-audit.json",
+  "unresolved": [
+    "CSP enforcement and TLS/runtime controls require runtime/staging evidence",
+    "Production catalog still lacks approved template set; all active font records and brand assets are approved",
+    "Owner/legal review remains required for unresolved provenance"
+  ],
+  "verdict": "BLOCKED_RELEASE_NO_GO"
+}
