@@ -55,18 +55,18 @@ export type Messages = {
 const en: Messages = {
   header:{create:"Create a card ✦",chooseLanguage:"Choose language"},
   home:{
-    eyebrow:"Premium cards, thoughtfully composed",heroA:"Beautiful cards,",heroB:"made in moments.",
+    eyebrow:"Premium cards, thoughtfully composed",heroA:"Cards for feelings",heroB:"made in moments.",
     sub:"Personal, thoughtful, and created just for them. Tell us the occasion — CardeLume handles the art direction, words, and finish.",
     create:"Create your card ✦",explore:"Explore styles",
     trust:["No design skills","No subscription","Pay only when you love it"],
     galleryEyebrow:"Curated, not crowded",galleryA:"Designed like stationery.",galleryB:"Not generated like a template.",
     galleryDesc:"Real paper proportions, intentional typography, restrained material detail, and distinct art direction.",
     galleryCta:"Create with these styles",
-    howEyebrow:"Less effort. Better result.",howA:"Three small decisions.",howB:"One card that feels considered.",
+    howEyebrow:"How it feels",howA:"Less designing.",howB:"More choosing what feels right.",
     steps:[
-      {title:"Tell us the moment",body:"Occasion, recipient, and the feeling you want to send."},
-      {title:"Choose a direction",body:"We compose three genuinely different art directions around your brief."},
-      {title:"Finish, then pay",body:"Edit the words if you want. Pay once only when the card feels right."}
+      {title:"A small brief",body:"Who it is for, the occasion, the feeling — and a photo only if you want one."},
+      {title:"Three real directions",body:"Different material worlds, different energy, all composed by one Creative Director."},
+      {title:"A quiet finish",body:"Refine the words, confirm the print layout, pay once, keep the final JPG and PDF."}
     ],
     priceEyebrow:"Simple by design",priceTitle:"This one feels right.",delivery:"High-resolution JPG · Print-ready PDF · No watermark",
     oneTime:"one-time payment",priceCta:"Make their moment shine ✦",

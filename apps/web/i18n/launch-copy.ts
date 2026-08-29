@@ -44,7 +44,7 @@ export type LaunchCopy = {
 
 const c:Record<LocaleCode,LaunchCopy>={
   en:{
-    heroEyebrow:"Premium cards, thoughtfully composed",skipContent:"Skip to content",
+    heroEyebrow:"A little more personal",skipContent:"Skip to content",
     recipientPlaceholder:"e.g., Olivia",someoneSpecial:"someone special",
     liveDirectionPreview:"Live direction preview",previewNote:"Final compositions appear after generation.",
     printSizeLayout:"Print size / layout",
