@@ -432,7 +432,7 @@ interface FrozenPremiumProtocol {
 - `pnpm benchmark:validate` và `node scripts/premium-benchmark-source-stress.mjs` exit 0.
 - Protocol hash + artifact path được ghi; `git diff --check` pass; không commit/push.
 
-**Status**: `[ ]`
+**Status**: `[x]`
 
 ---
 

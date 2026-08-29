@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "task": "P19M1T01",
+  "status": "SOURCE_ONLY_REFERENCE_SAFE",
+  "description": "CardeLume Premium Benchmark blind review anchor stimuli provenance manifest — synthetic and reference-safe metadata only (no raw binaries, customer data, secrets, or unapproved assets)",
+  "generatedOn": "2026-08-29",
+  "goldenSetVersion": "1.0.0",
+  "provenancePolicy": "No raw binary committed to Git repository. Metadata only. Used exclusively as blinded comparison anchors in sealed human scoring protocol. No model training, customer data, commercial asset redistribution, license approval, ownership conclusion, or fair-use claim.",
+  "reviewAnchoringBasis": "internal-synthetic-reference-metadata-only-no-license-claim",
+  "stimuli": [
+    {
+      "stimulusId": "ref-anchor-high-01",
+      "category": "anchor-high-premium",
+      "targetBand": "high_premium_8_10",
+      "archetype": "quiet-editorial-letterpress",
+      "purpose": "Anchor score calibration for quiet luxury typography and tactile paper craft",
+      "sourceUrl": "urn:cardelume:reference-stimuli:editorial-archive:2026:anchor-high-01",
+      "retrievalDate": "2026-08-29",
+      "licenseBasis": "internal-synthetic-reference-metadata-only",
+      "redistributionStatus": "NO_BINARY_REDISTRIBUTION",
+      "stimulusSha256": "ea6cb9b1545bb5e003eef2e3a2f52c795d8a317a4beb37ad7edba929db1c45ec",
+      "hashBasis": "canonical-stimulus-metadata-json-no-binary",
+      "externalArtifactPath": "/home/pi5/hermes-artifacts/cardelume/phase19/reference-stimuli/ref-anchor-high-01.meta.json"
+    },
+    {
+      "stimulusId": "ref-anchor-high-02",
+      "category": "anchor-high-premium",
+      "targetBand": "high_premium_8_10",
+      "archetype": "midnight-celestial-foil",
+      "purpose": "Anchor score calibration for restrained metallic foil and nocturnal palette harmony",
+      "sourceUrl": "urn:cardelume:reference-stimuli:editorial-archive:2026:anchor-high-02",
+      "retrievalDate": "2026-08-29",
+      "licenseBasis": "internal-synthetic-reference-metadata-only",
+      "redistributionStatus": "NO_BINARY_REDISTRIBUTION",
+      "stimulusSha256": "f27a0595b0c3dd61b1128aeb8fc6087b77be66ef337e6c34d99dabce7e90a2e1",
+      "hashBasis": "canonical-stimulus-metadata-json-no-binary",
+      "externalArtifactPath": "/home/pi5/hermes-artifacts/cardelume/phase19/reference-stimuli/ref-anchor-high-02.meta.json"
+    },
+    {
+      "stimulusId": "ref-anchor-photo-03",
+      "category": "anchor-high-photo",
+      "targetBand": "high_premium_8_10",
+      "archetype": "photo-editorial-harmony",
+      "purpose": "Anchor score calibration for balanced photo-type integration and luminance fit",
+      "sourceUrl": "urn:cardelume:reference-stimuli:editorial-archive:2026:anchor-photo-03",
+      "retrievalDate": "2026-08-29",
+      "licenseBasis": "internal-synthetic-reference-metadata-only",
+      "redistributionStatus": "NO_BINARY_REDISTRIBUTION",
+      "stimulusSha256": "bc56cf78aca1fa55d3231fae7373a8234ba205a85b5ef1723e2d88440c468f5c",
+      "hashBasis": "canonical-stimulus-metadata-json-no-binary",
+      "externalArtifactPath": "/home/pi5/hermes-artifacts/cardelume/phase19/reference-stimuli/ref-anchor-photo-03.meta.json"
+    },
+    {
+      "stimulusId": "ref-anchor-mid-04",
+      "category": "anchor-mid-quality",
+      "targetBand": "mid_quality_6_7",
+      "archetype": "generic-clean-digital",
+      "purpose": "Anchor score calibration for acceptable but non-distinctive digital card composition",
+      "sourceUrl": "urn:cardelume:reference-stimuli:editorial-archive:2026:anchor-mid-04",
+      "retrievalDate": "2026-08-29",
+      "licenseBasis": "internal-synthetic-reference-metadata-only",
+      "redistributionStatus": "NO_BINARY_REDISTRIBUTION",
+      "stimulusSha256": "0152274037ecc9edcfcb94b8d35feeef02a8122f0d698e559c5e3f9d51b3ea63",
+      "hashBasis": "canonical-stimulus-metadata-json-no-binary",
+      "externalArtifactPath": "/home/pi5/hermes-artifacts/cardelume/phase19/reference-stimuli/ref-anchor-mid-04.meta.json"
+    },
+    {
+      "stimulusId": "ref-anchor-mid-05",
+      "category": "anchor-mid-quality",
+      "targetBand": "mid_quality_6_7",
+      "archetype": "standard-floral-frame",
+      "purpose": "Anchor score calibration for conventional decorative greeting template baseline",
+      "sourceUrl": "urn:cardelume:reference-stimuli:editorial-archive:2026:anchor-mid-05",
+      "retrievalDate": "2026-08-29",
+      "licenseBasis": "internal-synthetic-reference-metadata-only",
+      "redistributionStatus": "NO_BINARY_REDISTRIBUTION",
+      "stimulusSha256": "373c3aae7717da61e5fe11973fba89b1f5236c01a5e7bb90f82efb6c40c1c11f",
+      "hashBasis": "canonical-stimulus-metadata-json-no-binary",
+      "externalArtifactPath": "/home/pi5/hermes-artifacts/cardelume/phase19/reference-stimuli/ref-anchor-mid-05.meta.json"
+    },
+    {
+      "stimulusId": "ref-anchor-floor-06",
+      "category": "anchor-floor-defect",
+      "targetBand": "floor_defect_under_5",
+      "archetype": "dense-unformatted-raw",
+      "purpose": "Anchor score calibration for typography collision and lack of visual hierarchy",
+      "sourceUrl": "urn:cardelume:reference-stimuli:editorial-archive:2026:anchor-floor-06",
+      "retrievalDate": "2026-08-29",
+      "licenseBasis": "internal-synthetic-reference-metadata-only",
+      "redistributionStatus": "NO_BINARY_REDISTRIBUTION",
+      "stimulusSha256": "a2637aebe42c2c85c7c33a257093e5e0f1b39a5bbd7251074743d058f4746dbb",
+      "hashBasis": "canonical-stimulus-metadata-json-no-binary",
+      "externalArtifactPath": "/home/pi5/hermes-artifacts/cardelume/phase19/reference-stimuli/ref-anchor-floor-06.meta.json"
+    }
+  ],
+  "summary": {
+    "totalStimuliCount": 6,
+    "syntheticSafeCount": 6,
+    "binaryCommitted": false,
+    "customerDataIncluded": false
+  },
+  "verdict": "REFERENCE_MANIFEST_FROZEN"
+}
