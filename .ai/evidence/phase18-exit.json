@@ -9,12 +9,13 @@
     "SEMANTIC_BUILD": {"status": "PASS_SOURCE_ONLY", "evidence": "phase18-semantic.json and phase18-source-gates.json"},
     "SUPPLY_CHAIN": {"status": "BLOCKED", "scope": "productionPromotion", "evidence": "phase18-dependency-freeze.json and phase18-sbom.json", "reason": "native/install-script residual risk remains open by owner decision; it blocks production promotion but not development, commit/push or controlled staging."},
     "FONT_ASSET_ELIGIBILITY": {"status": "BLOCKED", "scope": "productionPromotion", "evidence": "phase18-fonts.json and phase18-eligibility.json", "reason": "19 template provenance/originality blockers remain; approved shortlist may proceed to human review in staging, while all 11 active web/worker fonts and both brand assets are approved."},
-    "BASELINE_SHA": {"status": "RECORDED", "value": "3305b4b061749513a6c731b5158835aa54aec929", "note": "Candidate remains uncommitted; no re-baselining was used to hide changes."}
+    "BASELINE_SHA": {"status": "RECORDED", "value": "3305b4b061749513a6c731b5158835aa54aec929", "candidateHead": "f06be724d87e1b400d82beea9bf8bad53ec4b942", "note": "Candidate was committed and pushed to origin/main after verification; baseline remains explicit and no re-baselining was used to hide changes."}
   },
   "overallVerdict": "STAGING_GO_PRODUCTION_BLOCKED",
   "phase19Entry": "ALLOWED_FOR_STAGING_AND_EVIDENCE",
   "gateClassification": {"development": "GO", "commitPush": "GO", "pi5Staging": "GO", "evidenceCollectionRemediation": "GO", "productionPromotion": "BLOCKED", "publicLaunch": "NO_GO"},
-  "runtimeTruth": "Pi5 staging and evidence collection are authorized; no production/browser/runtime PASS is claimed until staging evidence is generated and verified.",
+  "runtimeTruth": "Pi5 staging has partial HTTP/browser evidence at the recorded artifact path; readiness remains BLOCKED_RUNTIME and no production or full runtime PASS is claimed.",
   "approvalRequired": ["dependency native/install-script risk disposition", "template provenance/originality approval", "runtime/security evidence before release"],
-  "artifactRoot": "/home/pi5/hermes-artifacts/cardelume/phase18/3305b4b061749513a6c731b5158835aa54aec929/"
+  "artifactRoot": "/home/pi5/hermes-artifacts/cardelume/phase18/3305b4b061749513a6c731b5158835aa54aec929/",
+  "stagingRuntimeArtifact": "/home/pi5/hermes-artifacts/cardelume/phase18/00533a8e9d08efa055d7cb155c6b62291/runs/pi5-staging-2026-08-29T173705+0700/staging-runtime-evidence.json"
 }
