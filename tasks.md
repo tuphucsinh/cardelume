@@ -438,31 +438,32 @@ interface FrozenPremiumProtocol {
 
 ### [#P19M1T02] [/home/pi5/hermes-artifacts/cardelume/phase19/] `executeSealedBaseline(): BaselineEvidence`
 
-**Goal**: Chạy baseline real-model 150 briefs × 3 và blind human review để đo trạng thái thật, không dùng baseline làm approval.
+**Goal**: Chuẩn bị và, sau approval riêng, chạy calibration real-model 30–50 briefs × 3 với ban đầu 3 independent raters; chỉ chạy Final Golden 100–150 briefs × 3 và ≥5 raters sau bounded improvement loop ổn định 6–8 families.
 
 **Depends on**: `[#P19M1T01]`
 
 **Parallel-safe**: `no`
 
-**Owner/gate**: **Need approval** trước external model cost và trước khi giao output cho ≥5 independent raters; Reviewer kiểm tra sealed aggregation.
+**Owner/gate**: **Need approval** trước mọi external model cost hoặc external rater contact. Calibration bắt đầu với 3 independent raters; Final Golden dùng ≥5 sau khi M2 đóng và candidate set ổn định. Reviewer kiểm tra sealed aggregation.
 
 **Context hiện có**:
 - `scripts/premium-benchmark-runner.ts` hỗ trợ `--require-real-model`, repeat/limit/offset, budget attribution và JSONL.
 - `scripts/premium-benchmark-lab.mjs` sinh review sheet và deterministic summary.
 
 **Concrete changes**:
-1. Chốt experiment/budget ID, source SHA, provider/model/config hash và artifact root `/home/pi5/hermes-artifacts/cardelume/phase19/<source-sha>/baseline/`.
-2. Chạy real-model 150 briefs × 3, sinh anonymized review sheets, trộn frozen anchors và thu sealed individual scores.
-3. Aggregate sau khi đủ score; ghi redacted summary + PASS/FAIL/UNKNOWN, không sửa source trong task này.
+1. Chốt experiment/budget ID, source SHA, provider/model/config hash, calibration count 30–50 và artifact root `/home/pi5/hermes-artifacts/cardelume/phase19/<source-sha>/calibration/`; chuẩn bị anonymized packet và estimated API/model cost trước khi gọi bên ngoài.
+2. Sau approval, chạy calibration real-model 30–50 briefs × 3, sinh anonymized review sheets, trộn frozen anchors và thu sealed scores từ ban đầu 3 independent raters.
+3. Sau bounded improvement loop ổn định 6–8 families và approval mới, chạy Final Golden 100–150 briefs × 3 với ≥5 independent raters; aggregate trước reveal identities và ghi redacted summary + PASS/FAIL/UNKNOWN.
 
 **Constraints**:
-- Không chạy nếu thiếu cost approval, independent roster/conflict declaration hoặc Phase 18 eligibility gate.
+- Không chạy calibration nếu thiếu cost approval, rater approval/roster/conflict declaration hoặc Phase 18 eligibility gate; không contact external raters khi chưa có approval riêng.
 - Không để owner/developer chấm human subset; không hạ threshold; không đưa raw PII/customer content vào artifact.
+- Calibration là diagnostic, không được dùng để approve family hoặc hạ Final Golden quality thresholds.
 
 **Definition of Done**:
-- `pnpm exec tsx scripts/premium-benchmark-runner.ts --require-real-model --repeat 3 --limit 150 --out <artifact>/baseline.jsonl` hoàn tất theo approved budget.
-- `pnpm benchmark:summarize -- <run.jsonl> <sealed-review.csv> <summary.json>` tạo deterministic summary; failure đầu tiên được giữ nguyên.
-- Evidence có Premium/WOW/originality/emotional-fit/diversity, latency/cost/fallback; không commit/push.
+- Calibration packet + estimated cost được tạo trước external execution; không có model call/rater contact nếu approval còn thiếu.
+- Sau approval, `pnpm exec tsx scripts/premium-benchmark-runner.ts --require-real-model --repeat 3 --limit N --out <artifact>/calibration.jsonl` hoàn tất theo approved budget với số brief `N` là số nguyên `30 ≤ N ≤ 50`, rồi `pnpm benchmark:summarize -- <run.jsonl> <sealed-review.csv> <summary.json>` tạo deterministic summary.
+- Final Golden chỉ chạy sau M2 ổn định 6–8 families với `--limit N` và `100 ≤ N ≤ 150`, ≥5 raters; evidence có Premium/WOW/originality/emotional-fit/diversity, latency/cost/fallback; không commit/push.
 
 **Status**: `[ ]`
 
@@ -682,7 +683,7 @@ interface SignatureContract { primary: string; compact: string; purpose: string;
 - Baseline protocol/rater rules từ M1; candidate/config SHA từ M2/M3.
 
 **Concrete changes**:
-1. Freeze final source/config/catalog hash và rerun 150 × 3.
+1. Freeze final source/config/catalog hash và rerun Final Golden với `N` brief (`100 ≤ N ≤ 150`) × 3.
 2. Blind-score frozen subset/anchors bằng protocol cũ; aggregate trước reveal identities.
 3. Verify Premium ≥8.0, WOW ≥7.5, originality ≥7.5, emotional fit ≥8.0, diversity ≥90% và zero material blocker.
 
