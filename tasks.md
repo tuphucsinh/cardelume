@@ -4,7 +4,7 @@ Canonical phase details: `MASTERPLAN.MD`.
 
 Legend: `[ ]` not started · `[~]` in progress · `[x]` evidence complete · `[!]` blocked.
 
-> Scope note (2026-08-29): the detailed Phase 18/19/20 blocks below are regenerated against the current `MASTERPLAN.MD`. Phase 0/21 summaries are legacy, non-execution-ready notes until separately reconciled. Phase 19 may start only after the current Master Plan Phase 18 exit gate passes.
+> Scope note (2026-08-29): the detailed Phase 18/19/20 blocks below are regenerated against the current `MASTERPLAN.MD`. Phase 0/21 summaries are legacy, non-execution-ready notes until separately reconciled. Per owner gate clarification, Phase 19 staging/evidence work may start while production promotion remains blocked; public launch remains NO_GO.
 
 ## Phase 0 — Pi5/Hermes import
 
@@ -122,7 +122,7 @@ interface DependencyReview { lockSha256: string; changedPackages: string[]; nati
 - `DependencyReview.verdict=PASS` only when the lockfile is reviewed and frozen install evidence is readable; otherwise `BLOCKED` with exact reason.
 - `.ai/evidence/phase18-dependency-freeze.json` contains no credentials/PII; không commit/push.
 
-**Status**: `[ ]`
+**Status**: `[x]`
 
 ---
 
@@ -386,13 +386,13 @@ interface EligibilityReport { reviewPool: string[]; eligible: string[]; blocked:
 - `REPRODUCIBLE_INSTALL PASS`, `SEMANTIC_BUILD PASS`, `SUPPLY_CHAIN PASS`, `FONT_ASSET_ELIGIBILITY PASS` and `BASELINE_SHA RECORDED` are all evidenced, or the report is explicitly `BLOCKED`.
 - Evidence is redacted, reproducible from the candidate SHA and ready for Phase 19 handoff; không commit/push.
 
-**Status**: `[ ]`
+**Status**: `[x]`
 
 ---
 
 ## Phase 19 — Premium/WOW Improvement and Product Truth
 
-**Entry gate:** current `MASTERPLAN.MD` Phase 18 exit gate is fully evidenced. No task below may auto-approve a template, spend on external model calls, recruit human raters or mutate a live catalog without its named approval gate.
+**Entry gate:** current `MASTERPLAN.MD` Phase 18 exit evidence is complete for controlled staging/evidence work under the owner clarification; production promotion remains blocked. No task below may auto-approve a template, spend on external model calls, recruit human raters or mutate a live catalog without its named approval gate.
 
 ## Milestone M1 — Frozen baseline and independent scoring
 

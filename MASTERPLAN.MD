@@ -593,4 +593,4 @@ No agent may:
 
 ## Current execution boundary
 
-Phase 19/20 WBS is generated in `tasks.md` and R4 plan review is PASS; execution remains blocked by the Phase 18 exit gate. R4 is not implementation, owner creative approval, runtime E2E or production approval. Do not mix existing homepage-copy changes into any plan-only commit, and do not commit/push/deploy without separate authorization.
+Phase 19/20 WBS is generated in `tasks.md` and R4 plan review is PASS. Per the owner gate clarification, Phase 19 staging/evidence work may proceed; Phase 18 dependency/template/runtime blockers still block production promotion and keep public launch NO_GO. R4 is not implementation, owner creative approval, runtime E2E or production approval. Do not mix existing homepage-copy changes into any plan-only commit; commit/push/deploy require separate authorization, which is granted for the current reviewed candidate and controlled Pi5 staging only.
