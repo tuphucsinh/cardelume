@@ -4,7 +4,7 @@ Canonical phase details: `MASTERPLAN.MD`.
 
 Legend: `[ ]` not started · `[~]` in progress · `[x]` evidence complete · `[!]` blocked.
 
-> Scope note (2026-08-29): only the detailed Phase 19/20 blocks below are regenerated against the current `MASTERPLAN.MD`. Phase 0/18/21 summaries are legacy, non-execution-ready notes until separately reconciled. Phase 19 may start only after the current Master Plan Phase 18 exit gate passes.
+> Scope note (2026-08-29): the detailed Phase 18/19/20 blocks below are regenerated against the current `MASTERPLAN.MD`. Phase 0/21 summaries are legacy, non-execution-ready notes until separately reconciled. Phase 19 may start only after the current Master Plan Phase 18 exit gate passes.
 
 ## Phase 0 — Pi5/Hermes import
 
@@ -18,101 +18,377 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` evidence complete · `[!
 
 **Milestone acceptance:** package integrity + source suites pass; clean Git state; no production secret.
 
-## Phase 18 — Controlled runtime
+## Phase 18 — Reproducible and Reviewable Baseline
 
-### 18.1 Dependency freeze
-- [ ] Generate candidate `pnpm-lock.yaml`
-- [ ] Review dependency graph/install scripts/native packages
-- [ ] Commit reviewed lock
-- [ ] Clean frozen install PASS
+**Entry/exit boundary**: this phase creates the reviewed dependency/IP baseline only. It does not apply migrations, start production services, run paid AI/human review, approve templates, perform checkout, or claim runtime/browser PASS. Phase 19 depends on the exit gate below; DB/RLS, queue, storage, payment, browser-runtime and restore evidence belong to Phase 21.
 
-### 18.2 Semantic build
-- [ ] `pnpm typecheck`
-- [ ] `pnpm build`
-- [ ] `pnpm test`
-- [ ] RELEASE PASS
-- [ ] HEAVY locally executable gates PASS
+## Milestone M1 — Dependency freeze
 
-### 18.3 Supply chain
-- [ ] Release SBOM
-- [ ] Vulnerability scan
-- [ ] Secret scan
-- [ ] Dependency remediation/acceptance log
+### [#P18M1T01] [package.json, apps/web/package.json, packages/*/package.json, apps/worker/package.json] `recordPhase18ToolchainBaseline(): ToolchainManifest`
 
-### 18.4 Staging DB/RLS
-- [ ] Staging DB backup
-- [ ] Migrations 0001→0011
-- [ ] Schema/trigger verification
-- [ ] RLS user A/user B/service/admin matrix
-- [ ] IDOR/authorization tests
+**Goal**: Record the actual Node/package-manager/workspace baseline and inventory every manifest before generating a lockfile.
 
-### 18.5 Queue/worker
-- [ ] pg-boss start/enqueue/complete
-- [ ] retry/idempotency
-- [ ] heartbeat/readiness
-- [ ] crash/stale worker test
-- [ ] concurrency/backlog measurement
+**Depends on**: `none`
 
-### 18.6 R2/photo
-- [ ] quarantine upload
-- [ ] sanitize/re-encode
-- [ ] ownership/capability checks
-- [ ] adversarial upload cases
-- [ ] retention/cleanup
+**Parallel-safe**: `yes`
 
-### 18.7 Dodo/payment/recovery
-- [ ] test checkout
-- [ ] valid webhook → PAID
-- [ ] webhook replay no duplicate fulfillment
-- [ ] wrong amount/currency/session rejection
-- [ ] invalid/stale signature rejection
-- [ ] JPG/PDF entitlement
-- [ ] recovery after tab/browser closure
+**New interface**:
+~~~ts
+interface ToolchainManifest { node: string; packageManager: "pnpm@10.15.0"; manifests: string[]; sourceSha: string; }
+~~~
 
-### 18.8 Real AI/Golden
-- [ ] 150 briefs × 3 runs/model
-- [ ] latency/token/cost capture
-- [ ] human Premium/WOW scoring
-- [ ] 3-direction diversity scoring
-- [ ] fallback/failure analysis
-- [ ] production model/prompt decision
+**Context hiện có**:
+- Root `package.json` declares `packageManager: pnpm@10.15.0`; 11 workspaces are covered by Turbo.
+- Current source/offline checks passed, but `pnpm-lock.yaml` is absent and must not be described as recovered history.
 
-### 18.9 Template owner gate
-- [ ] shortlist blind review
-- [ ] Premium/WOW approval evidence
-- [ ] originality/similarity evidence
-- [ ] Golden evidence
-- [ ] locale/render evidence
-- [ ] approve ~6–8 launch families only after all evidence
+**Concrete changes**:
+1. Capture Node, Corepack/pnpm version, workspace manifests and current source SHA in `/home/pi5/hermes-artifacts/cardelume/phase18/<source-sha>/toolchain.json`.
+2. Compare declared workspace dependencies and package-manager fields; report duplicate/conflicting ranges without changing manifests.
+3. Record the exact clean working-tree boundary used for the candidate.
 
-### 18.10 Fonts/localization
-- [ ] exact browser font hashes/licenses
-- [ ] exact renderer font hashes/licenses
-- [ ] EN/VI/JA/KO/ZH native QA
-- [ ] browser↔final render parity
+**Owner/gate**: Mika read-only preflight; no dependency install or external mutation.
 
-### 18.11 Browser/a11y/performance
-- [ ] Chrome
-- [ ] Firefox
-- [ ] iPhone Safari
-- [ ] mid Android
-- [ ] keyboard path
-- [ ] screen-reader checks
-- [ ] reduced motion
-- [ ] zoom
-- [ ] Lighthouse/Core Web Vitals
-- [ ] slow-device/network perceived performance
+**Constraints**:
+- Do not read/print secrets or `.env*`; do not upgrade packages in this task.
+- If Node/Corepack resolution differs from the manifest, stop with `BLOCKED_TOOLCHAIN`.
 
-### 18.12 Security runtime/restore
-- [ ] CSP Report-Only validation
-- [ ] CSP enforce
-- [ ] Cloudflare Access admin validation
-- [ ] rate-limit validation
-- [ ] logs/PII/secrets validation
-- [ ] secret scope/rotation rehearsal
-- [ ] isolated DB restore rehearsal
+**Definition of Done**:
+- Manifest contains exact source SHA, Node version, `pnpm@10.15.0` and all workspace package paths; no untracked source change.
+- `git diff --check` passes and the redacted manifest is retained outside Git; không commit/push.
 
-**Step18 acceptance:** every material runtime category has explicit evidence; no fabricated PASS.
+**Status**: `[ ]`
+
+---
+
+### [#P18M1T02] [pnpm-lock.yaml] `generateReviewedLockfile(): LockfileCandidate`
+
+**Goal**: Generate a new dependency-resolved lockfile from the current manifests and prove a clean frozen install.
+
+**Depends on**: `[#P18M1T01]`
+
+**Parallel-safe**: `no`
+
+**Context hiện có**:
+- `package.json` pins the package manager but no lockfile exists; all workspace packages use `workspace:*` links.
+- Previous checks used Corepack because a direct `pnpm` binary may be absent from PATH.
+
+**Concrete changes**:
+1. Generate `pnpm-lock.yaml` with `corepack pnpm install --lockfile-only` using the recorded manifests.
+2. Review importer/package/snapshot integrity, lifecycle scripts, native packages and ARM64/AMD64 compatibility.
+3. Re-run install from a clean candidate checkout with `corepack pnpm install --frozen-lockfile`; retain command output, lockfile SHA and dependency graph summary.
+
+**Owner/gate**: **Need approval** before dependency install or accepting any package-version delta; Mika verifies lockfile diff.
+
+**Constraints**:
+- No unrelated package upgrade, no secret-bearing registry configuration, no `--no-frozen-lockfile` on the verification install.
+- Lockfile is a candidate until M1T03 review; rollback is `git restore -- pnpm-lock.yaml` before commit.
+
+**Definition of Done**:
+- Tracked candidate lockfile, frozen-install exit `0`, lockfile SHA, dependency delta and native/install-script review at `/home/pi5/hermes-artifacts/cardelume/phase18/<source-sha>/`.
+- Any failed/unsupported package remains `BLOCKED`; không commit/push.
+
+**Status**: `[ ]`
+
+---
+
+### [#P18M1T03] [pnpm-lock.yaml, security/DEPENDENCY_POLICY.md, .ai/evidence/phase18-dependency-freeze.json] `reviewDependencyFreeze(): DependencyReview`
+
+**Goal**: Turn the generated lockfile into a reviewable candidate without silently accepting supply-chain or platform risk.
+
+**Depends on**: `[#P18M1T02]`
+
+**Parallel-safe**: `no`
+
+**New interface**:
+~~~ts
+interface DependencyReview { lockSha256: string; changedPackages: string[]; nativeRisks: string[]; installScripts: string[]; verdict: "PASS"|"BLOCKED"; }
+~~~
+
+**Context hiện có**:
+- `scripts/security-governance.mjs` requires `pnpm-lock.yaml` for release evidence; `scripts/release-sbom.mjs` binds the SBOM to the lock SHA.
+
+**Concrete changes**:
+1. Compare candidate lockfile against manifests and the prior source baseline; list only real package changes.
+2. Verify registry integrity fields, install scripts, native dependencies and cross-architecture assumptions.
+3. Write a redacted dependency review with reviewer, date, lock SHA and rollback note.
+
+**Owner/gate**: Mika technical review; owner accepts unresolved dependency risk before advancing.
+
+**Constraints**:
+- Do not call absent lock history “recovered”; do not suppress integrity/install-script warnings.
+- No production install or deployment.
+
+**Definition of Done**:
+- `DependencyReview.verdict=PASS` only when the lockfile is reviewed and frozen install evidence is readable; otherwise `BLOCKED` with exact reason.
+- `.ai/evidence/phase18-dependency-freeze.json` contains no credentials/PII; không commit/push.
+
+**Status**: `[ ]`
+
+---
+
+## Milestone M2 — Strict semantic and source baseline
+
+### [#P18M2T01] [apps/web/package.json, package.json, eslint.config.mjs] `runStrictLint(): StrictLintResult`
+
+**Goal**: Replace the current masked/invalid web lint path with one supported strict lint command that fails on lint errors.
+
+**Depends on**: `[#P18M1T02]`
+
+**Parallel-safe**: `no`
+
+**New interface**:
+~~~ts
+interface StrictLintResult { command: string; exitCode: 0; filesChecked: number; maskedFailure: false; }
+~~~
+
+**Context hiện có**:
+- `apps/web/package.json:9` currently runs `next lint || true`; the current Next.js version is `16.3.3` and the command reports an invalid `apps/web/lint` directory.
+- Other workspace lint scripts are mostly no-op, so root `pnpm lint` is not sufficient evidence by itself.
+
+**Concrete changes**:
+1. Use the supported Next 16 ESLint invocation/configuration for this repository; add only compatible pinned lint dependencies/config needed by the chosen command and update the lockfile in the same task.
+2. Remove `|| true` and invalid positional `lint` behavior; ensure root Turbo invokes the same strict command in the web workspace.
+3. Add/update a source stress assertion that fails if the command masks errors or silently checks zero files.
+
+**Owner/gate**: Selected runner implements; Mika independently reviews package/lock diff. Any new dependency must be justified and included in M1 review.
+
+**Constraints**:
+- No broad rule suppression, generated-artifact linting, unrelated formatting or source refactor.
+- Preserve existing behavior; rollback both manifest/config and lockfile together if the strict command cannot run.
+
+**Definition of Done**:
+- `corepack pnpm --filter @cardelume/web lint` and root `corepack pnpm lint` exit `0` while checking real source files; deliberate lint failure is proven to exit non-zero in an isolated fixture.
+- `pnpm-lock.yaml` remains synchronized; no `next lint || true`, no false PASS; không commit/push.
+
+**Status**: `[ ]`
+
+---
+
+### [#P18M2T02] [scripts/governance-runner.mjs, governance/check-registry.mjs, .ai/evidence/phase18-semantic.json] `runSemanticBaseline(): SemanticBaseline`
+
+**Goal**: Run the resolved candidate through strict typecheck, tests, build and existing FAST/RELEASE/HEAVY source gates.
+
+**Depends on**: `[#P18M2T01]`
+
+**Parallel-safe**: `no`
+
+**Context hiện có**:
+- Root scripts expose `typecheck`, `test`, `lint`, `build`, `check:fast`, `check:release`, `check:heavy` and `check:status`.
+- HEAVY checks requiring runtime/workspace dependencies must be recorded as `BLOCKED_RUNTIME`, not converted to PASS.
+
+**Concrete changes**:
+1. Run typecheck, tests, strict lint and production build with the reviewed lockfile.
+2. Run FAST/RELEASE/HEAVY governance and capture command, exit code, package-manager version and artifact paths.
+3. Separate source/offline PASS from runtime-required BLOCKED/UNKNOWN checks in the redacted evidence.
+
+**Owner/gate**: Mika verification; no deployment or runtime service start.
+
+**Constraints**:
+- Do not use cache output as sole proof; remove only generated `.turbo`/`.next` residue after inspection.
+- Preserve first failure and stop if the same failure repeats without new evidence.
+
+**Definition of Done**:
+- Typecheck, test, build and strict lint PASS; expected runtime-only checks are explicitly classified; `phase18-semantic.json` records evidence.
+- `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm lint`, `corepack pnpm build`, `corepack pnpm check:release` outputs are retained; không commit/push.
+
+**Status**: `[ ]`
+
+---
+
+### [#P18M2T03] [scripts/step17j-integration-source-stress.mjs, scripts/security-governance-source-stress.mjs, .ai/evidence/phase18-source-gates.json] `verifySourceGates(): SourceGateReport`
+
+**Goal**: Confirm the candidate still satisfies existing source-level product/security governance without claiming runtime readiness.
+
+**Depends on**: `[#P18M2T02]`
+
+**Parallel-safe**: `yes`
+
+**Context hiện có**:
+- Governance registry already wires product, payment, upload, queue, template, IP and security source stress checks.
+- Step17J validation previously distinguished source PASS from HEAVY runtime blocks.
+
+**Concrete changes**:
+1. Run the registered source stress suites and compare counts against the current registry, not hardcoded historical totals.
+2. Verify no test/report was changed merely to pass and no release command deploys production.
+3. Record source gate matrix and unresolved runtime gates for Phase 21.
+
+**Owner/gate**: Mika read-only verification.
+
+**Constraints**:
+- No external DB, payment, storage or customer-data access.
+- Do not edit tests, governance registry or reports to hide a failure.
+
+**Definition of Done**:
+- Source gate matrix is reproducible from the candidate SHA; all failures are resolved or marked `BLOCKED/UNKNOWN` with owner/next phase.
+- No tracked generated report changes remain outside the task scope; không commit/push.
+
+**Status**: `[ ]`
+
+---
+
+## Milestone M3 — Supply-chain and security baseline
+
+### [#P18M3T01] [scripts/release-sbom.mjs, security/reports/release-sbom.cdx.json, .ai/evidence/phase18-sbom.json] `buildReleaseSbom(): ReleaseSbomEvidence`
+
+**Goal**: Produce a resolved-dependency SBOM bound to the reviewed lockfile and run the dependency vulnerability scan.
+
+**Depends on**: `[#P18M2T02]`, `[#P18M1T03]`
+
+**Parallel-safe**: `no`
+
+**Context hiện có**:
+- `scripts/release-sbom.mjs` refuses to run without a lockfile and writes `security/reports/release-sbom.cdx.json`.
+- `scripts/dependency-vulnerability-scan.mjs` writes `security/reports/dependency-vulnerability-report.json` and binds results to the lock SHA when available.
+
+**Concrete changes**:
+1. Generate release SBOM from the frozen installed graph and verify `cardelume:lockSha256` matches the candidate lock.
+2. Run the vulnerability scanner and classify direct/transitive findings by severity and exploitability.
+3. Record report hashes, tool versions, scope and remediation/owner-acceptance status in external Phase 18 evidence.
+
+**Owner/gate**: **Need approval** for unresolved vulnerability acceptance; no production release.
+
+**Constraints**:
+- Do not mark a source SBOM as release-complete; do not suppress advisories or print registry credentials.
+- Generated timestamp reports must be restored/isolated unless explicitly part of the reviewed candidate.
+
+**Definition of Done**:
+- SBOM and vulnerability report are valid, lock-bound and readable; every unresolved finding has `BLOCKED` or owner-approved rationale.
+- `corepack pnpm security:sbom-release` and `corepack pnpm security:dependency-scan` evidence is retained; không commit/push.
+
+**Status**: `[ ]`
+
+---
+
+### [#P18M3T02] [scripts/security-governance.mjs, scripts/ip-governance.mjs, licenses/, security/reports/, .ai/evidence/phase18-security.json] `runSecurityAndIpBaseline(): SecurityBaseline`
+
+**Goal**: Close source-level secret, security-governance and IP audit evidence before any Phase 19 paid/human scoring.
+
+**Depends on**: `[#P18M3T01]`, `[#P18M2T03]`
+
+**Parallel-safe**: `no`
+
+**Context hiện có**:
+- Existing scripts include `security:secret-scan`, `security:audit`, `security:release-check`, `ip:audit` and `ip:release-check`.
+- Current release is intentionally `NO_GO` while lockfile, exact asset/font evidence and runtime gates are incomplete.
+
+**Concrete changes**:
+1. Run secret scan, security audit, IP audit and release-check commands against the candidate.
+2. Classify every finding as fixed, owner-accepted with rationale, `BLOCKED` or `UNKNOWN`; preserve `NO_GO` when release prerequisites are absent.
+3. Store redacted report hashes and scope, never raw secrets, customer data or credential-bearing output.
+
+**Owner/gate**: Mika verifies; owner/legal review required for any unresolved IP or vulnerability acceptance.
+
+**Constraints**:
+- Do not alter `.env*`, credential files, Git history or security findings to obtain PASS.
+- Source audit PASS never promotes production or authorizes external traffic.
+
+**Definition of Done**:
+- Secret scan has zero findings; security/IP reports are internally consistent; unresolved items remain explicit and actionable.
+- `corepack pnpm security:secret-scan`, `corepack pnpm security:audit`, `corepack pnpm ip:audit` and release checks have retained outputs; không commit/push.
+
+**Status**: `[ ]`
+
+---
+
+## Milestone M4 — Font/asset eligibility and exit package
+
+### [#P18M4T01] [scripts/font-provenance-collect.mjs, licenses/fonts/, .ai/evidence/phase18-fonts.json] `collectExactFontEvidence(): FontEvidence`
+
+**Goal**: Capture exact browser/renderer font binaries, versions, hashes, license evidence and script coverage for the complete Phase 19 review pool.
+
+**Depends on**: `[#P18M1T02]`
+
+**Parallel-safe**: `yes`
+
+**Context hiện có**:
+- `scripts/font-provenance-collect.mjs` collects npm/Debian font evidence but intentionally leaves status UNKNOWN until human/reviewer verification.
+- Font and asset manifests already distinguish family-level research from exact installed binary eligibility.
+
+**Concrete changes**:
+1. Run the collector against the frozen install and record exact package/binary tree hashes, versions and license evidence paths.
+2. Map browser/renderer fonts to the enabled launch scripts/locales and identify missing glyph/coverage.
+3. Record unresolved conditions without changing status to APPROVED automatically.
+
+**Owner/gate**: Mika evidence collection; legal/owner review remains separate.
+
+**Constraints**:
+- Do not copy unlicensed binaries into Git or treat family-level OFL research as exact binary approval.
+- No paid human review starts from this task.
+
+**Definition of Done**:
+- Every review-pool font has exact evidence or an explicit `UNKNOWN/BLOCKED` reason; manifest/status changes are reviewable.
+- `.ai/evidence/phase18-fonts.json` contains hashes/paths but no secret or raw customer data; không commit/push.
+
+**Status**: `[ ]`
+
+---
+
+### [#P18M4T02] [scripts/font-template-launch-readiness.mjs, licenses/assets/, licenses/templates/, .ai/evidence/phase18-eligibility.json] `checkPhase19Eligibility(): EligibilityReport`
+
+**Goal**: Fail closed on any unresolved font, brand-asset, template-provenance or locale/script dependency before Phase 19 sampling.
+
+**Depends on**: `[#P18M4T01]`, `[#P18M3T02]`
+
+**Parallel-safe**: `no`
+
+**New interface**:
+~~~ts
+interface EligibilityReport { reviewPool: string[]; eligible: string[]; blocked: Array<{id:string;reason:string}>; verdict: "PASS"|"BLOCKED"; }
+~~~
+
+**Context hiện có**:
+- `quality:font-template-launch-check` validates font/template launch readiness and current production-approved template count is zero by design.
+- Phase 19 must sample only legally eligible families; it is still responsible for final immutable-version attestation and Premium/WOW scoring.
+
+**Concrete changes**:
+1. Run the readiness check across the complete review pool, all ten enabled locales/scripts and browser/renderer paths.
+2. Verify brand asset provenance and exact template provenance without promoting `candidate`, `experiment` or `hold` to `approved`.
+3. Produce an allowlist for Phase 19 and a blocked list with repair owner/reason.
+
+**Owner/gate**: **Owner/legal approval required** for commercial-use eligibility; no template launch-status mutation in this task.
+
+**Constraints**:
+- `UNKNOWN` font/asset/license status is not eligible; do not reduce the Phase 19 review pool silently.
+- No Golden benchmark, paid model run, human rater recruitment or production catalog mutation.
+
+**Definition of Done**:
+- `corepack pnpm quality:font-template-launch-check` exits with a redacted report; every Phase 19 candidate is `eligible` or explicitly blocked.
+- Production remains `NO_GO` and approved template count is not changed; không commit/push.
+
+**Status**: `[ ]`
+
+---
+
+### [#P18M4T03] [MASTERPLAN.MD, .ai/evidence/phase18-exit.json, /home/pi5/hermes-artifacts/cardelume/phase18/<source-sha>/] `verifyPhase18Exit(): Phase18ExitEvidence`
+
+**Goal**: Package the complete Phase 18 evidence and record one baseline SHA that Phase 19 can safely consume.
+
+**Depends on**: `[#P18M1T03]`, `[#P18M2T03]`, `[#P18M3T02]`, `[#P18M4T02]`
+
+**Parallel-safe**: `no`
+
+**Context hiện có**:
+- Current Master Plan exit gate requires `REPRODUCIBLE_INSTALL`, `SEMANTIC_BUILD`, `SUPPLY_CHAIN`, `FONT_ASSET_ELIGIBILITY` and `BASELINE_SHA`.
+- Phase 19 tasks already use `PHASE18_EXIT_GATE` as their prerequisite and must not infer it from a single passing command.
+
+**Concrete changes**:
+1. Verify each prerequisite evidence artifact, exact candidate SHA, lock SHA, report hashes and unresolved-risk disposition.
+2. Write `.ai/evidence/phase18-exit.json` with explicit PASS/BLOCKED/UNKNOWN per gate and the next owner/action for any non-PASS.
+3. Mika performs final diff/secret/scope review; do not tick future Phase 19/20 tasks.
+
+**Owner/gate**: Mika final gate; owner sign-off required for unresolved dependency/IP/vulnerability risk. No production approval.
+
+**Constraints**:
+- No fabricated PASS, no re-baselining to hide regressions, no runtime claim from source-only evidence.
+- If any gate is not proven, exit is `BLOCKED` and Phase 19 remains closed.
+
+**Definition of Done**:
+- `REPRODUCIBLE_INSTALL PASS`, `SEMANTIC_BUILD PASS`, `SUPPLY_CHAIN PASS`, `FONT_ASSET_ELIGIBILITY PASS` and `BASELINE_SHA RECORDED` are all evidenced, or the report is explicitly `BLOCKED`.
+- Evidence is redacted, reproducible from the candidate SHA and ready for Phase 19 handoff; không commit/push.
+
+**Status**: `[ ]`
+
+---
 
 ## Phase 19 — Premium/WOW Improvement and Product Truth
 
