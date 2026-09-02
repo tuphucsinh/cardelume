@@ -11,7 +11,7 @@ This file contains only unfinished executable work plus compact completion ancho
 | Area | Status | Next condition |
 |---|---|---|
 | Phase 19 Premium/WOW | `PASS_FOR_MVP` — closed | No N=12 rerun, N=30, Final Golden or evaluator infrastructure from this result. |
-| Phase 20 core | `ACTIVE` | T03 Owner visual approval, then M3A browser/accessibility/performance gate. |
+| Phase 20 core | `ACTIVE` | T03 is verified; run M3A browser/accessibility/performance gate. |
 | Help me choose | `DEFERRED_FEATURE_OFF` | Decompose/implement only after explicit Owner activation. |
 | Phase 21 runtime | `PENDING` | Start only after Phase 20 core PASS and bounded staging authorization. |
 | Phase 22 launch | `PENDING` | Start only after Phase 21 and production-readiness gates PASS. |
@@ -41,18 +41,18 @@ This file contains only unfinished executable work plus compact completion ancho
 **Depends on:** `[#P20M1T02]`
 **Parallel-safe:** `yes` after T02; tracked replacement is approval-gated.
 
-**Current evidence:** Candidate only: `/home/pi5/hermes-artifacts/cardelume/phase20/P20M1T03/og-card-candidate.svg`. Tracked `og-card.png` and `layout.tsx` remain unchanged.
+**Current evidence:** Owner-approved v3 PNG promoted to `apps/web/public/brand/og-card.png`; metadata in `layout.tsx` already resolved the same-origin asset and required dimensions. Evidence: `.ai/evidence/phase20-p20m1t03-og.json`.
 
 **Concrete changes:**
-1. Request/record Owner visual approval for the candidate.
-2. Only after approval, replace the tracked asset and update metadata if required.
-3. Verify 1200×630 and reduced social-preview crops, same-origin metadata resolution, provenance and production build.
+1. Owner visual approval recorded for the final v3 candidate.
+2. Promoted the approved PNG; `layout.tsx` required no change because its metadata already points to `/brand/og-card.png` at `1200×630`.
+3. Verified 1200×630, reduced social-preview crop, same-origin metadata resolution, candidate→tracked provenance, `git diff --check` and production build.
 
 **Constraints:** No fake UI/testimonial/rating, unapproved or unlicensed asset, physical-shipping implication or production deploy. Do not replace the tracked asset before Owner approval.
 
 **Definition of Done:** Owner approval is recorded; tracked asset/metadata, crop evidence and build pass; `git diff --check` passes; no production deployment is implied.
 
-**Status:** `[!]`
+**Status:** `[x]`
 
 ---
 

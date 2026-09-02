@@ -1,0 +1,51 @@
+{
+  "task": "P20M1T03",
+  "status": "PASS",
+  "recorded_at": "2026-09-02T15:10:20+07:00",
+  "owner_approval": {
+    "status": "APPROVED",
+    "source": "Explicit Owner approval in the current session",
+    "scope": "Final OG candidate only"
+  },
+  "candidate": {
+    "source": "/home/pi5/hermes-artifacts/cardelume/phase20/P20M1T03/og-card-candidate-v3.png",
+    "sha256": "a51189e1262ebdebe043c75b348237cb690d8b8ba4aa0222f3f7521524b69467",
+    "dimensions": "1200x630",
+    "format": "PNG",
+    "mode": "RGBA"
+  },
+  "promotion": {
+    "target": "apps/web/public/brand/og-card.png",
+    "sha256": "a51189e1262ebdebe043c75b348237cb690d8b8ba4aa0222f3f7521524b69467",
+    "candidate_target_hash_match": true,
+    "previous_target_sha256": "710c5ce04967a59e05f78ebed3d10a120a84b625297c18a682106f5803620d46"
+  },
+  "metadata": {
+    "layout_path": "apps/web/app/layout.tsx",
+    "layout_changed": false,
+    "metadata_base_verified": true,
+    "open_graph_asset": "/brand/og-card.png",
+    "open_graph_dimensions": "1200x630",
+    "twitter_card": "summary_large_image",
+    "local_html_resolution": "http://127.0.0.1:3001/brand/og-card.png",
+    "local_http_status": 200
+  },
+  "reduced_preview": {
+    "path": "/home/pi5/hermes-artifacts/cardelume/phase20/P20M1T03/og-card-promoted-thumb-320.png",
+    "dimensions": "320x168",
+    "visual_review": "PASS: identity, headline, proof line and hero card remain legible enough for a reduced social preview; no clipping or overlap observed.",
+    "comparison_mode": "visual_review; no pixel baseline available"
+  },
+  "verification": {
+    "png_readback": "PASS",
+    "candidate_target_provenance": "PASS",
+    "metadata_source_and_runtime": "PASS",
+    "reduced_preview": "PASS",
+    "production_build": "PASS: 11/11 packages",
+    "git_diff_check_target": "PASS",
+    "tracked_layout_untouched": true,
+    "production_deploy": "NOT PERFORMED",
+    "payment_mutation": "NOT PERFORMED",
+    "help_me_choose": "REMAINS_OFF"
+  }
+}

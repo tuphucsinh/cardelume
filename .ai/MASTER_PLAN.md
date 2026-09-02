@@ -11,7 +11,7 @@
 | Area | Status | Meaning |
 |---|---|---|
 | Phase 19 Premium/WOW | `DONE — PASS_FOR_MVP` | Owner accepted MVP progression only; not Final Golden or production-template approval. |
-| Phase 20 Buyer Confidence Core | `ACTIVE` | T01, T02, T04, T05 and T06 verified; T03 waits for Owner visual approval; core browser gate remains. |
+| Phase 20 Buyer Confidence Core | `ACTIVE` | T01, T02, T03, T04, T05 and T06 verified; core browser gate remains. |
 | Help me choose | `DEFERRED_FEATURE_OFF` | Optional; it must not block the core launch. |
 | Phase 21 Runtime Qualification | `PENDING` | No production runtime, payment, storage, queue or restore proof is complete. |
 | Phase 22 Soft/Public Launch | `PENDING` | Starts only after Phase 20 core and Phase 21 gates pass. |
@@ -19,7 +19,7 @@
 
 ### Current next action
 
-`Need approval`: Owner visual approval of the product-specific OpenGraph candidate. After approval, update the tracked OG asset/metadata and run the core buyer-journey gate. Do not start Phase 21 automatically.
+`Do now`: run `P20M3T01`, the core buyer-journey/browser/accessibility/performance gate. Do not start Phase 21 automatically.
 
 ## Product contract and non-goals
 
@@ -42,7 +42,7 @@ Deferred until evidence justifies them: `N=30`, Final Golden, evaluator infrastr
 - Phase 19 closure evidence: `.ai/evidence/phase19-mvp-closure.json` and `/home/pi5/hermes-artifacts/cardelume/phase19/P19M1T03-CODEX-REWORK-20260830T053726Z/`.
 - Phase 20 baseline evidence: `/home/pi5/hermes-artifacts/browser-evidence/cardelume/phase20-baseline/3fb66eb841ec6907230e997e89e2d2e612bbc9db/`.
 - Template Admin presentation-only follow-up evidence: `.ai/TEMPLATE_ADMIN_SIMPLIFICATION_PLAN.md`.
-- Candidate OG asset, not tracked production asset: `/home/pi5/hermes-artifacts/cardelume/phase20/P20M1T03/og-card-candidate.svg`.
+- `P20M1T03` Owner-approved v3 PNG promoted to `apps/web/public/brand/og-card.png`; `apps/web/app/layout.tsx` already had valid same-origin `1200×630` OpenGraph metadata. Evidence: `.ai/evidence/phase20-p20m1t03-og.json`.
 
 Phase 19 Owner result:
 
@@ -64,16 +64,12 @@ Phase 19 Owner result:
 - `P20M1T04`: readable body floor is sourced from `@cardelume/card-schema`; renderer/stress contract covers long Latin, CJK/Hangul/Vietnamese, photo and lower-capability paths. Independent stress: PASS, `5` formats, `10.4 CSS px`, `32 render px`.
 - `P20M1T05`: customer-facing A/B/C diversity guard requires three family IDs, three visual directions and at least two effective archetypes; pre-critic and post-repair paths are guarded. Independent stress and AI/templates checks: PASS.
 - `P20M1T06`: Case 06 review-fixture/context metadata is hash-bound without model rerun or raw-artifact replacement. Packet remains an evidence artifact; no new Owner approval is inferred.
+- `P20M1T03`: Owner-approved product-specific OG v3 promoted with candidate/target SHA-256 match; reduced-preview, metadata, provenance, `git diff --check` and production build PASS. Evidence: `.ai/evidence/phase20-p20m1t03-og.json`.
 - Template Admin follow-up: presentation-only catalog-first/progressive-disclosure work accepted by Owner; auth/API/lifecycle/launch/eligibility semantics were preserved. Details remain in `.ai/TEMPLATE_ADMIN_SIMPLIFICATION_PLAN.md`.
 
 ### Remaining core work
 
-1. **P20M1T03 — OpenGraph product proof (`BLOCKED`)**
-   - Candidate exists as artifact-only SVG. The tracked `apps/web/public/brand/og-card.png` and `apps/web/app/layout.tsx` remain unchanged.
-   - Owner must approve the visual candidate before any tracked asset or metadata replacement.
-   - After approval: verify common social-preview crops, metadata resolution, build and provenance; no fake testimonial/rating/physical-shipping implication.
-
-2. **P20M3T01 — Core buyer-journey gate (`PENDING`)**
+1. **P20M3T01 — Core buyer-journey gate (`PENDING`)**
    - Verify homepage → brief → reveal → results → finish → checkout boundary at `390×844`, `768×1024`, `1440×900`, plus loading/fallback/empty/error, keyboard, screen-reader, 200% zoom and reduced motion.
    - Required gate: no P0/P1 defect, no overflow or blocked primary action, trust text ≥`12 CSS px`, primary targets ≥`44×44 CSS px`, lab LCP ≤`2.5s`, CLS ≤`0.1`, no key Studio long task >`200ms`, and no unapproved >`10%` regression from the frozen baseline.
    - Automated browser mutation is not authorized. Owner performs final authenticated visual/UX acceptance manually; read-only local probes require explicit authorization.
@@ -92,7 +88,7 @@ CORE_BROWSER_ACCESSIBILITY_PERFORMANCE PASS
 HELP_ME_CHOOSE PASS | DEFERRED_FEATURE_OFF
 ```
 
-`P20M1T03` Owner approval and `P20M3T01` evidence are still required for the core gate. Source/build PASS is not runtime or production approval.
+`P20M1T03` is verified. `P20M3T01` evidence remains required for the core gate. Source/build PASS is not runtime or production approval.
 
 ## Phase 21 — Controlled Runtime Qualification
 
