@@ -26,6 +26,10 @@ export const metadata: Metadata = {
   },
   description: "Personal, thoughtful greeting cards created just for them. No design skills, no subscription. Pay only when you love it.",
   alternates: { canonical: "/" },
+  icons: {
+    icon: "/brand/cardelume-icon.png",
+    apple: "/brand/cardelume-icon.png"
+  },
   openGraph: {
     type: "website",
     url: "/",
