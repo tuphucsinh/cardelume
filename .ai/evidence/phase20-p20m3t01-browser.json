@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 2,
+  "task": "P20M3T01",
+  "status": "PASS",
+  "candidate": {
+    "baseSha": "214b5ff011c01594cfaf14c1757bf814b55e0d8a",
+    "candidateSha": "ee9ec4a814c668b326edd9fc10eda752bacbbdf7",
+    "worktree": "/home/pi5/hermes-artifacts/cardelume/phase20-p20m3t01-final-candidate",
+    "worktreeCleanAfterCandidateCommit": true,
+    "changedPaths": [
+      "apps/web/app/globals.css",
+      "apps/web/app/layout.tsx",
+      "apps/web/app/icon.png",
+      "apps/web/app/favicon.ico"
+    ],
+    "build": {
+      "command": "CI=1 /tmp/cardelume-pnpm-bin/pnpm exec turbo build --force",
+      "status": "PASS"
+    }
+  },
+  "finalGate": {
+    "status": "PASS",
+    "report": "/home/pi5/hermes-artifacts/browser-evidence/cardelume/phase20-p20m3t01-final-candidate-ee9ec4a/p20m3t01-cdp-report.json",
+    "chrome": "/usr/bin/google-chrome-stable",
+    "viewports": [
+      "390x844",
+      "768x1024",
+      "1440x900",
+      "reduced-motion 390x844",
+      "200-percent-equivalent 195x844"
+    ],
+    "journey": "homepage -> brief -> reveal -> results -> finish -> checkout boundary PASS",
+    "keyboard": "PASS",
+    "screenReaderSemantics": "PASS: one main, one visible h1, skip link, live region, no unlabeled visible controls",
+    "states": {
+      "loading": "PASS",
+      "providerFallback": "PASS: fallback notice visible with 3 result cards",
+      "photoError": "PASS: warning live region visible; runtime errors 0"
+    },
+    "gates": {
+      "p0p1": "PASS: failures=[]",
+      "meaningfulHorizontalOverflow": "PASS: no meaningful overflow; one decorative folio is classified non-blocking at narrow equivalent viewport",
+      "blockedPrimaryAction": "PASS",
+      "trustTextMinCssPx": 12,
+      "primaryTargetMinCssPx": 44,
+      "lcpMaxMs": 948,
+      "clsMax": 0.013021100529338216,
+      "studioLongTaskMaxMs": 75,
+      "httpErrors": 0,
+      "loadingFailures": 0,
+      "cdpErrors": 0,
+      "checkoutPosts": 0,
+      "nonGetRequestsDispatched": 0,
+      "favicon": "PASS: /favicon.ico 200 image/x-icon"
+    }
+  },
+  "performanceRegressionGuard": {
+    "status": "PASS",
+    "historicalPlus19_6Percent": "SOURCE_PROVENANCE_MISMATCH",
+    "cleanHeadComparison": "PASS; no additional benchmark rerun requested",
+    "evidence": "/home/pi5/hermes-artifacts/browser-evidence/cardelume/phase20-p20m3t01-final-lcp/clean-lcp-report.json"
+  },
+  "residual": {
+    "ownerAuthenticatedVisualUxAcceptance": "MANUAL_PENDING",
+    "productionApproval": "NO_GO"
+  }
+}

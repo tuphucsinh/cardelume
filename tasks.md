@@ -11,7 +11,7 @@ This file contains only unfinished executable work plus compact completion ancho
 | Area | Status | Next condition |
 |---|---|---|
 | Phase 19 Premium/WOW | `PASS_FOR_MVP` — closed | No N=12 rerun, N=30, Final Golden or evaluator infrastructure from this result. |
-| Phase 20 core | `ACTIVE` | T03 is verified; run M3A browser/accessibility/performance gate. |
+| Phase 20 core | `DONE — PASS` | P20M3T01 technical browser/accessibility/performance gate passed; Phase 20 core closed. |
 | Help me choose | `DEFERRED_FEATURE_OFF` | Decompose/implement only after explicit Owner activation. |
 | Phase 21 runtime | `PENDING` | Start only after Phase 20 core PASS and bounded staging authorization. |
 | Phase 22 launch | `PENDING` | Start only after Phase 21 and production-readiness gates PASS. |
@@ -27,52 +27,15 @@ This file contains only unfinished executable work plus compact completion ancho
 - `P20M1T05` three-direction diversity guard verified: three unique family IDs/directions, at least two effective archetypes, adversarial stress PASS; AI/templates checks PASS.
 - `P20M1T06` Case 06 metadata repair verified as hash-bound and metadata-only; no model rerun or raw-artifact replacement.
 - Template Admin follow-up `P20AM1T01–T03` accepted as presentation-only; focused stress `44/44`, root gates `11/11`, independent Agy readonly review PASS. Evidence: `.ai/TEMPLATE_ADMIN_SIMPLIFICATION_PLAN.md`.
+- Phase 20 core: `P20M3T01 PASS` on candidate `ee9ec4a814c668b326edd9fc10eda752bacbbdf7`; evidence `.ai/evidence/phase20-p20m3t01-browser.json`. Owner authenticated visual/UX acceptance remains manual; Phase 21 remains pending explicit authorization.
 
 ---
 
 ## Phase 20 — Buyer Confidence Core
 
-**Entry gate:** Phase 19 `PASS_FOR_MVP` is satisfied. Core launch remains blocked until the Phase 20 exit gate passes. Help me choose is optional and feature-off by default.
+**Entry gate:** Phase 19 `PASS_FOR_MVP` and the Phase 20 core exit gate are satisfied. Help me choose remains optional and feature-off by default.
 
-### [#P20M1T03] [apps/web/public/brand/og-card.png, apps/web/app/layout.tsx] `approvedOpenGraphProductProof(): Metadata`
-
-**Goal:** Replace the weak OG placeholder with an approved product-specific premium-card composition.
-
-**Depends on:** `[#P20M1T02]`
-**Parallel-safe:** `yes` after T02; tracked replacement is approval-gated.
-
-**Current evidence:** Owner-approved v3 PNG promoted to `apps/web/public/brand/og-card.png`; metadata in `layout.tsx` already resolved the same-origin asset and required dimensions. Evidence: `.ai/evidence/phase20-p20m1t03-og.json`.
-
-**Concrete changes:**
-1. Owner visual approval recorded for the final v3 candidate.
-2. Promoted the approved PNG; `layout.tsx` required no change because its metadata already points to `/brand/og-card.png` at `1200×630`.
-3. Verified 1200×630, reduced social-preview crop, same-origin metadata resolution, candidate→tracked provenance, `git diff --check` and production build.
-
-**Constraints:** No fake UI/testimonial/rating, unapproved or unlicensed asset, physical-shipping implication or production deploy. Do not replace the tracked asset before Owner approval.
-
-**Definition of Done:** Owner approval is recorded; tracked asset/metadata, crop evidence and build pass; `git diff --check` passes; no production deployment is implied.
-
-**Status:** `[x]`
-
----
-
-### [#P20M3T01] [tests/browser-verify.sh] `verifyCorePhase20Journey(): EvidenceMatrix`
-
-**Goal:** Qualify the launch-critical buyer journey independently of the optional sharing lane.
-
-**Depends on:** `[#P20M1T02]`, `[#P20M1T03]`, `[#P20M1T04]`, `[#P20M1T05]`
-**Parallel-safe:** `no`
-
-**Concrete changes:**
-1. Verify homepage → brief → reveal → results → finish → checkout boundary at `390×844`, `768×1024` and `1440×900`.
-2. Cover loading/fallback/empty/error, keyboard-only, screen reader, 200% zoom and reduced motion.
-3. Compare lab performance against the frozen Phase 20 baseline and capture DOM/screenshots/console/network evidence.
-
-**Constraints:** No checkout/payment mutation, production data, production deploy or browser mutation automation. Owner performs final authenticated visual/UX acceptance manually; read-only local probes require explicit authorization. Missing field p75 data is `INSUFFICIENT_FIELD_SAMPLE`, not PASS.
-
-**Definition of Done:** No P0/P1 defect, horizontal overflow or blocked primary action; trust text ≥`12 CSS px`; primary targets ≥`44×44 CSS px`; LCP ≤`2.5s`; CLS ≤`0.1`; no key Studio long task >`200ms`; no unapproved >`10%` regression from baseline.
-
-**Status:** `[ ]`
+**Phase 20 closure:** P20M3T01 PASS on candidate `ee9ec4a814c668b326edd9fc10eda752bacbbdf7`; detailed evidence is retained in `.ai/evidence/phase20-p20m3t01-browser.json`.
 
 ### Phase 20 core exit gate
 

@@ -11,7 +11,7 @@
 | Area | Status | Meaning |
 |---|---|---|
 | Phase 19 Premium/WOW | `DONE — PASS_FOR_MVP` | Owner accepted MVP progression only; not Final Golden or production-template approval. |
-| Phase 20 Buyer Confidence Core | `ACTIVE` | T01, T02, T03, T04, T05 and T06 verified; core browser gate remains. |
+| Phase 20 Buyer Confidence Core | `DONE — PASS` | Core buyer-journey/browser/accessibility/performance gate passed on candidate `ee9ec4a814c668b326edd9fc10eda752bacbbdf7`. |
 | Help me choose | `DEFERRED_FEATURE_OFF` | Optional; it must not block the core launch. |
 | Phase 21 Runtime Qualification | `PENDING` | No production runtime, payment, storage, queue or restore proof is complete. |
 | Phase 22 Soft/Public Launch | `PENDING` | Starts only after Phase 20 core and Phase 21 gates pass. |
@@ -19,7 +19,7 @@
 
 ### Current next action
 
-`Do now`: run `P20M3T01`, the core buyer-journey/browser/accessibility/performance gate. Do not start Phase 21 automatically.
+`Stop`: Phase 20 core is closed. Do not start Phase 21 automatically; it still requires explicit Owner authorization for bounded staging.
 
 ## Product contract and non-goals
 
@@ -65,14 +65,12 @@ Phase 19 Owner result:
 - `P20M1T05`: customer-facing A/B/C diversity guard requires three family IDs, three visual directions and at least two effective archetypes; pre-critic and post-repair paths are guarded. Independent stress and AI/templates checks: PASS.
 - `P20M1T06`: Case 06 review-fixture/context metadata is hash-bound without model rerun or raw-artifact replacement. Packet remains an evidence artifact; no new Owner approval is inferred.
 - `P20M1T03`: Owner-approved product-specific OG v3 promoted with candidate/target SHA-256 match; reduced-preview, metadata, provenance, `git diff --check` and production build PASS. Evidence: `.ai/evidence/phase20-p20m1t03-og.json`.
+- `P20M3T01`: final buyer-journey gate PASS on candidate `ee9ec4a814c668b326edd9fc10eda752bacbbdf7`; all required viewports/states/keyboard/semantics/reduced motion/overflow/action/performance checks passed. Evidence: `.ai/evidence/phase20-p20m3t01-browser.json`.
 - Template Admin follow-up: presentation-only catalog-first/progressive-disclosure work accepted by Owner; auth/API/lifecycle/launch/eligibility semantics were preserved. Details remain in `.ai/TEMPLATE_ADMIN_SIMPLIFICATION_PLAN.md`.
 
-### Remaining core work
+### Core closure
 
-1. **P20M3T01 — Core buyer-journey gate (`PENDING`)**
-   - Verify homepage → brief → reveal → results → finish → checkout boundary at `390×844`, `768×1024`, `1440×900`, plus loading/fallback/empty/error, keyboard, screen-reader, 200% zoom and reduced motion.
-   - Required gate: no P0/P1 defect, no overflow or blocked primary action, trust text ≥`12 CSS px`, primary targets ≥`44×44 CSS px`, lab LCP ≤`2.5s`, CLS ≤`0.1`, no key Studio long task >`200ms`, and no unapproved >`10%` regression from the frozen baseline.
-   - Automated browser mutation is not authorized. Owner performs final authenticated visual/UX acceptance manually; read-only local probes require explicit authorization.
+`P20M3T01` is complete for the technical Phase 20 core gate. The Owner's authenticated visual/UX acceptance remains a separate manual step.
 
 ### Optional M2B — Help me choose
 
@@ -88,7 +86,7 @@ CORE_BROWSER_ACCESSIBILITY_PERFORMANCE PASS
 HELP_ME_CHOOSE PASS | DEFERRED_FEATURE_OFF
 ```
 
-`P20M1T03` is verified. `P20M3T01` evidence remains required for the core gate. Source/build PASS is not runtime or production approval.
+`P20M1T03` and `P20M3T01` are verified. Phase 20 core is closed. Source/build/browser PASS is not runtime or production approval.
 
 ## Phase 21 — Controlled Runtime Qualification
 
