@@ -11,6 +11,7 @@ import { launchCopy } from "../i18n/launch-copy";
 import { singleOffer } from "../lib/market-pricing.server";
 import { MobileStickyCta } from "../components/mobile-sticky-cta";
 import { PhysicalCardSurface } from "../components/physical-effects";
+import { legalIdentity } from "../lib/legal-identity.server";
 
 export default async function HomePage({searchParams}:{searchParams:Promise<{lang?:string|string[];market?:string|string[]}>}) {
   const params=await searchParams;
@@ -18,6 +19,7 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
   const m=getMessages(locale);
   const launch=launchCopy(locale);
   const price=await singleOffer(params.market);
+  const identity=legalIdentity();
   const marketQuery=(process.env.APP_MODE ?? "mock")==="mock" && params.market ? `&market=${Array.isArray(params.market)?params.market[0]:params.market}` : "";
   const createHref=`/create${marketQuery?`?${marketQuery.slice(1)}`:""}`;
   const marketingTemplates=step17jShowcaseTemplatesForEnvironment(process.env.APP_ENV);
@@ -122,7 +124,7 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
         <nav aria-label="Footer">
           <a href={`/privacy${marketQuery?`?${marketQuery.slice(1)}`:""}`}>{m.home.privacy}</a>
           <a href={`/terms${marketQuery?`?${marketQuery.slice(1)}`:""}`}>{m.home.terms}</a>
-          <a href="mailto:support@cardelume.com">{m.home.support}</a>
+          <a href={identity.email?`mailto:${identity.email}`:"/privacy"}>{m.home.support}</a>
         </nav>
       </footer>
     </div>

@@ -77,5 +77,5 @@ This artifact environment cannot resolve `registry.npmjs.org`, so it cannot inst
 - real AI provider request,
 - real R2 upload/sanitize/final render/download,
 - real Dodo sandbox/live webhook/payment reconciliation,
-- legal content replacement/approval,
+- paid-launch legal/payment copy update after the separate payment activation approval,
 - Cloudflare rules/tunnel/HA and backup restore rehearsal.

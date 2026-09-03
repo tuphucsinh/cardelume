@@ -15,12 +15,12 @@
 | Help me choose | `DEFERRED_FEATURE_OFF` | Optional; it must not block the core launch. |
 | Phase 21 Runtime Qualification | `PENDING` | No production runtime, payment, storage, queue or restore proof is complete. |
 | Phase 22 Soft/Public Launch | `PENDING` | Starts only after Phase 20 core and Phase 21 gates pass. |
-| Non-payment public beta | `PASS — PAYMENT OFF` | Public CardeLume route, health, security and bounded fallback journey verified; final beta approval remains Owner-legal blocked. |
+| Non-payment public beta | `PASS — PAYMENT OFF` | Public CardeLume route, health, security, bounded fallback journey and legal closure verified; beta is Owner-approved with payment OFF. |
 | Production | `NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES` | No production deploy, promotion or public traffic is authorized by source checks alone. |
 
 ### Current next action
 
-`Public non-payment technical beta`: PASS on the isolated Pi5 runtime and public Cloudflare route with payment OFF. Legal Owner approval still blocks final public-beta approval; do not reopen Phase 20 or start Dodo.
+`Public non-payment beta`: PASS on the isolated Pi5 runtime and public Cloudflare route with payment OFF. Owner-approved legal closure is recorded; keep payment OFF, do not reopen Phase 20, start Dodo, or merge `main`.
 
 ## Product contract and non-goals
 
@@ -66,7 +66,7 @@ Evidence: `.ai/evidence/public-beta-20260903.json` and `/home/pi5/hermes-artifac
 - Desktop `1440×900` and mobile `390×844` snapshots are usable. Finish focus geometry passed after the minimal `scroll-margin-top` fix: heading top `90px`, sticky header bottom `71px`, not covered.
 - Payment remains fail-closed: public checkout returned `503` with `payment_disabled`; no Dodo, order, PAID state or entitlement bypass. Dodo recovery remains `DEFERRED_BY_OWNER`.
 - `vorigin.vn`, `www.vorigin.vn`, local ports `8080/8081` remained VOrigin; `/srv/vorigin` and the existing Cloudflare VOrigin route were not changed.
-- `NON_PAYMENT_PRODUCT_READY=PASS`, `CSP_ADMIN_SECURITY=PASS`, `PUBLIC_TECHNICAL_BETA_READY_WITH_PAYMENT_OFF=PASS`; `LEGAL_CONTENT_APPROVED=false`, therefore `PUBLIC_BETA_READY_WITH_PAYMENT_OFF=BLOCKED_BY_OWNER_LEGAL`. Oracle remains `DEFERRED_BY_OWNER_INFRA`.
+- `NON_PAYMENT_PRODUCT_READY=PASS`, `CSP_ADMIN_SECURITY=PASS`, `PUBLIC_TECHNICAL_BETA_READY_WITH_PAYMENT_OFF=PASS`; after explicit Owner approval, `LEGAL_CONTENT_APPROVED=true`, `LEGAL_NATIVE_COPY=APPROVED`, and `PUBLIC_BETA_READY_WITH_PAYMENT_OFF=PASS`. Payment remains OFF, Dodo remains `DEFERRED_BY_OWNER`, and Oracle remains `DEFERRED_BY_OWNER_INFRA`.
 
 ## Phase 20 — Buyer Confidence Core
 

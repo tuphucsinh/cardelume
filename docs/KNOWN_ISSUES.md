@@ -68,13 +68,14 @@ This file lists work that is **not honestly proven in the artifact-only environm
 
 ## P0 — legal launch gate
 
-Privacy, Terms and Refund pages still require owner/legal approval. Keep:
+Privacy, Terms and Refund pages are Owner-approved for the current payment-off public beta:
 
 ```text
-LEGAL_CONTENT_APPROVED=false
+LEGAL_CONTENT_APPROVED=true
+LEGAL_NATIVE_COPY=APPROVED
 ```
 
-until final wording is approved. `/health/ready` intentionally fails closed otherwise.
+This closes the current beta legal gate. Paid-launch e-commerce/legal requirements remain a separate future gate; `/health/ready` still fails closed for any other missing runtime requirement.
 
 ## Localization / market QA
 
@@ -198,7 +199,7 @@ Not considered missing:
 - Full TypeScript semantic build is still blocked by the missing reviewed dependency lock/install. A 112-file TS/TSX syntax transpilation pass is not a substitute for workspace typecheck/build.
 - Next.js is source-pinned to 16.3.3, but the authoritative resolved dependency graph and vulnerability report still require Step18 lockfile/install evidence.
 - `style-src 'unsafe-inline'` remains in CSP because current React/card-preview paths still use controlled inline styles; script inline execution is nonce-gated. Remove style unsafe-inline only after a measured style refactor and browser QA.
-- Legal copy is substantive source draft, not legal advice/approval. Non-English legal sections still require native/legal review before those locales are treated as legally localized.
+- Current public-beta legal copy is Owner-approved; any future paid-launch or separately localized legal version requires its own review before activation.
 - `ANALYTICS_PSEUDONYM_KEY` must be a production secret and must not be casually rotated because rotation breaks longitudinal pseudonymous funnel continuity.
 - Launch approval evidence is structurally immutable/version-bound, but the truth of benchmark/IP/human evidence must still be verified by Step18/Lumer/owner process.
 - Customer hosted-share links remain intentionally absent until a secure entitlement-aware backend exists.

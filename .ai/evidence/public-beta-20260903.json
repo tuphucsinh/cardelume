@@ -106,9 +106,20 @@
     "csp_admin_security": "PASS",
     "payment_off_boundary": "PASS",
     "public_technical_beta_ready_with_payment_off": "PASS",
-    "legal_content_approved": false,
-    "public_beta_ready_with_payment_off": "BLOCKED_BY_OWNER_LEGAL",
+    "legal_content_approved": true,
+    "legal_native_copy": "APPROVED",
+    "public_beta_ready_with_payment_off": "PASS",
     "oracle_failover": "DEFERRED_BY_OWNER_INFRA"
+  },
+  "legal_closure": {
+    "owner_approval": "APPROVED",
+    "effective_date": "2026-09-03",
+    "legal_entity_name": "TU PHUC SINH",
+    "legal_contact_email": "tuphucsinh@gmail.com",
+    "legal_entity_address": "19b Tran Van Dang street, HCMC, Vietnam",
+    "payment_mode": "off",
+    "dodo_payment_recovery": "DEFERRED_BY_OWNER",
+    "approval_recorded_after_explicit_owner_approval": true
   },
   "residual_risk": "The public primary OpenCode Go attempt returned an invalid direction count and was fail-softed once; no unbounded retry or tuning loop was run. The beta is technically usable through the bounded fallback, but primary-provider quality should be monitored before payment activation."
 }

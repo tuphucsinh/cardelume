@@ -15,7 +15,7 @@ This file contains only unfinished executable work plus compact completion ancho
 | Help me choose | `DEFERRED_FEATURE_OFF` | Decompose/implement only after explicit Owner activation. |
 | Phase 21 runtime | `PENDING` | Start only after Phase 20 core PASS and bounded staging authorization. |
 | Phase 22 launch | `PENDING` | Start only after Phase 21 and production-readiness gates PASS. |
-| Non-payment public beta | `PASS — PAYMENT OFF` | Public route, security, health, bounded fallback journey and JPG/PDF exports verified; final approval is Owner-legal blocked. |
+| Non-payment public beta | `PASS — PAYMENT OFF` | Public route, security, health, bounded fallback journey, JPG/PDF exports and legal closure verified; Owner-approved with payment OFF. |
 | Production | `NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES` | Build/source PASS and Git push are not deployment approval. |
 
 ## Completed anchors
@@ -29,7 +29,7 @@ This file contains only unfinished executable work plus compact completion ancho
 - `P20M1T06` Case 06 metadata repair verified as hash-bound and metadata-only; no model rerun or raw-artifact replacement.
 - Template Admin follow-up `P20AM1T01–T03` accepted as presentation-only; focused stress `44/44`, root gates `11/11`, independent Agy readonly review PASS. Evidence: `.ai/TEMPLATE_ADMIN_SIMPLIFICATION_PLAN.md`.
 - Phase 20 core: `P20M3T01 PASS` on candidate `ee9ec4a814c668b326edd9fc10eda752bacbbdf7`; evidence `.ai/evidence/phase20-p20m3t01-browser.json`. Owner authenticated visual/UX acceptance remains manual; Phase 21 remains pending explicit authorization.
-- Public non-payment technical beta: `PASS` on `https://cardelume.vorigin.vn` with `PAYMENT_MODE=off`; health/security/VOrigin smoke and one bounded fallback journey with JPG/PDF `200` responses passed. Evidence: `.ai/evidence/public-beta-20260903.json`. Primary OpenCode Go attempt returned `ai_direction_count_invalid` and was fail-softed once; no retry loop. `LEGAL_CONTENT_APPROVED=false`, so final public-beta approval remains `BLOCKED_BY_OWNER_LEGAL`.
+- Public non-payment beta: `PASS` on `https://cardelume.vorigin.vn` with `PAYMENT_MODE=off`; health/security/VOrigin smoke and one bounded fallback journey with JPG/PDF `200` responses passed. Evidence: `.ai/evidence/public-beta-20260903.json`. Primary OpenCode Go attempt returned `ai_direction_count_invalid` and was fail-softed once; no retry loop. Explicit Owner approval recorded: `LEGAL_CONTENT_APPROVED=true`, `LEGAL_NATIVE_COPY=APPROVED`, `PUBLIC_BETA_READY_WITH_PAYMENT_OFF=PASS`.
 
 ---
 

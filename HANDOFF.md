@@ -12,5 +12,5 @@
 - `vorigin.vn`, `www.vorigin.vn`, ports `8080/8081`, and `/srv/vorigin` unchanged.
 - Evidence: `.ai/evidence/public-beta-20260903.json` plus `/home/pi5/hermes-artifacts/browser-evidence/cardelume-public-20260903/`.
 - Phase 20 remains `DONE — PASS`; Dodo `DEFERRED_BY_OWNER`; Oracle `DEFERRED_BY_OWNER_INFRA`.
-- Legal: `LEGAL_CONTENT_APPROVED=false`; final `PUBLIC_BETA_READY_WITH_PAYMENT_OFF=BLOCKED_BY_OWNER_LEGAL`.
-- Next: Owner legal approval only; do not reopen technical gates or activate payment.
+- Legal: Owner approved; `LEGAL_CONTENT_APPROVED=true`, `LEGAL_NATIVE_COPY=APPROVED`, `PUBLIC_BETA_READY_WITH_PAYMENT_OFF=PASS`.
+- Next: keep payment OFF and Dodo deferred; do not reopen technical gates, activate payment, or merge `main`.
