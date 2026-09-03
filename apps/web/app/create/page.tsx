@@ -9,11 +9,12 @@ export default async function CreatePage({searchParams}:{searchParams:Promise<{l
   const locale=await requestLocale(params.lang,params.market);
   const messages=getMessages(locale);
   const offer=await singleOfferWithQuote(params.market);
+  const paymentMode:"off"|"on"=(process.env.PAYMENT_MODE??"on").trim().toLowerCase()==="off"?"off":"on";
   return (
     <div lang={locale}>
       <SiteHeader compact locale={locale} messages={messages} currentPath="/create" reviewMarket={(process.env.APP_MODE ?? "mock")==="mock" ? (Array.isArray(params.market)?params.market[0]:params.market) : undefined}/>
       <main className="create-main" id="main-content">
-        <CardStudio locale={locale} messages={messages} price={offer.price} priceQuote={offer.quote} generationMode={(process.env.APP_MODE ?? "mock")==="mock"?"mock":"live"}/>
+        <CardStudio locale={locale} messages={messages} price={offer.price} priceQuote={offer.quote} generationMode={(process.env.APP_MODE ?? "mock")==="mock"?"mock":"live"} paymentMode={paymentMode}/>
       </main>
     </div>
   );

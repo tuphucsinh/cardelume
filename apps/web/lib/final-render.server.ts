@@ -1,11 +1,12 @@
 import "server-only";
 import { listPaidOrderItemsForFinalization } from "@cardelume/db";
-import { createBoss, QUEUES } from "@cardelume/queue";
+import { createBoss, ensureCardeLumeQueues, platformSingletonKey, QUEUES } from "@cardelume/queue";
 
 let bossPromise:ReturnType<typeof startBoss>|undefined;
 async function startBoss(){
   const boss=createBoss(process.env.QUEUE_DATABASE_URL||process.env.DATABASE_URL);
   await boss.start();
+  await ensureCardeLumeQueues(boss);
   return boss;
 }
 function webBoss(){return bossPromise??=startBoss();}
@@ -26,7 +27,8 @@ export async function enqueuePaidFinalRenders(orderId:string){
       orderId,
       orderItemId:item.order_item_id
     },{
-      singletonKey:`cardelume:${item.order_item_id}:${item.resource_version_id}`,
+      singletonSeconds:86400,
+      singletonKey:platformSingletonKey({productKey:"cardelume",resourceId:item.order_item_id,jobId:item.resource_version_id}),
       retryLimit:3,
       retryDelay:3,
       retryBackoff:true,

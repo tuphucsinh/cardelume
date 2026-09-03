@@ -12,6 +12,7 @@ import { cardCopyMetrics, shortenCardBody, type GenerationResult } from "@cardel
 import { interpolate, type LocaleCode, type Messages } from "../i18n/messages";
 import { directionDisplay } from "../i18n/display-copy";
 import { launchCopy } from "../i18n/launch-copy";
+import { betaCopy } from "../i18n/beta-copy";
 import type { ResolvedPrice } from "../lib/pricing";
 import { runGeneration, type GenerationStatus } from "../lib/generation-client";
 import { uploadPreparedPhoto } from "../lib/photo-upload-client";
@@ -79,9 +80,10 @@ type DocWithViewTransition=Document&{startViewTransition?:(update:()=>void)=>{fi
 
 
 
-export function CardStudio({locale,messages,price,priceQuote,generationMode}:{locale:LocaleCode;messages:Messages;price:ResolvedPrice;priceQuote:string;generationMode:"mock"|"live"}){
+export function CardStudio({locale,messages,price,priceQuote,generationMode,paymentMode}:{locale:LocaleCode;messages:Messages;price:ResolvedPrice;priceQuote:string;generationMode:"mock"|"live";paymentMode:"off"|"on"}){
   const m=messages.studio;
   const launch=launchCopy(locale);
+  const beta=betaCopy(locale);
   const {haptic,reducedMotion}=usePhysicalEffects();
   const [phase,setPhase]=useState<Phase>("brief");
   const [occasion,setOccasion]=useState<(typeof occasions)[number]>("Birthday");
@@ -101,6 +103,8 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode}:{lo
   const [photoState,setPhotoState]=useState<"idle"|"optimizing"|"reading"|"ready"|"error"|"large">("idle");
   const [accentMode,setAccentMode]=useState<AccentMode>("original");
   const [checkoutNote,setCheckoutNote]=useState("");
+  const [betaNote,setBetaNote]=useState("");
+  const [betaBusy,setBetaBusy]=useState<"jpg"|"pdf"|null>(null);
   const [generationMessage,setGenerationMessage]=useState(m.revealing);
   const [usedCuratedFallback,setUsedCuratedFallback]=useState(false);
   const [generatedResult,setGeneratedResult]=useState<GenerationResult|null>(null);
@@ -352,33 +356,52 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode}:{lo
     finally{setRewriteBusy(null);}
   }
 
+  function buildCardSnapshot(){
+    const formatIndex=Math.max(0,formatValues.indexOf(format));
+    return{
+      locale,
+      format:checkoutFormatValues[formatIndex]??"portrait-5x7",
+      direction:selected.id,
+      templateId:selected.templateId,
+      templateVersionId:selected.templateVersionId,
+      templateSource:selected.templateSource,
+      occasion:effectiveOccasion,
+      relationship:effectiveRelation,
+      feeling,
+      kicker:selectedKicker,
+      headline:selectedHeadline,
+      body:message,
+      accentMode,
+      photoPalette:photoPalette?{
+        primary:photoPalette.primary,secondary:photoPalette.secondary,accent:photoPalette.accent,
+        temperature:photoPalette.temperature,luminance:photoPalette.luminance
+      }:undefined,
+      photoAssetId:(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?(photoAssetId??undefined):undefined
+    };
+  }
+
+  async function downloadBetaAsset(assetKind:"jpg"|"pdf"){
+    if(paymentMode!=="off"||betaBusy)return;
+    setBetaBusy(assetKind);setBetaNote("");
+    try{
+      const res=await fetch("/api/beta/export",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({assetKind,card:buildCardSnapshot(),priceQuote})});
+      if(!res.ok){setBetaNote(beta.unavailable);return;}
+      const blob=await res.blob();
+      const url=URL.createObjectURL(blob);
+      const anchor=document.createElement("a");anchor.href=url;anchor.download=`cardelume-beta.${assetKind}`;document.body.appendChild(anchor);anchor.click();anchor.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),0);
+      trackFunnelEvent(assetKind==="jpg"?"download_jpg":"download_pdf",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",direction:selected.visual,photoUsed:Boolean(photoUrl&&photoState==="ready"),templateId:selected.templateId,templateVersionId:selected.templateVersionId});
+    }catch{setBetaNote(beta.unavailable);}
+    finally{setBetaBusy(null);}
+  }
+
   async function beginCheckout(){
     if(checkoutInFlight.current)return;
     trackFunnelEvent("checkout_started",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",direction:selected.visual,photoUsed:Boolean(photoUrl&&photoState==="ready"),templateId:selected.templateId,templateVersionId:selected.templateVersionId});
     checkoutInFlight.current=true;
     setCheckoutNote(launch.preparingCheckout);
     try{
-      const formatIndex=Math.max(0,formatValues.indexOf(format));
-      const card={
-        locale,
-        format:checkoutFormatValues[formatIndex]??"portrait-5x7",
-        direction:selected.id,
-        templateId:selected.templateId,
-        templateVersionId:selected.templateVersionId,
-        templateSource:selected.templateSource,
-        occasion:effectiveOccasion,
-        relationship:effectiveRelation,
-        feeling,
-        kicker:selectedKicker,
-        headline:selectedHeadline,
-        body:message,
-        accentMode,
-        photoPalette:photoPalette?{
-          primary:photoPalette.primary,secondary:photoPalette.secondary,accent:photoPalette.accent,
-          temperature:photoPalette.temperature,luminance:photoPalette.luminance
-        }:undefined,
-        photoAssetId:(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?(photoAssetId??undefined):undefined
-      };
+      const card=buildCardSnapshot();
       const payload={purchaseKind:"single" as const,card,priceQuote};
       const fingerprint=JSON.stringify(payload);
       if(!checkoutAttempt.current||checkoutAttempt.current.fingerprint!==fingerprint){
@@ -576,7 +599,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode}:{lo
                 </div>
               </div>
               {photoUrl&&selected.photoMode==="required"?<button className="finish-option action-option" onClick={()=>fileInput.current?.click()}><div><ImagePlus size={17}/><span><b>{m.changePhoto}</b><small>{m.keepImage}</small></span></div><span>{m.change}</span></button>:null}
-              <button className="button button-primary finish-continue" disabled={copyGuard.hardOverflow} aria-disabled={copyGuard.hardOverflow} title={copyGuard.hardOverflow?launch.messageFull:undefined} onClick={()=>{if(copyGuard.hardOverflow)return;haptic("select");trackFunnelEvent("checkout_opened",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",direction:selected.visual,photoUsed:Boolean(photoUrl&&photoState==="ready"),templateId:selected.templateId,templateVersionId:selected.templateVersionId});withTransition(()=>setPhase("checkout"));}}>{m.feelsRight}<span>→</span></button>
+              <button className="button button-primary finish-continue" disabled={copyGuard.hardOverflow} aria-disabled={copyGuard.hardOverflow} title={copyGuard.hardOverflow?launch.messageFull:undefined} onClick={()=>{if(copyGuard.hardOverflow)return;haptic("select");if(paymentMode==="on")trackFunnelEvent("checkout_opened",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",direction:selected.visual,photoUsed:Boolean(photoUrl&&photoState==="ready"),templateId:selected.templateId,templateVersionId:selected.templateVersionId});withTransition(()=>setPhase("checkout"));}}>{paymentMode==="off"?beta.title:m.feelsRight}<span>→</span></button>
             </aside>
           </div>
         </div>
@@ -590,25 +613,39 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode}:{lo
               <PhysicalCardSurface className="checkout-physical" intensity={1.05}>
                 <CardVisual direction={selected.visual} kicker={selectedKicker} headline={selectedHeadline} body={message} photoUrl={(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?photoUrl:null} photoPalette={(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?photoPalette:null} accentMode={accentMode} watermark className={fClass} transitionName={`card-${selected.id}`} locale={locale} format={format} fitOverride={typeFit}/>
               </PhysicalCardSurface>
-              <span className="checkout-caption">{m.caption}</span>
-              <strong className="checkout-ownership">{launch.buyingThisCard}</strong>
+              <span className="checkout-caption">{paymentMode==="off"?beta.eyebrow:m.caption}</span>
+              <strong className="checkout-ownership">{paymentMode==="off"?beta.title:launch.buyingThisCard}</strong>
             </div>
             <div className="checkout-copy">
-              <span className="eyebrow">{m.ready}</span>
-              <h2 data-phase-focus tabIndex={-1}>{m.checkoutTitle}</h2>
-              <p className="checkout-emotion">{interpolate(m.checkoutEmotion,{name})}</p>
-              <div className="checkout-price"><strong>{price.display}</strong><span>{m.oneTime}</span></div>
-              <div className="digital-clarity">
-                <p><strong>{launch.instantDigital}</strong><span>{launch.noPhysical}</span></p>
-                <p>{launch.filesReady}</p>
-                <p>{launch.printReadyPdf} · {currentFormatLabel}</p>
-                <p>{launch.noAccount}</p>
-                <p>{launch.keepForever}</p>
-                <p>{launch.printShare}</p>
-              </div>
-              <button className="button button-primary checkout-button" onClick={beginCheckout}>{m.getCard}</button>
-              <p className="checkout-secure"><Check size={14}/>{m.secure} · <a href={`/terms${(process.env.NODE_ENV!=="production"&&price.requestedMarket!=="OTHER")?`?market=${price.requestedMarket}`:""}#refund`} title={launch.refundPolicy}>{launch.qualityGuarantee}</a></p>
-              {checkoutNote?<p className="checkout-note" aria-live="polite">{checkoutNote}</p>:null}
+              <span className="eyebrow">{paymentMode==="off"?beta.eyebrow:m.ready}</span>
+              <h2 data-phase-focus tabIndex={-1}>{paymentMode==="off"?beta.title:m.checkoutTitle}</h2>
+              {paymentMode==="off"?(
+                <>
+                  <p className="checkout-emotion">{beta.description}</p>
+                  <div className="digital-clarity"><p>{launch.noPhysical}</p><p>{launch.printReadyPdf} · {currentFormatLabel}</p></div>
+                  <div className="beta-export-actions">
+                    <button className="button button-primary checkout-button" disabled={Boolean(betaBusy)} onClick={()=>void downloadBetaAsset("jpg")}>{betaBusy==="jpg"?"…":beta.jpg}</button>
+                    <button className="button button-secondary checkout-button" disabled={Boolean(betaBusy)} onClick={()=>void downloadBetaAsset("pdf")}>{betaBusy==="pdf"?"…":beta.pdf}</button>
+                  </div>
+                  {betaNote?<p className="checkout-note" aria-live="polite">{betaNote}</p>:null}
+                </>
+              ):(
+                <>
+                  <p className="checkout-emotion">{interpolate(m.checkoutEmotion,{name})}</p>
+                  <div className="checkout-price"><strong>{price.display}</strong><span>{m.oneTime}</span></div>
+                  <div className="digital-clarity">
+                    <p><strong>{launch.instantDigital}</strong><span>{launch.noPhysical}</span></p>
+                    <p>{launch.filesReady}</p>
+                    <p>{launch.printReadyPdf} · {currentFormatLabel}</p>
+                    <p>{launch.noAccount}</p>
+                    <p>{launch.keepForever}</p>
+                    <p>{launch.printShare}</p>
+                  </div>
+                  <button className="button button-primary checkout-button" onClick={beginCheckout}>{m.getCard}</button>
+                  <p className="checkout-secure"><Check size={14}/>{m.secure} · <a href={`/terms${(process.env.NODE_ENV!=="production"&&price.requestedMarket!=="OTHER")?`?market=${price.requestedMarket}`:""}#refund`} title={launch.refundPolicy}>{launch.qualityGuarantee}</a></p>
+                  {checkoutNote?<p className="checkout-note" aria-live="polite">{checkoutNote}</p>:null}
+                </>
+              )}
             </div>
           </div>
         </div>

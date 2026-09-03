@@ -1,16 +1,16 @@
 # HANDOFF — CardeLume
 
-- Session closed with plan/WBS and homepage-copy changes committed.
-- Remote: `origin/main` was pushed through `df09d4a`.
-- Plan authority: `MASTERPLAN.MD` and `.ai/MASTER_PLAN.md` are byte-identical.
-- Phase 19/20 WBS: 23 pending execution tasks; none were falsely marked complete.
-- Agy review: `gemini-3.1-pro-high`, PASS/HIGH, no Critical or Important findings.
-- Validation: typecheck PASS; tests PASS (11/11); build PASS; secret scan PASS.
-- Lint exited 0, but the existing web script still masks `next lint` and reports an invalid directory.
-- Build warnings remain because `pnpm-lock.yaml` is absent; Phase 18 owns reproducibility closure.
-- Production status remains `NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES`.
-- Blockers: Phase 18 exit, zero approved templates, real human quality proof, runtime E2E and legal/IP gates.
-- Existing hero change is copy-only; the normal hero layout and typography remain preserved.
-- No production DB, deployment, checkout, customer data or credentials were touched.
-- `.tmp/diary.md` and `.tmp/global_context.md` were already absent; review prompt/cache residue was removed.
-- Next: execute Phase 18, then Phase 19 improvement/proof before Phase 20 buyer-confidence work.
+- Public non-payment technical beta: `PASS` with payment OFF.
+- Public URL: `https://cardelume.vorigin.vn` → isolated `127.0.0.1:3010`.
+- Public health: `/health/live`, `/health/ready`, `/health/worker` all `200`.
+- Public security: CSP/HSTS/frame/nosniff/Referrer PASS; anonymous admin `403`; no CORS/R2/secret markers.
+- Public journey: brief → generation → 3 directions → select → finish → JPG/PDF; both exports `200`.
+- Primary OpenCode Go `gpt-5.6-luna` attempt returned `ai_direction_count_invalid`; bounded fallback completed once; no retry loop.
+- Console JS errors: `0`; desktop `1440x900` and mobile `390x844` smoke usable.
+- Finish focus fix verified: heading top `90px`, sticky header bottom `71px`, no coverage.
+- Payment boundary: `503 payment_disabled`; no Dodo/order/PAID/entitlement bypass.
+- `vorigin.vn`, `www.vorigin.vn`, ports `8080/8081`, and `/srv/vorigin` unchanged.
+- Evidence: `.ai/evidence/public-beta-20260903.json` plus `/home/pi5/hermes-artifacts/browser-evidence/cardelume-public-20260903/`.
+- Phase 20 remains `DONE — PASS`; Dodo `DEFERRED_BY_OWNER`; Oracle `DEFERRED_BY_OWNER_INFRA`.
+- Legal: `LEGAL_CONTENT_APPROVED=false`; final `PUBLIC_BETA_READY_WITH_PAYMENT_OFF=BLOCKED_BY_OWNER_LEGAL`.
+- Next: Owner legal approval only; do not reopen technical gates or activate payment.

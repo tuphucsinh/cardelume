@@ -4,7 +4,7 @@
 **Source baseline:** `0.4.3-step.17j`
 **Primary plan:** `.ai/MASTER_PLAN.md`
 **Exact mirror:** `MASTERPLAN.MD`
-**Updated:** 2026-09-02
+**Updated:** 2026-09-03
 
 ## Executive status
 
@@ -15,11 +15,12 @@
 | Help me choose | `DEFERRED_FEATURE_OFF` | Optional; it must not block the core launch. |
 | Phase 21 Runtime Qualification | `PENDING` | No production runtime, payment, storage, queue or restore proof is complete. |
 | Phase 22 Soft/Public Launch | `PENDING` | Starts only after Phase 20 core and Phase 21 gates pass. |
+| Non-payment public beta | `PASS — PAYMENT OFF` | Public CardeLume route, health, security and bounded fallback journey verified; final beta approval remains Owner-legal blocked. |
 | Production | `NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES` | No production deploy, promotion or public traffic is authorized by source checks alone. |
 
 ### Current next action
 
-`Stop`: Phase 20 core is closed. Do not start Phase 21 automatically; it still requires explicit Owner authorization for bounded staging.
+`Public non-payment technical beta`: PASS on the isolated Pi5 runtime and public Cloudflare route with payment OFF. Legal Owner approval still blocks final public-beta approval; do not reopen Phase 20 or start Dodo.
 
 ## Product contract and non-goals
 
@@ -52,6 +53,20 @@ Phase 19 Owner result:
 - provider/model: `OpenAI Codex` / `gpt-5.6-luna`;
 - retained candidate families: `letterpress`, `midnight`, `orbit`, `memory`, `photo`, `museum`, `petal`, `softfold`;
 - result: `PASS_FOR_MVP`, not production-template approval.
+
+## Public non-payment technical beta — 2026-09-03
+
+Evidence: `.ai/evidence/public-beta-20260903.json` and `/home/pi5/hermes-artifacts/browser-evidence/cardelume-public-20260903/`.
+
+- Public route `https://cardelume.vorigin.vn` resolves through Cloudflare to the isolated CardeLume binding `127.0.0.1:3010`; homepage and TLS verified.
+- Public health is PASS: `/health/live`, `/health/ready` and `/health/worker` each returned `200`; web and worker services were active with zero worker restarts at verification.
+- Public security is PASS: enforced CSP, HSTS, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy, anonymous admin `403`, no permissive CORS, and no tested secret/private-R2 markers.
+- Public browser journey is `PASS_PUBLIC` through one bounded real fallback: brief → AI attempt → exactly three directions → select → finish → JPG `200 image/jpeg` → PDF `200 application/pdf`; console JS errors `0`.
+- OpenCode Go configuration was verified as `https://opencode.ai/zen/go/v1` with model `gpt-5.6-luna`. The primary public attempt returned `ai_direction_count_invalid` and was fail-softed once; no retry/tuning loop was run.
+- Desktop `1440×900` and mobile `390×844` snapshots are usable. Finish focus geometry passed after the minimal `scroll-margin-top` fix: heading top `90px`, sticky header bottom `71px`, not covered.
+- Payment remains fail-closed: public checkout returned `503` with `payment_disabled`; no Dodo, order, PAID state or entitlement bypass. Dodo recovery remains `DEFERRED_BY_OWNER`.
+- `vorigin.vn`, `www.vorigin.vn`, local ports `8080/8081` remained VOrigin; `/srv/vorigin` and the existing Cloudflare VOrigin route were not changed.
+- `NON_PAYMENT_PRODUCT_READY=PASS`, `CSP_ADMIN_SECURITY=PASS`, `PUBLIC_TECHNICAL_BETA_READY_WITH_PAYMENT_OFF=PASS`; `LEGAL_CONTENT_APPROVED=false`, therefore `PUBLIC_BETA_READY_WITH_PAYMENT_OFF=BLOCKED_BY_OWNER_LEGAL`. Oracle remains `DEFERRED_BY_OWNER_INFRA`.
 
 ## Phase 20 — Buyer Confidence Core
 

@@ -19,6 +19,7 @@ import { buildCheckoutCardDocument } from "../../../lib/checkout-card.server";
 import { createDodoCheckoutSession } from "../../../lib/dodo-payments.server";
 import { issueCheckoutReturnClaim } from "../../../lib/recovery.server";
 import { checkUserRateLimit } from "../../../lib/rate-limit.server";
+import { getPaymentMode, type PaymentMode } from "../../../lib/production-config.server";
 
 const PriceQuote=z.string().min(32).max(4096);
 const IdempotencyKey=z.string().min(8).max(160).regex(/^[A-Za-z0-9_.:-]+$/);
@@ -87,6 +88,13 @@ function safeCheckoutError(error:unknown){
 }
 
 export async function POST(req:Request){
+  let paymentMode:PaymentMode;
+  try{paymentMode=getPaymentMode();}
+  catch{return NextResponse.json({error:"checkout_configuration_unavailable"},{status:503,headers:{"cache-control":"no-store"}});}
+  if(paymentMode==="off"){
+    return NextResponse.json({error:"payment_disabled",mode:"off",beta:true},{status:503,headers:{"cache-control":"no-store"}});
+  }
+
   const idempotencyParsed=IdempotencyKey.safeParse(req.headers.get("idempotency-key"));
   if(!idempotencyParsed.success)return NextResponse.json({error:"idempotency_key_invalid"},{status:400});
   const idempotencyKey=idempotencyParsed.data;
@@ -132,6 +140,9 @@ export async function POST(req:Request){
   }
   if(appMode!=="live"){
     return NextResponse.json({error:"app_mode_live_required"},{status:503});
+  }
+  if(paymentMode!=="on"){
+    return NextResponse.json({error:"payment_disabled",mode:"off",beta:true},{status:503,headers:{"cache-control":"no-store"}});
   }
 
   // The launch Holiday Bundle remains dormant. Never silently turn an enabled

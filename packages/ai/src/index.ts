@@ -20,6 +20,15 @@ const RISKS=["low_confidence","low_novelty","low_wow","market_tension","copy_ris
 
 type FetchLike=typeof fetch;
 function required(value:string|undefined,name:string){if(!value)throw new Error(`${name}_required`);return value;}
+function responsesOutputText(value:unknown){
+  if(!Array.isArray(value))return "";
+  return value.map(item=>{
+    if(!item||typeof item!=="object")return "";
+    const content=(item as {content?:unknown}).content;
+    if(!Array.isArray(content))return "";
+    return content.map(part=>part&&typeof part==="object"&&typeof (part as {text?:unknown}).text==="string"&&((part as {type?:unknown}).type==="output_text"||(part as {type?:unknown}).type==="text")?(part as {text:string}).text:"").join("");
+  }).join("");
+}
 function timeoutMs(){const n=Number(process.env.AI_REQUEST_TIMEOUT_MS||12000);return Number.isFinite(n)?Math.max(4000,Math.min(30000,Math.floor(n))):12000;}
 function maxResponseBytes(){const n=Number(process.env.AI_MAX_RESPONSE_BYTES||65536);return Number.isFinite(n)?Math.max(16384,Math.min(262144,Math.floor(n))):65536;}
 function maxCreativePromptBytes(){const n=Number(process.env.AI_CREATIVE_PROMPT_MAX_BYTES||28000);return Number.isFinite(n)?Math.max(12000,Math.min(64000,Math.floor(n))):28000;}
@@ -36,23 +45,22 @@ export class OpenAICompatibleProvider implements AIProvider{
   async generateJson(input:{system:string;prompt:string;timeoutMs?:number}){
     const started=Date.now();const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),input.timeoutMs??timeoutMs());
     try{
-      const response=await this.fetchImpl(`${this.config.baseUrl.replace(/\/$/,"")}/chat/completions`,{
-        method:"POST",signal:controller.signal,headers:{authorization:`Bearer ${this.config.apiKey}`,"content-type":"application/json"},
-        body:JSON.stringify({model:this.config.model,temperature:.78,response_format:{type:"json_object"},messages:[{role:"system",content:input.system},{role:"user",content:input.prompt}]})
+      const responsesModel=this.config.model==="gpt-5.6-luna";
+      const response=await this.fetchImpl(`${this.config.baseUrl.replace(/\/$/,"")}/${responsesModel?"responses":"chat/completions"}`,{
+        method:"POST",signal:controller.signal,headers:{authorization:`Bearer ${this.config.apiKey}`,"content-type":"application/json",accept:"application/json","user-agent":"CardeLume-P21-Staging/0.4.3"},
+        body:JSON.stringify(responsesModel?{model:this.config.model,input:[{role:"system",content:[{type:"input_text",text:input.system}]},{role:"user",content:[{type:"input_text",text:input.prompt}]}],max_output_tokens:8000}:{model:this.config.model,temperature:.78,response_format:{type:"json_object"},messages:[{role:"system",content:input.system},{role:"user",content:input.prompt}]})
       });
       if(!response.ok)throw new Error(`ai_provider_http_${response.status}`);
       const maxBytes=maxResponseBytes();const declared=Number(response.headers.get("content-length")||0);
-      if(Number.isFinite(declared)&&declared>maxBytes)throw new Error("ai_provider_response_too_large");
+      if(declared>maxBytes)throw new Error("ai_provider_response_too_large");
       const rawEnvelope=await response.text();if(new TextEncoder().encode(rawEnvelope).byteLength>maxBytes)throw new Error("ai_provider_response_too_large");
       let envelope:unknown;try{envelope=JSON.parse(rawEnvelope);}catch{throw new Error("ai_provider_invalid_response");}
       if(!envelope||typeof envelope!=="object")throw new Error("ai_provider_invalid_response");
-      const e=envelope as {choices?:unknown;usage?:{prompt_tokens?:unknown;completion_tokens?:unknown};model?:unknown};
-      if(!Array.isArray(e.choices)||!e.choices[0]||typeof e.choices[0]!=="object")throw new Error("ai_provider_invalid_response");
-      const message=(e.choices[0] as {message?:unknown}).message;if(!message||typeof message!=="object")throw new Error("ai_provider_invalid_response");
-      const content=(message as {content?:unknown}).content;let text:string|undefined;
-      if(typeof content==="string")text=content;else if(Array.isArray(content))text=content.map(part=>part&&typeof part==="object"&&typeof (part as {text?:unknown}).text==="string"?(part as {text:string}).text:"").join("");
+      const e=envelope as {choices?:unknown;output_text?:unknown;output?:unknown;usage?:Record<string,unknown>;model?:unknown};let text:string|undefined;
+      if(responsesModel){if(typeof e.output_text==="string")text=e.output_text;if(!text)text=responsesOutputText(e.output)||undefined;}
+      else{if(!Array.isArray(e.choices)||!e.choices[0]||typeof e.choices[0]!=="object")throw new Error("ai_provider_invalid_response");const message=(e.choices[0] as {message?:unknown}).message;if(!message||typeof message!=="object")throw new Error("ai_provider_invalid_response");const content=(message as {content?:unknown}).content;if(typeof content==="string")text=content;else if(Array.isArray(content))text=content.map(part=>part&&typeof part==="object"&&typeof (part as {text?:unknown}).text==="string"?(part as {text:string}).text:"").join("");}
       if(!text)throw new Error("ai_provider_empty_content");let data:unknown;try{data=JSON.parse(text);}catch{throw new Error("ai_provider_invalid_json");}
-      const inputTokens=typeof e.usage?.prompt_tokens==="number"?e.usage.prompt_tokens:undefined;const outputTokens=typeof e.usage?.completion_tokens==="number"?e.usage.completion_tokens:undefined;
+      const inputTokens=typeof e.usage?.prompt_tokens==="number"?e.usage.prompt_tokens:typeof e.usage?.input_tokens==="number"?e.usage.input_tokens:undefined;const outputTokens=typeof e.usage?.completion_tokens==="number"?e.usage.completion_tokens:typeof e.usage?.output_tokens==="number"?e.usage.output_tokens:undefined;
       return{data,provider:this.providerName,model:typeof e.model==="string"?e.model:this.config.model,usage:{inputTokens,outputTokens},latencyMs:Date.now()-started};
     }catch(error){if(error instanceof DOMException&&error.name==="AbortError")throw new Error("ai_provider_timeout");throw error;}finally{clearTimeout(timer);}
   }

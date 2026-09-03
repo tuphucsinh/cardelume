@@ -9,6 +9,16 @@ const db=fs.readFileSync("packages/db/src/checkout-payment.ts","utf8");
 const cardBuilder=fs.readFileSync("apps/web/lib/checkout-card.server.ts","utf8");
 const recoveryDb=fs.readFileSync("packages/db/src/recovery.ts","utf8");
 const migration=fs.readFileSync("packages/db/migrations/0004_verified_dodo_checkout.sql","utf8");
+const prodConfig=fs.readFileSync("apps/web/lib/production-config.server.ts","utf8");
+const ready=fs.readFileSync("apps/web/app/health/ready/route.ts","utf8");
+
+must(prodConfig.includes('export type PaymentMode="off"|"on"')||prodConfig.includes('export type PaymentMode = "off" | "on"'),"explicit PaymentMode contract missing");
+must(prodConfig.includes("getPaymentMode")&&prodConfig.includes("PAYMENT_MODE"),"server PaymentMode helper or validation missing");
+must(prodConfig.includes("isPaymentOff")||prodConfig.includes("paymentMode"),"live readiness does not guard Dodo credentials behind payment mode");
+must(ready.includes("paymentMode"),"readiness route does not expose payment mode");
+must(checkout.includes('error:"payment_disabled"')&&checkout.includes('mode:"off"')&&checkout.includes("beta:true"),"checkout route missing payment-off response contract");
+must(checkout.indexOf("payment_disabled")<checkout.indexOf("createPendingSingleCardOrder({"),"payment-off fail closed must precede order persistence");
+must(checkout.indexOf("payment_disabled")<checkout.indexOf("CheckoutSchema.safeParse"),"payment-off fail closed must precede order schema parsing");
 
 must(!checkout.includes("dodo_not_wired"),"legacy 501 Dodo checkout stub remains");
 must(checkout.includes("createPendingSingleCardOrder"),"checkout does not persist order/card snapshot before provider");

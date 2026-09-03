@@ -80,6 +80,21 @@ export async function markPhotoAssetFailed(input:{assetId:string;userId:string;f
 }
 
 export type TrustedBoundAsset={assetId:string;cleanObjectKey:string;contentType:string;byteSize:number;sha256:string};
+export async function loadReadyPhotoAssetForUser(input:{assetId:string;userId:string;connectionString?:string}):Promise<TrustedBoundAsset|null>{
+  const sql=client(input.connectionString);
+  try{
+    const rows=await sql<Array<{asset_id:string;clean_object_key:string;clean_content_type:string;clean_size_bytes:number;sha256:string}>>`
+      select id as asset_id,clean_object_key,clean_content_type,clean_size_bytes,sha256
+      from photo_assets
+      where id=${input.assetId}::uuid and user_id=${input.userId}::uuid
+        and status='ready' and clean_content_type is not null and clean_size_bytes is not null and sha256 is not null
+      limit 1
+    `;
+    const row=rows[0];
+    return row?{assetId:row.asset_id,cleanObjectKey:row.clean_object_key,contentType:row.clean_content_type,byteSize:row.clean_size_bytes,sha256:row.sha256}:null;
+  }finally{await sql.end({timeout:2});}
+}
+
 export async function loadTrustedAssetsForVersion(input:{resourceVersionId:string;connectionString?:string}):Promise<TrustedBoundAsset[]>{
   const sql=client(input.connectionString);
   try{
