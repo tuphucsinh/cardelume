@@ -681,7 +681,8 @@ async function main() {
   // Assert worker passes budget to director
   const workerDirectorPos = workerSrc.indexOf("generateCreativeDirectorDirections", workerBudgetPos);
   need(workerDirectorPos !== -1, "director must come after budget creation");
-  need(workerSrc.includes("generateCreativeDirectorDirections(provider,brief,pack.all,recentStyles,\"creative_director\",undefined,budget)"), "worker must pass budget to director");
+  const initialDirectorCall = workerSrc.slice(workerDirectorPos, workerSrc.indexOf(";", workerDirectorPos) + 1);
+  need(/generateCreativeDirectorDirections\(provider,brief,[^,]+,recentStyles,\"creative_director\",undefined,budget\)/.test(initialDirectorCall), "worker must pass budget to director");
 
   // Assert worker checks budget and passes to expanded director
   const workerExpandBudgetPos = workerSrc.indexOf("budget.ensureAiBudget();", workerDirectorPos);

@@ -10,7 +10,7 @@
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "node -e \"process.exit(0)\"",
-    "test": "node --experimental-strip-types ../../scripts/template-library-stress.ts"
+    "test": "node --experimental-strip-types ../../scripts/template-library-stress.ts && ../../node_modules/.bin/tsx ../../scripts/perceptual-diversity-selection-stress.ts"
   },
   "devDependencies": {
     "typescript": "^5.9.2"

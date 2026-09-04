@@ -263,13 +263,145 @@ export function hasDiverseEffectiveArchetypes(templates:Array<Pick<TemplateMeta,
   const archetypes=new Set(templates.map(t=>templateArchetype(t)));
   return archetypes.size>=minDistinct;
 }
+
+function categoricalSimilarity(a:unknown,b:unknown){
+  if(typeof a!=="string"||typeof b!=="string"||!a.trim()||!b.trim())return .5;
+  return a===b?1:0;
+}
+
+function cueSimilarity(a?:string[],b?:string[]){
+  const left=new Set((Array.isArray(a)?a:[]).map(norm).filter(Boolean));
+  const right=new Set((Array.isArray(b)?b:[]).map(norm).filter(Boolean));
+  if(!left.size||!right.size)return .5;
+  let intersection=0;
+  for(const cue of left)if(right.has(cue))intersection++;
+  return intersection/(left.size+right.size-intersection);
+}
+
+function numericSimilarity(a:unknown,b:unknown,range:number){
+  if(typeof a!=="number"||typeof b!=="number"||!Number.isFinite(a)||!Number.isFinite(b))return .5;
+  return clamp01(1-Math.abs(a-b)/range);
+}
+
+function layoutSimilarity(a:TemplateMeta,b:TemplateMeta){
+  if(!a.rendererTemplateKey||!b.rendererTemplateKey)return .5;
+  const left=templateLayoutProfile(a.rendererTemplateKey);
+  const right=templateLayoutProfile(b.rendererTemplateKey);
+  const numeric=[
+    numericSimilarity(left.xPct,right.xPct,0.5),
+    numericSimilarity(left.kickerYPct,right.kickerYPct,0.45),
+    numericSimilarity(left.headlineYPct,right.headlineYPct,0.45),
+    numericSimilarity(left.bodyYPct,right.bodyYPct,0.45),
+    numericSimilarity(left.signatureYPct,right.signatureYPct,0.45),
+    numericSimilarity(left.headlineWidthPct,right.headlineWidthPct,35),
+    numericSimilarity(left.bodyWidthPct,right.bodyWidthPct,35),
+    numericSimilarity(left.headlineScale,right.headlineScale,0.5),
+    numericSimilarity(left.bodyScale,right.bodyScale,0.5),
+  ];
+  const categorical=[
+    left.anchor===right.anchor?1:0,
+    left.showBorder===right.showBorder?1:0,
+    left.showSignatureMark===right.showSignatureMark?1:0,
+    Boolean(left.darkSurface)===Boolean(right.darkSurface)?1:0,
+    Boolean(left.photoWindow)===Boolean(right.photoWindow)?1:0,
+  ];
+  return [...numeric,...categorical].reduce((sum,value)=>sum+value,0)/(numeric.length+categorical.length);
+}
+
+/**
+ * Compare the rendered design language represented by two ranked candidates.
+ * This deliberately uses existing catalog/presentation metadata instead of IDs:
+ * two families can still be near-clones when their material, palette, layout,
+ * typography capacity, density, and finish cues converge.
+ */
+export function perceptualSimilarity(a:RankedTemplate,b:RankedTemplate){
+  const left=a.template;
+  const right=b.template;
+  const features=[
+    [categoricalSimilarity(left.materialWorld,right.materialWorld),.14],
+    [cueSimilarity(left.materialCues,right.materialCues),.10],
+    [categoricalSimilarity(left.colorWorld,right.colorWorld),.13],
+    [categoricalSimilarity(left.energy,right.energy),.10],
+    [categoricalSimilarity(left.motionProfile,right.motionProfile),.10],
+    [categoricalSimilarity(left.visualDirection,right.visualDirection),.07],
+    [categoricalSimilarity(templateArchetype(left),templateArchetype(right)),.03],
+    [categoricalSimilarity(left.familyId,right.familyId),.03],
+    [categoricalSimilarity(left.photoMode,right.photoMode),.04],
+    [categoricalSimilarity(left.headlineCapacity,right.headlineCapacity),.02],
+    [categoricalSimilarity(left.bodyCapacity,right.bodyCapacity),.02],
+    [categoricalSimilarity(left.material,right.material),.04],
+    [layoutSimilarity(left,right),.16],
+  ];
+  return clamp01(features.reduce((sum,[value,weight])=>sum+value*weight,0));
+}
+
+/**
+ * Greedy quality-aware reranking for the final direction trio. The first pick
+ * is always the highest-quality ranked candidate; later picks pay only a soft
+ * penalty for resemblance to anything already selected. Input order remains
+ * the deterministic tie-break, so this never creates diversity by randomness.
+ */
+export function selectQualityAwareDiversifiedCandidates(ranked:RankedTemplate[],count=3,options:{requirePhoto?:boolean;requiredArchetypes?:TemplateArchetype[]}={}):RankedTemplate[]{
+  const target=Math.max(0,Math.floor(count));
+  if(!target||!ranked.length)return[];
+  const pool=ranked.map((item,index)=>({item,index}));
+  const selected:Array<{item:RankedTemplate;index:number}>=[];
+  while(selected.length<target){
+    const available=pool.filter(({item})=>{
+      if(selected.some(({item:chosen})=>chosen.template.id===item.template.id))return false;
+      return !selected.some(({item:chosen})=>chosen.template.familyId===item.template.familyId);
+    });
+    if(!available.length)break;
+    let best:{item:RankedTemplate;index:number;adjusted:number;raw:number}|undefined;
+    for(const entry of available){
+      const raw=clamp01(entry.item.score);
+      const similarity=selected.length?Math.max(...selected.map(({item:chosen})=>perceptualSimilarity(entry.item,chosen))):0;
+      const adjusted=raw-similarity*.22;
+      if(!best||adjusted>best.adjusted+1e-9||(Math.abs(adjusted-best.adjusted)<=1e-9&&(raw>best.raw+1e-9||(Math.abs(raw-best.raw)<=1e-9&&entry.index<best.index)))){
+        best={...entry,adjusted,raw};
+      }
+    }
+    if(!best)break;
+    selected.push(best);
+  }
+  let result=selected.map(({item})=>item);
+  const required=[...new Set(options.requiredArchetypes??[])].slice(0,target);
+  if(required.length===target&&result.length===target){
+    const anchor=result[0];
+    const coverage:RankedTemplate[]=[];
+    const anchorArchetype=templateArchetype(anchor.template);
+    if(required.includes(anchorArchetype))coverage.push(anchor);
+    for(const archetype of required){
+      if(coverage.some(item=>templateArchetype(item.template)===archetype))continue;
+      const optionsForSlot=pool.filter(({item})=>templateArchetype(item.template)===archetype&&!coverage.some(chosen=>chosen.template.id===item.template.id||chosen.template.familyId===item.template.familyId));
+      let best:{item:RankedTemplate;index:number;adjusted:number;raw:number}|undefined;
+      for(const entry of optionsForSlot){
+        const raw=clamp01(entry.item.score);
+        const similarity=coverage.length?Math.max(...coverage.map(chosen=>perceptualSimilarity(entry.item,chosen))):0;
+        const adjusted=raw-similarity*.22;
+        if(!best||adjusted>best.adjusted+1e-9||(Math.abs(adjusted-best.adjusted)<=1e-9&&(raw>best.raw+1e-9||(Math.abs(raw-best.raw)<=1e-9&&entry.index<best.index))))best={...entry,adjusted,raw};
+      }
+      if(best)coverage.push(best.item);
+    }
+    if(coverage.length===target){
+      const greedyAverage=result.reduce((sum,item)=>sum+clamp01(item.score),0)/target;
+      const coverageAverage=coverage.reduce((sum,item)=>sum+clamp01(item.score),0)/target;
+      if(coverageAverage>=greedyAverage-.20)result=coverage;
+    }
+  }
+  if(options.requirePhoto){
+    const photoIndex=result.findIndex(item=>item.template.photoMode==="required"||item.template.visualDirection==="photo");
+    if(photoIndex>=0&&photoIndex!==result.length-1){
+      const [photoCandidate]=result.splice(photoIndex,1);
+      result.push(photoCandidate);
+    }
+  }
+  return result;
+}
+
 export function selectGenerationTemplates(templates:TemplateMeta[],input:TemplateRankInput){
-  // Backward-compatible deterministic fallback only. Step 13 normal generation uses
-  // buildCreativeCandidatePack() and lets the premium AI Creative Director choose.
-  const ranked=rankTemplates(templates,input);const slots:TemplateArchetype[]=input.hasPhoto?["editorial","midnight","photo"]:["editorial","midnight","quiet"];
-  const used=new Set<string>();const out:RankedTemplate[]=[];
-  for(const slot of slots){const pick=ranked.find(item=>!used.has(item.template.id)&&templateArchetype(item.template)===slot);if(!pick)continue;out.push(pick);used.add(pick.template.id);}
-  return out;
+  // Deterministic fallback shares the same perceptual final-selection policy as initial generation.
+  return selectQualityAwareDiversifiedCandidates(rankTemplates(templates,input),3,{requirePhoto:input.hasPhoto,requiredArchetypes:input.hasPhoto?["editorial","midnight","photo"]:["editorial","midnight","quiet"]});
 }
 
 const F="portrait-5x7,folded-5x7,square-5x5,landscape-7x5,postcard-6x4".split(",");
@@ -560,7 +692,7 @@ export const curatedFallbackPresentations: Record<TemplateArchetype, CanonicalPr
     { hasPhoto: true }
   ),
   quiet: resolveCanonicalPresentationFromTemplate(
-    bootstrapTemplates.find(t => t.slug === "classic-letterpress")!
+    bootstrapTemplates.find(t => t.slug === "botanical-poise")!
   )
 };
 

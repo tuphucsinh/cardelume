@@ -6,7 +6,7 @@ import { createBoss, ensureCardeLumeQueues, QUEUES } from "@cardelume/queue";
 import { assertRendererFontsReady, CURRENT_RENDERER_VERSION, renderProductionFinal } from "@cardelume/renderer";
 import { R2ObjectStorage } from "@cardelume/storage";
 import { z } from "zod";
-import { buildCreativeCandidatePack, expandedCreativeCandidatePool, selectGenerationTemplates, type TemplateRankInput, type RecentStyleFingerprint } from "@cardelume/templates";
+import { buildCreativeCandidatePack, expandedCreativeCandidatePool, selectGenerationTemplates, selectQualityAwareDiversifiedCandidates, type TemplateArchetype, type TemplateRankInput, type RecentStyleFingerprint } from "@cardelume/templates";
 import { assertEnvironmentIsolation } from "@cardelume/core";
 
 assertEnvironmentIsolation(process.env);
@@ -76,28 +76,33 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
     // Refresh evidence is intentionally soft. It nudges novelty but cannot veto the best candidate.
     const recentStyles:RecentStyleFingerprint[]=[...refreshRecent,...persistedRecent.map(r=>({familyId:r.familyId,templateId:r.templateId??undefined,visualDirection:r.visualDirection,accentMode:r.accentMode??undefined,createdAt:r.createdAt??undefined}))].slice(0,8);
     const narrowedRankInput:TemplateRankInput={market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.feeling,occasion:brief.occasion,hasPhoto:brief.hasPhoto,recentStyles};
+    const requiredArchetypes:TemplateArchetype[]=brief.hasPhoto?["editorial","midnight","photo"]:["editorial","midnight","quiet"];
     rankInput=narrowedRankInput;
     const pack=buildCreativeCandidatePack(catalog,narrowedRankInput);
     if(pack.all.length<3)throw new Error("ai_template_candidates_insufficient");
+    let candidatePool=selectQualityAwareDiversifiedCandidates(pack.all,3,{requirePhoto:brief.hasPhoto,requiredArchetypes});
+    if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
     const budget=createGenerationBudget();
     const provider=createAIProviderFromEnv();
     let outcome:CreativeDirectorOutcome;const directorStarted=Date.now();
-    try{outcome=await generateCreativeDirectorDirections(provider,brief,pack.all,recentStyles,"creative_director",undefined,budget);await persistAiTelemetry(payload.data.jobId,outcome.telemetry);}catch(error){await persistAiTelemetry(payload.data.jobId,{phase:"creative_director",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-directorStarted,success:false,errorCode:error instanceof Error?error.message:"generation_provider_failed"});throw error;}
-    let candidatePool=pack.all;
+    try{outcome=await generateCreativeDirectorDirections(provider,brief,candidatePool,recentStyles,"creative_director",undefined,budget);await persistAiTelemetry(payload.data.jobId,outcome.telemetry);}catch(error){await persistAiTelemetry(payload.data.jobId,{phase:"creative_director",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-directorStarted,success:false,errorCode:error instanceof Error?error.message:"generation_provider_failed"});throw error;}
     if(outcome.kind==="expand_pool"){
       budget.ensureAiBudget();
       const priorCritique={reasonCode:outcome.reasonCode,desiredTraits:outcome.desiredTraits};
-      candidatePool=expandedCreativeCandidatePool(catalog,narrowedRankInput,16);
+      candidatePool=selectQualityAwareDiversifiedCandidates(expandedCreativeCandidatePool(catalog,narrowedRankInput,16),3,{requirePhoto:brief.hasPhoto,requiredArchetypes});
       if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
       const expandedStarted=Date.now();
       try{outcome=await generateCreativeDirectorDirections(provider,brief,candidatePool,recentStyles,"expanded_director",priorCritique,budget);await persistAiTelemetry(payload.data.jobId,outcome.telemetry);}catch(error){await persistAiTelemetry(payload.data.jobId,{phase:"expanded_director",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-expandedStarted,success:false,errorCode:error instanceof Error?error.message:"generation_provider_failed"});throw error;}
       if(outcome.kind!=="ready")throw new Error("ai_creative_range_insufficient");
     }
     if(outcome.kind!=="ready")throw new Error("ai_creative_range_insufficient");
-    let result=outcome.result;const risks=creativeQualityRisks(result,brief,recentStyles);
+    let result=outcome.result;const risks=creativeQualityRisks(result,brief,recentStyles,candidatePool);
     const criticTriggers=new Set(["creative_range","copy_risk","low_confidence","low_wow","market_tension","low_novelty"]);
     const premiumCritical=new Set(["creative_range","copy_risk","low_confidence","low_wow"]);
-    if(risks.includes("creative_range")&&candidatePool.length<12)candidatePool=expandedCreativeCandidatePool(catalog,narrowedRankInput,16);
+    if(risks.includes("creative_range")&&candidatePool.length<12){
+      candidatePool=selectQualityAwareDiversifiedCandidates(expandedCreativeCandidatePool(catalog,narrowedRankInput,16),3,{requirePhoto:brief.hasPhoto,requiredArchetypes});
+      if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
+    }
     if(risks.some(r=>criticTriggers.has(r))){
       budget.ensureAiBudget();
       const criticStarted=Date.now();
@@ -109,7 +114,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
         await persistAiTelemetry(payload.data.jobId,{phase:"critic_repair",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-criticStarted,success:false,errorCode:error instanceof Error?error.message:"ai_critic_failed"});
         if(risks.some(r=>premiumCritical.has(r))||(error instanceof Error&&(error.message==="ai_budget_exhausted"||error.message==="ai_provider_timeout")))throw error;
       }
-      const remaining=creativeQualityRisks(result,brief,recentStyles);
+      const remaining=creativeQualityRisks(result,brief,recentStyles,candidatePool);
       if(remaining.some(r=>premiumCritical.has(r)))throw new Error("ai_premium_quality_not_met");
     }
     await completeGenerationJob({jobId:payload.data.jobId,result});
