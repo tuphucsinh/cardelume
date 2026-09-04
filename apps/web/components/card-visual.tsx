@@ -1,27 +1,29 @@
-import type { CSSProperties } from "react";
+import React, { type CSSProperties } from "react";
 import type { VisualDirection } from "@cardelume/templates";
 import type { PhotoPalette } from "./photo-palette";
-import { cardPhotoContrastPalette } from "@cardelume/card-schema";
+import { cardPhotoContrastPalette, type CanonicalPresentation } from "@cardelume/card-schema";
 import { magicTypography, type MagicType } from "./magic-typography";
 import type { LocaleCode } from "../i18n/messages";
 
 type Props = {
-  direction:VisualDirection;
-  compact?:boolean;
-  recipient?:string;
-  detail?:string;
-  kicker?:string;
-  headline?:string;
-  body?:string;
-  photoUrl?:string|null;
-  photoPalette?:PhotoPalette|null;
-  watermark?:boolean;
-  className?:string;
-  transitionName?:string;
-  accentMode?:"original"|"photo"|"navy"|"sage"|"rose";
-  locale?:LocaleCode;
-  format?:string;
-  fitOverride?:MagicType;
+  direction?: VisualDirection;
+  presentation?: CanonicalPresentation | null;
+  requirePresentation?: boolean;
+  compact?: boolean;
+  recipient?: string;
+  detail?: string;
+  kicker?: string;
+  headline?: string;
+  body?: string;
+  photoUrl?: string|null;
+  photoPalette?: PhotoPalette|null;
+  watermark?: boolean;
+  className?: string;
+  transitionName?: string;
+  accentMode?: "original"|"photo"|"navy"|"sage"|"rose";
+  locale?: LocaleCode;
+  format?: string;
+  fitOverride?: MagicType;
 };
 
 const copy:Record<VisualDirection,{kicker:string;title:string;body:string}>={
@@ -55,6 +57,10 @@ const copy:Record<VisualDirection,{kicker:string;title:string;body:string}>={
   softfold:{kicker:"GENTLY HELD",title:"A wish with room around it.",body:"Softly composed for a moment that matters."}
 };
 
+function isVisualDirection(value: unknown): value is VisualDirection {
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(copy, value);
+}
+
 function accentPalette(mode:Props["accentMode"],photoPalette?:PhotoPalette|null){
   if(mode==="photo"&&photoPalette)return{primary:photoPalette.primary,secondary:photoPalette.secondary,accent:photoPalette.accent};
   if(mode==="navy")return{primary:"#0b1730",secondary:"#f3ead8",accent:"#c3a16c"};
@@ -64,44 +70,116 @@ function accentPalette(mode:Props["accentMode"],photoPalette?:PhotoPalette|null)
 }
 
 export function CardVisual({
-  direction,compact,recipient,detail,kicker,headline,body,photoUrl,photoPalette,watermark=false,
+  direction,presentation,requirePresentation=false,compact,recipient,detail,kicker,headline,body,photoUrl,photoPalette,watermark=false,
   className="",transitionName,accentMode="original",locale="en",format="Portrait · 5 × 7 in",fitOverride
 }:Props){
-  const c=copy[direction];
+  let resolvedDirection: VisualDirection | null = null;
+  if (presentation) {
+    if (isVisualDirection(presentation.visualDirection)) {
+      resolvedDirection = presentation.visualDirection;
+    }
+  } else if (!requirePresentation && isVisualDirection(direction)) {
+    resolvedDirection = direction;
+  }
+
+  if (!resolvedDirection) {
+    return(
+      <div lang={locale} className={`paper-card paper-card-unavailable ${compact?"paper-card-compact":""} ${className}`} role="status" aria-label="Preview unavailable">
+        <div className="material-grain" aria-hidden="true"/>
+        <div className="card-copy" style={{textAlign:"center",justifyContent:"center"}}>
+          <span className="card-kicker">CARDELUME</span>
+          <p style={{color:"var(--muted)",margin:"10px auto"}}>Preview unavailable</p>
+        </div>
+      </div>
+    );
+  }
+
+  const c=copy[resolvedDirection];
   const resolvedHeadline=headline??(recipient?c.title.replace(/\byou\b/gi,recipient):c.title);
   const resolvedBody=body??detail??c.body;
   const type=fitOverride??magicTypography(resolvedHeadline,resolvedBody,{locale,format});
   const palette=accentPalette(accentMode,photoPalette);
   const contrastPalette=accentMode==="photo"&&photoPalette?cardPhotoContrastPalette(photoPalette):null;
+
+  const layout = presentation?.layout;
+  const headlineScale = layout?.headlineScale ?? 1;
+  const bodyScale = layout?.bodyScale ?? 1;
+  const headlinePx = Math.round((compact ? Math.min(type.headlinePx, 34) : type.headlinePx) * headlineScale);
+  const bodyPx = Math.round((compact ? Math.min(type.bodyPx, 10) : type.bodyPx) * bodyScale);
+  const headlineWidthPct = layout ? Math.min(type.headlineMaxWidthPct, layout.headlineWidthPct) : type.headlineMaxWidthPct;
+  const bodyWidthPct = layout ? Math.min(type.bodyMaxWidthPct, layout.bodyWidthPct) : type.bodyMaxWidthPct;
+  const showSignatureMark = layout ? layout.showSignatureMark : true;
+
+  const photoSupported = presentation ? (presentation.photoSupported || presentation.photoMode !== "none") : (resolvedDirection === "photo" || resolvedDirection === "memory");
+  const showPhoto = Boolean(photoUrl && photoSupported);
+
   const style={
-    "--magic-headline":`${compact?Math.min(type.headlinePx,34):type.headlinePx}px`,
-    "--magic-body":`${compact?Math.min(type.bodyPx,10):type.bodyPx}px`,
+    "--magic-headline":`${headlinePx}px`,
+    "--magic-body":`${bodyPx}px`,
     "--magic-tracking":`${type.trackingEm}em`,
     "--magic-headline-leading":String(type.headlineLineHeight),
     "--magic-body-leading":String(type.bodyLineHeight),
-    "--magic-headline-width":`${type.headlineMaxWidthPct}%`,
-    "--magic-body-width":`${type.bodyMaxWidthPct}%`,
+    "--magic-headline-width":`${headlineWidthPct}%`,
+    "--magic-body-width":`${bodyWidthPct}%`,
     ...(palette?{"--photo-primary":palette.primary,"--photo-secondary":palette.secondary,"--photo-accent":palette.accent}:{}),
     ...(contrastPalette?{
       "--photo-bg":contrastPalette.background,"--photo-bg-alt":contrastPalette.backgroundAlt,"--photo-fg":contrastPalette.foreground,
       "--photo-accent-safe":contrastPalette.accent,"--photo-dark-bg":contrastPalette.darkBackground,"--photo-dark-bg-alt":contrastPalette.darkBackgroundAlt,
       "--photo-dark-fg":contrastPalette.darkForeground,"--photo-dark-accent-safe":contrastPalette.darkAccent
     }:{}),
+    ...(layout?.darkSurface && accentMode === "original" ? {
+      background: "radial-gradient(circle at 72% 12%, rgba(216, 192, 149, .08), transparent 24%), linear-gradient(145deg, #07142c, #112747)",
+      color: "#f4ead9"
+    } : {}),
     ...(transitionName?{viewTransitionName:transitionName}:{})
   } as CSSProperties & Record<string,string>;
 
+  const textAlign = layout ? (layout.anchor === "start" ? "left" : layout.anchor === "end" ? "right" : "center") : undefined;
+  const alignItems = layout ? (layout.anchor === "start" ? "flex-start" : layout.anchor === "end" ? "flex-end" : "center") : undefined;
+  const copyBlockStyle: CSSProperties = layout?.anchor === "start"
+    ? { marginLeft: 0, marginRight: "auto" }
+    : (layout?.anchor === "end" ? { marginLeft: "auto", marginRight: 0 } : {});
+
   return(
-    <div lang={locale} className={`paper-card card-${direction} density-${type.density} script-${type.script} ${compact?"paper-card-compact":""} ${photoPalette?"has-extracted-palette":""} ${accentMode!=="original"?`accent-${accentMode}`:""} ${className}`} style={style}>
+    <div
+      lang={locale}
+      className={`paper-card card-${resolvedDirection} ${presentation ? `template-${presentation.rendererTemplateKey} archetype-${presentation.archetype}` : ""} density-${type.density} script-${type.script} ${compact?"paper-card-compact":""} ${photoPalette?"has-extracted-palette":""} ${accentMode!=="original"?`accent-${accentMode}`:""} ${className}`}
+      style={style}
+      data-template-id={presentation?.templateId}
+      data-template-version-id={presentation?.templateVersionId}
+      data-renderer-template-key={presentation?.rendererTemplateKey}
+      data-archetype={presentation?.archetype}
+      data-visual-direction={resolvedDirection}
+    >
       <div className="material-grain" aria-hidden="true"/>
       <div className="card-art" aria-hidden="true">
-        {(direction==="photo"||direction==="memory")&&photoUrl?<span className="photo-art" style={{backgroundImage:`url(${photoUrl})`}}/>:null}
+        {showPhoto ? (
+          <span
+            className="photo-art"
+            style={{
+              backgroundImage:`url(${photoUrl})`,
+              ...(layout?.photoWindow ? {
+                left: `${layout.photoWindow.xPct * 100}%`,
+                top: `${layout.photoWindow.yPct * 100}%`,
+                width: `${layout.photoWindow.widthPct * 100}%`,
+                height: `${layout.photoWindow.heightPct * 100}%`
+              } : {})
+            }}
+          />
+        ) : null}
         <span className="art-a"/><span className="art-b"/><span className="art-c"/>
       </div>
-      <div className="card-copy">
+      <div
+        className="card-copy"
+        style={{
+          ...(textAlign ? { textAlign } : {}),
+          ...(alignItems ? { alignItems } : {})
+        }}
+      >
         <span className="card-kicker">{kicker??c.kicker}</span>
-        <h3>{resolvedHeadline}</h3>
-        <p>{resolvedBody}</p>
-        <span className="card-spark">✦</span>
+        <h3 style={copyBlockStyle}>{resolvedHeadline}</h3>
+        <p style={copyBlockStyle}>{resolvedBody}</p>
+        {showSignatureMark ? <span className="card-spark">✦</span> : null}
       </div>
       {watermark?<div className="preview-watermark" aria-hidden="true"><span>CARDELUME</span><i/>PREVIEW</div>:null}
     </div>

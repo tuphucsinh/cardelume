@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BrandMark } from "./brand-mark";
 import { LanguageSwitcher } from "./language-switcher";
+import { PhysicalEffectsControl } from "./physical-effects";
 import type { LocaleCode, Messages } from "../i18n/messages";
 import { launchCopy } from "../i18n/launch-copy";
 
@@ -19,6 +20,7 @@ export function SiteHeader({ compact=false, locale="en", messages, currentPath="
         </Link>
         <div className="nav-actions">
           <LanguageSwitcher locale={locale} currentPath={currentPath} label={messages.header.chooseLanguage} reviewMarket={reviewMarket}/>
+          <PhysicalEffectsControl locale={locale}/>
           <Link className="button nav-cta" href={createHref}>{messages.header.create}</Link>
         </div>
       </div>

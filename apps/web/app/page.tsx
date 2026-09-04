@@ -4,13 +4,14 @@ import { step17jShowcaseTemplatesForEnvironment } from "@cardelume/templates";
 import { SiteHeader } from "../components/site-header";
 import { CardVisual } from "../components/card-visual";
 import { BrandMark } from "../components/brand-mark";
-import { getMessages } from "../i18n/messages";
+import { getMessages, withoutRecipient } from "../i18n/messages";
 import { requestLocale } from "../i18n/locale.server";
-import { styleDisplay } from "../i18n/display-copy";
 import { launchCopy } from "../i18n/launch-copy";
+import { betaCopy } from "../i18n/beta-copy";
 import { singleOffer } from "../lib/market-pricing.server";
 import { MobileStickyCta } from "../components/mobile-sticky-cta";
 import { PhysicalCardSurface } from "../components/physical-effects";
+import { ProductProofSection } from "../components/product-proof-section";
 import { legalIdentity } from "../lib/legal-identity.server";
 
 export default async function HomePage({searchParams}:{searchParams:Promise<{lang?:string|string[];market?:string|string[]}>}) {
@@ -18,6 +19,8 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
   const locale=await requestLocale(params.lang,params.market);
   const m=getMessages(locale);
   const launch=launchCopy(locale);
+  const beta=betaCopy(locale);
+  const paymentMode:"off"|"on"=(process.env.PAYMENT_MODE??"on").trim().toLowerCase()==="off"?"off":"on";
   const price=await singleOffer(params.market);
   const identity=legalIdentity();
   const marketQuery=(process.env.APP_MODE ?? "mock")==="mock" && params.market ? `&market=${Array.isArray(params.market)?params.market[0]:params.market}` : "";
@@ -26,12 +29,12 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
   const samples=[
     {k:m.studio.copy.birthdayKicker,h:m.studio.copy.editorialHeadline,b:m.studio.copy.editorialBody},
     {k:m.studio.copy.birthdayKicker,h:m.studio.copy.midnightHeadline,b:m.studio.copy.midnightBody},
-    {k:m.studio.copy.birthdayKicker,h:m.studio.copy.birthdayHeadline.replace("{name}",""),b:m.studio.copy.birthdayBody},
-    {k:m.studio.copy.thankKicker,h:m.studio.copy.thankHeadline.replace("{name}",""),b:m.studio.copy.thankBody},
-    {k:m.studio.copy.anniversaryKicker,h:m.studio.copy.anniversaryHeadline.replace("{name}",""),b:m.studio.copy.anniversaryBody},
-    {k:m.studio.copy.congratsKicker,h:m.studio.copy.congratsHeadline.replace("{name}",""),b:m.studio.copy.congratsBody},
+    {k:m.studio.copy.birthdayKicker,h:withoutRecipient(m.studio.copy.birthdayHeadline),b:m.studio.copy.birthdayBody},
+    {k:m.studio.copy.thankKicker,h:withoutRecipient(m.studio.copy.thankHeadline),b:m.studio.copy.thankBody},
+    {k:m.studio.copy.anniversaryKicker,h:withoutRecipient(m.studio.copy.anniversaryHeadline),b:m.studio.copy.anniversaryBody},
+    {k:m.studio.copy.congratsKicker,h:m.studio.copy.editorialHeadline,b:m.studio.copy.congratsBody},
     {k:m.studio.copy.birthdayKicker,h:m.studio.copy.photoHeadline,b:m.studio.copy.photoBody},
-    {k:m.studio.copy.formalBirthdayKicker,h:m.studio.copy.formalBirthdayHeadline.replace("{name}",""),b:m.studio.copy.formalBirthdayBody}
+    {k:m.studio.copy.formalBirthdayKicker,h:withoutRecipient(m.studio.copy.formalBirthdayHeadline),b:m.studio.copy.formalBirthdayBody}
   ];
 
   return (
@@ -63,31 +66,24 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
           </div>
         </section>
 
-        {marketingTemplates.length>0?<section className="paper-section gallery-showroom deferred-section" id="styles">
-          <div className="shell section-head gallery-head">
-            <div>
-              <span className="eyebrow">{m.home.galleryEyebrow}</span>
-              <h2><span className="display-line">{m.home.galleryA}</span>{" "}<span className="display-line">{m.home.galleryB}</span></h2>
-            </div>
-            <p>{m.home.galleryDesc}</p>
-          </div>
-          <div className="shell showroom-note"><span>16 art-directed worlds</span><i/><span>Collection presentation · AI still chooses 3 in Studio</span></div>
-          <div className="shell style-grid step17j-style-grid">
-            {marketingTemplates.slice(0,16).map((t,index)=>{
-              const display=styleDisplay(locale,t.name,t.material);
-              const sample=samples[index%samples.length] ?? samples[0];
-              return <article className={`style-card step17j-style-card gallery-world-${t.materialWorld}`} key={t.id} data-template-slug={t.slug}>
-                <div className="style-stage step17j-style-stage">
-                  <PhysicalCardSurface className="gallery-physical" intensity={.92}>
-                    <CardVisual direction={t.visualDirection} compact locale={locale} kicker={sample.k} headline={sample.h} body={sample.b}/>
-                  </PhysicalCardSurface>
-                </div>
-                <div className="style-meta step17j-style-meta"><small>{display.material}</small><h3>{display.name}</h3></div>
-              </article>;
-            })}
-          </div>
-          <div className="center-action gallery-cta"><Link className="button button-secondary" href={createHref}>{m.home.galleryCta}</Link><small>Browse the collection here. In Studio, CardeLume keeps the work simple and composes three directions for you.</small></div>
-        </section>:null}
+        {marketingTemplates.length>0?(
+          <ProductProofSection
+            locale={locale}
+            messages={{
+              home: { galleryCta: m.home.galleryCta },
+              studio: {
+                occasion: m.studio.occasion,
+                recipient: m.studio.recipient,
+                feel: m.studio.feel,
+                detail: m.studio.detail,
+                copy: m.studio.copy
+              }
+            }}
+            createHref={createHref}
+            templates={marketingTemplates}
+            isProduction={(process.env.APP_ENV ?? "") === "production"}
+          />
+        ):null}
 
         <section className="shell how-section deferred-section">
           <span className="eyebrow">{m.home.howEyebrow}</span>
@@ -99,17 +95,33 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
 
         <section className="dark-section deferred-section">
           <div className="shell purchase-story">
-            <div>
-              <span className="eyebrow eyebrow-light">{m.home.priceEyebrow}</span>
-              <h2>{m.home.priceTitle}</h2>
-              <p>{launch.instantDigital} · {launch.noPhysical}</p>
-            </div>
-            <div className="price-card">
-              <span className="price">{price.display}</span>
-              <span>{m.home.oneTime}</span>
-              <small className="price-digital-note">{launch.filesReady}</small>
-              <Link className="button button-gold" href={createHref}>{m.home.priceCta}</Link>
-            </div>
+            {paymentMode === "off" ? (
+              <>
+                <div>
+                  <span className="eyebrow eyebrow-light">{beta.eyebrow}</span>
+                  <h2>{m.home.priceTitle}</h2>
+                  <p>{launch.noPhysical}</p>
+                </div>
+                <div className="price-card">
+                  <p>{beta.description}</p>
+                  <Link className="button button-gold" href={createHref}>{m.home.create}</Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <span className="eyebrow eyebrow-light">{m.home.priceEyebrow}</span>
+                  <h2>{m.home.priceTitle}</h2>
+                  <p>{launch.instantDigital} · {launch.noPhysical}</p>
+                </div>
+                <div className="price-card">
+                  <span className="price">{price.display}</span>
+                  <span>{m.home.oneTime}</span>
+                  <small className="price-digital-note">{launch.filesReady}</small>
+                  <Link className="button button-gold" href={createHref}>{m.home.priceCta}</Link>
+                </div>
+              </>
+            )}
           </div>
         </section>
       </main>

@@ -1,8 +1,8 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
-import { cardTypographyScript, CheckoutCardSnapshotSchema } from "@cardelume/card-schema";
+import { cardTypographyScript, CheckoutCardSnapshotSchema, assertCanonicalPresentationIdentity } from "@cardelume/card-schema";
 import { loadReadyPhotoAssetForUser, getManagedTemplateForCheckout } from "@cardelume/db";
-import { renderProductionFinal } from "@cardelume/renderer";
+import { renderBetaExportArtifact } from "../../../../lib/beta-export-render";
 import { R2ObjectStorage } from "@cardelume/storage";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -43,24 +43,30 @@ export async function POST(req:Request){
     const rate=await checkUserRateLimit("beta_export",anon.data);
     if(!rate.allowed)return NextResponse.json({error:"rate_limited"},{status:429,headers:{"retry-after":String(rate.retryAfterSeconds),"cache-control":"no-store"}});
 
-    const managedTemplate=parsed.data.card.templateId&&parsed.data.card.templateVersionId
-      ?await getManagedTemplateForCheckout({templateId:parsed.data.card.templateId,templateVersionId:parsed.data.card.templateVersionId})
-      :null;
-    if(parsed.data.card.templateId&&!managedTemplate)throw new Error("template_not_available");
-    if(managedTemplate){
-      if(!managedTemplate.supportedFormats.includes(parsed.data.card.format))throw new Error("template_format_not_supported");
-      if(!managedTemplate.scriptSupport.includes(cardTypographyScript(parsed.data.card.locale)))throw new Error("template_script_not_supported");
-    }
+    const cardIdentity=assertCanonicalPresentationIdentity({
+      templateId:parsed.data.card.templateId,
+      templateVersionId:parsed.data.card.templateVersionId,
+      visualDirection:(parsed.data.card as {visualDirection?:unknown}).visualDirection
+    });
+
+    const managedTemplate=await getManagedTemplateForCheckout({
+      templateId:cardIdentity.templateId,
+      templateVersionId:cardIdentity.templateVersionId
+    }).catch(()=>null);
+
+    if(!managedTemplate)throw new Error("template_not_available");
+    if(!managedTemplate.supportedFormats.includes(parsed.data.card.format))throw new Error("template_format_not_supported");
+    if(!managedTemplate.scriptSupport.includes(cardTypographyScript(parsed.data.card.locale)))throw new Error("template_script_not_supported");
 
     const document=buildCheckoutCardDocument({
       versionId:randomUUID(),
       snapshot:parsed.data.card,
-      managedTemplate:managedTemplate?{
+      managedTemplate:{
         rendererTemplateKey:managedTemplate.renderer_template_key,
         version:managedTemplate.version,
         templateVersionId:managedTemplate.template_version_id,
         photoMode:managedTemplate.photo_mode
-      }:undefined
+      }
     });
 
     const assets:Record<string,{bytes:Uint8Array;contentType:"image/jpeg"}>={};
@@ -74,7 +80,7 @@ export async function POST(req:Request){
       assets[assetId]={bytes:object.bytes,contentType:"image/jpeg"};
     }
 
-    const rendered=await renderProductionFinal(document,{assets});
+    const rendered=await renderBetaExportArtifact({document, assets});
     const bytes=parsed.data.assetKind==="jpg"?rendered.jpg:rendered.pdf;
     const contentType=parsed.data.assetKind==="jpg"?"image/jpeg":"application/pdf";
     const extension=parsed.data.assetKind==="jpg"?"jpg":"pdf";
@@ -87,8 +93,36 @@ export async function POST(req:Request){
       "x-content-type-options":"nosniff"
     }});
   }catch(error){
-    const code=error instanceof Error?error.message:"beta_export_failed";
-    const clientCode=new Set(["photo_asset_not_ready_or_owned","photo_asset_object_mismatch","photo_asset_integrity_mismatch","template_not_available","template_format_not_supported","template_script_not_supported","typography_copy_too_dense","photo_accent_requires_asset","photo_palette_required"]);
-    return errorResponse(clientCode.has(code)?code:"beta_export_unavailable",clientCode.has(code)?409:503);
+    const rawCode=error instanceof Error?error.message:"beta_export_failed";
+    const clientCode=new Set([
+      "photo_asset_not_ready_or_owned",
+      "photo_asset_object_mismatch",
+      "photo_asset_integrity_mismatch",
+      "template_not_available",
+      "template_format_not_supported",
+      "template_script_not_supported",
+      "typography_copy_too_dense",
+      "photo_accent_requires_asset",
+      "photo_palette_required",
+      "template_identity_required",
+      "missing_template_identity",
+      "partial_template_identity_rejected",
+      "invalid_presentation_identity",
+      "invalid_template_identity",
+      "template_identity_incomplete"
+    ]);
+    const isClient=clientCode.has(rawCode)||
+      rawCode.startsWith("missing_template_identity")||
+      rawCode.startsWith("partial_template_identity_rejected")||
+      rawCode.startsWith("invalid_presentation_identity")||
+      rawCode.startsWith("invalid_template_identity")||
+      rawCode.startsWith("template_identity_required");
+    const code=rawCode.startsWith("missing_template_identity")?"missing_template_identity":
+      rawCode.startsWith("partial_template_identity_rejected")?"partial_template_identity_rejected":
+      rawCode.startsWith("invalid_presentation_identity")?"invalid_presentation_identity":
+      rawCode.startsWith("invalid_template_identity")?"invalid_template_identity":
+      rawCode.startsWith("template_identity_required")?"template_identity_required":
+      rawCode;
+    return errorResponse(isClient?code:"beta_export_unavailable",isClient?409:503);
   }
 }

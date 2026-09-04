@@ -153,7 +153,7 @@ a791921ecc1108e97cd5c7155eacd80939f61e20f7d6950478fcb62ef24ecbef  ./apps/web/nex
 247d05b3b4d43231813d4808ac657fcb025cd04d1e188f6a4d4df90a0e2179d1  ./apps/web/package.json
 40bf821eea7b005ae39f86487c4861702f696fb1cdc0767caa099df0c5217233  ./apps/web/proxy.ts
 821b206db32e4f44b1d098c2902661f43eb03829421a9fb1cdc92d7614462a7a  ./apps/web/public/brand/cardelume-icon.png
-710c5ce04967a59e05f78ebed3d10a120a84b625297c18a682106f5803620d46  ./apps/web/public/brand/og-card.png
+a51189e1262ebdebe043c75b348237cb690d8b8ba4aa0222f3f7521524b69467  ./apps/web/public/brand/og-card.png
 38087da5ede2da341980acd49f9b4744a6ad6756e8af5a2aa257df9420986401  ./apps/web/tsconfig.json
 b8998e8365c1460f7458a9a1b7bfef41840d7851ad13c6ff840ec329dd212784  ./apps/worker/package.json
 0a15a2ecb7d4c14c25f609076e80da664f300075255b032c496e69b3fbf6d72d  ./apps/worker/src/index.ts

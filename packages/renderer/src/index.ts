@@ -1,12 +1,19 @@
 import { Buffer } from "node:buffer";
 import {
+  CARD_BODY_MIN_CSS_PX,
   CARD_BODY_MIN_RENDER_PX,
   CardDocumentSchema,
+  CanonicalPresentationSchema,
+  PresentationLayoutProfileSchema,
   cardCopyMetrics,
   cardFormatFactor,
   cardPhotoContrastPalette,
   cardVisualLength,
-  type CardDocument
+  enforceReadableBodyFloor,
+  type CardDocument,
+  type CanonicalPresentation,
+  type PresentationLayoutProfile,
+  type RendererTypographyContract
 } from "@cardelume/card-schema";
 import { Resvg } from "@resvg/resvg-js";
 import sharp from "sharp";
@@ -44,16 +51,25 @@ const templateOriginalPalettes:Partial<Record<string,{bg:string;fg:string;accent
 
 export type RenderAsset={bytes:Uint8Array;contentType:"image/jpeg"|"image/png"|"image/webp"};
 export type RenderAssets=Readonly<Record<string,RenderAsset>>;
-export type RenderSvgOptions={watermark?:boolean;assets?:RenderAssets};
+export type RenderSvgOptions={watermark?:boolean;assets?:RenderAssets;presentation?:CanonicalPresentation};
 export type RasterizeSvg=(svg:string,input:{width:number;height:number;locale:string})=>Promise<Uint8Array>|Uint8Array;
 
 export type ProductionRenderMetadata={
   format:CardDocument["format"];
   rendererVersion:string;
   deterministicKey:string;
+  presentation?:CanonicalPresentation;
   jpg:{widthPx:number;heightPx:number;dpi:300;contentType:"image/jpeg"};
   pdf:{widthIn:number;heightIn:number;pageCount:number;contentType:"application/pdf";layout:CardFormatSpec["pdf"]["layout"]};
 };
+
+export function rendererTextSafeInset(format:CardDocument["format"]){
+  const spec=getCardFormatSpec(format);
+  const min=Math.min(spec.front.widthPx,spec.front.heightPx);
+  const formatInset=Math.round(min*(spec.safeMarginIn/Math.min(spec.front.widthIn,spec.front.heightIn)));
+  const frameInset=Math.round(min*.073);
+  return Math.max(formatInset,frameInset)+Math.round(min*.035);
+}
 
 export function fitTypography(headline:string,body:string,locale="en",format:CardDocument["format"]="portrait-5x7"){
   const metrics=cardCopyMetrics(headline,body,locale,format);
@@ -64,8 +80,11 @@ export function fitTypography(headline:string,body:string,locale="en",format:Car
   if(density==="balanced"){headlinePx-=13;bodyPx-=3;}if(density==="compact"){headlinePx-=25;bodyPx-=6;}if(pressure>1.65){headlinePx-=7;bodyPx-=2;}
   headlinePx*=ff;
   bodyPx=Math.max(CARD_BODY_MIN_RENDER_PX,bodyPx);
+  const bodyCssPx=Math.max(CARD_BODY_MIN_CSS_PX,Math.round((bodyPx*(CARD_BODY_MIN_CSS_PX/CARD_BODY_MIN_RENDER_PX))*10)/10);
+  const contract=enforceReadableBodyFloor(bodyCssPx,bodyPx);
   return{
-    headlinePx:Math.round(headlinePx),bodyPx:Math.round(bodyPx),trackingEm:script==="latin"?(density==="compact"?-.03:-.02):0,
+    headlinePx:Math.round(headlinePx),bodyPx:contract.bodyRenderPx,bodyCssPx:contract.bodyCssPx,floorSource:contract.floorSource,
+    trackingEm:script==="latin"?(density==="compact"?-.03:-.02):0,
     headlineLineHeight:script==="latin"?(density==="compact"?.96:.99):script==="hangul"?1.12:1.16,bodyLineHeight:script==="latin"?1.46:1.62,
     headlineMaxWidthPct:density==="compact"?93:density==="balanced"?89:83,bodyMaxWidthPct:density==="compact"?94:density==="balanced"?90:84,
     maxHeadlineChars:script==="latin"?(density==="compact"?23:density==="balanced"?28:34):(density==="compact"?15:density==="balanced"?18:22),
@@ -116,10 +135,15 @@ function normalizedTypography(doc:CardDocument,headline:string,body:string){
   // are already plausible at the 1500px reference canvas.
   const supplied=doc.typographyFit;
   if(!supplied||supplied.headlinePx<60||supplied.bodyPx<20)return auto;
+  const bodyRenderCandidate=Math.max(CARD_BODY_MIN_RENDER_PX,Math.min(48,supplied.bodyPx));
+  const bodyCssCandidate=Math.max(CARD_BODY_MIN_CSS_PX,Math.round((bodyRenderCandidate*(CARD_BODY_MIN_CSS_PX/CARD_BODY_MIN_RENDER_PX))*10)/10);
+  const contract=enforceReadableBodyFloor(bodyCssCandidate,bodyRenderCandidate);
   return{
     ...auto,
     headlinePx:Math.max(64,Math.min(142,supplied.headlinePx)),
-    bodyPx:Math.max(CARD_BODY_MIN_RENDER_PX,Math.min(48,supplied.bodyPx)),
+    bodyPx:contract.bodyRenderPx,
+    bodyCssPx:contract.bodyCssPx,
+    floorSource:contract.floorSource,
     trackingEm:Math.max(-.06,Math.min(.08,supplied.trackingEm)),
     headlineLineHeight:supplied.headlineLineHeight??supplied.lineHeight??auto.headlineLineHeight,
     bodyLineHeight:supplied.bodyLineHeight??auto.bodyLineHeight,
@@ -163,8 +187,16 @@ export function renderSafeSvg(input:CardDocument,options:RenderSvgOptions={}):st
   // Trust boundary: the SVG is assembled only from renderer-owned markup,
   // allowlisted IDs/colors, escaped text and in-memory raster assets. No raw
   // SVG/HTML/CSS/JS or external URL from AI/user input is ever emitted.
-  assertRendererTemplateId(doc.templateId);
-  const layout=templateLayoutProfile(doc.templateId);
+  const presentation = options.presentation ?? doc.presentation;
+  if(presentation){
+    if(presentation.rendererTemplateKey !== doc.templateId){
+      throw new Error(`presentation_template_mismatch: presentation rendererTemplateKey (${presentation.rendererTemplateKey}) !== doc.templateId (${doc.templateId})`);
+    }
+    assertRendererTemplateId(presentation.rendererTemplateKey);
+  } else {
+    assertRendererTemplateId(doc.templateId);
+  }
+  const layout=presentation?.layout ?? templateLayoutProfile(doc.templateId);
   const spec=getCardFormatSpec(doc.format),w=spec.front.widthPx,h=spec.front.heightPx,min=Math.min(w,h),scale=min/1500;
   const base=(doc.paletteId==="editorial-ivory"?templateOriginalPalettes[doc.templateId]:undefined)??palettes[doc.paletteId]??palettes["editorial-ivory"];
   const photoPalette=doc.photoPalette?cardPhotoContrastPalette(doc.photoPalette):null;
@@ -189,20 +221,28 @@ export function renderSafeSvg(input:CardDocument,options:RenderSvgOptions={}):st
   const kicker=doc.textBlocks.find(x=>x.role==="kicker")?.text??"";
   assertRenderableCopy(headline,body,doc.locale,doc.format);
   const fit=normalizedTypography(doc,headline,body);
-  const hp=Math.max(42,Math.round(fit.headlinePx*scale*layout.headlineScale)),bp=Math.max(CARD_BODY_MIN_RENDER_PX,Math.round(fit.bodyPx*scale*layout.bodyScale)),kp=Math.max(18,Math.round(31*scale));
+  const hp=Math.max(42,Math.round(fit.headlinePx*scale*layout.headlineScale));
+  const bodyCandidate=Math.max(CARD_BODY_MIN_RENDER_PX,Math.ceil(fit.bodyPx*scale*layout.bodyScale));
+  const bodyFloor=enforceReadableBodyFloor(
+    Math.max(CARD_BODY_MIN_CSS_PX,fit.bodyCssPx??Number((bodyCandidate*(CARD_BODY_MIN_CSS_PX/CARD_BODY_MIN_RENDER_PX)).toFixed(1))),
+    bodyCandidate
+  );
+  const bp=bodyFloor.bodyRenderPx;
+  const kp=Math.max(18,Math.round(31*scale));
   const hLeading=fit.headlineLineHeight??1,bLeading=fit.bodyLineHeight??1.45;
   const inset=Math.round(min*(spec.safeMarginIn/Math.min(spec.front.widthIn,spec.front.heightIn)));
+  const borderInset=Math.max(inset,Math.round(min*.073));
+  const textSafeInset=rendererTextSafeInset(doc.format);
   const headlineWidthPct=Math.min(fit.headlineMaxWidthPct??88,layout.headlineWidthPct);
   const bodyWidthPct=Math.min(fit.bodyMaxWidthPct??90,layout.bodyWidthPct);
-  const headlineWidthPx=Math.min(w-inset*2,w*(headlineWidthPct/100));
-  const bodyWidthPx=Math.min(w-inset*2,w*(bodyWidthPct/100));
+  const headlineWidthPx=Math.min(w-textSafeInset*2,w*(headlineWidthPct/100));
+  const bodyWidthPx=Math.min(w-textSafeInset*2,w*(bodyWidthPct/100));
   const headlineLines=wrapText(headline,headlineWidthPx/(hp*.54),doc.locale);
   const bodyLines=wrapText(body,bodyWidthPx/(bp*.54),doc.locale);
   const photo=firstPhoto(doc,options.assets);
 
   const art=templateArtSvg({templateId:doc.templateId,width:w,height:h,scale,accent:palette.accent,foreground:palette.fg,background:palette.bg});
 
-  const borderInset=Math.max(inset,Math.round(min*.073));
   const borderWidth=Math.max(2,Math.round(3*scale));
   const textX=Math.round(w*layout.xPct);
   const textAnchor=layout.anchor;
@@ -214,55 +254,128 @@ export function renderSafeSvg(input:CardDocument,options:RenderSvgOptions={}):st
     const kickerY=Math.round(h*layout.kickerYPct),headlineCenter=Math.round(h*layout.headlineYPct),bodyCenter=Math.round(h*layout.bodyYPct);
     const headlineStart=headlineCenter-Math.max(0,headlineLines.length-1)*hp*hLeading/2;
     const bodyStart=bodyCenter-Math.max(0,bodyLines.length-1)*bp*bLeading/2;
-    assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:false,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:bodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
-    return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-      <rect width="${w}" height="${h}" fill="${palette.bg}"/>
-      <image x="${photoX}" y="${photoY}" width="${photoW}" height="${photoH}" preserveAspectRatio="xMidYMid slice" href="${base64Asset(photo)}"/>
-      ${art}
-      <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
-      ${textLines(headlineLines,textX,headlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
-      ${textLines(bodyLines,textX,bodyStart,bp,bLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
-      ${watermark}
-    </svg>`;
+    try {
+      assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:textSafeInset,headlineStart,bodyStart,photo:false,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:bodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+      return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <rect width="${w}" height="${h}" fill="${palette.bg}"/>
+        <image x="${photoX}" y="${photoY}" width="${photoW}" height="${photoH}" preserveAspectRatio="xMidYMid slice" href="${base64Asset(photo)}"/>
+        ${art}
+        <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
+        ${textLines(headlineLines,textX,headlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
+        ${textLines(bodyLines,textX,bodyStart,bp,bLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
+        ${watermark}
+      </svg>`;
+    } catch(primaryErr){
+      const altBodyWidthPct=Math.max(bodyWidthPct,Math.min(94,fit.bodyMaxWidthPct??94));
+      const altBodyWidthPx=Math.min(w-textSafeInset*2,w*(altBodyWidthPct/100));
+      const altBodyLines=wrapText(body,altBodyWidthPx/(bp*.54),doc.locale);
+      const altBLeading=Math.max(1.36,bLeading*.96);
+      const altBodyStart=bodyCenter-Math.max(0,altBodyLines.length-1)*bp*altBLeading/2;
+      assertLayoutBounds({headlineLines,bodyLines:altBodyLines,hp,bp,hLeading,bLeading:altBLeading,width:w,height:h,safeInset:textSafeInset,headlineStart,bodyStart:altBodyStart,photo:false,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:altBodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+      return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <rect width="${w}" height="${h}" fill="${palette.bg}"/>
+        <image x="${photoX}" y="${photoY}" width="${photoW}" height="${photoH}" preserveAspectRatio="xMidYMid slice" href="${base64Asset(photo)}"/>
+        ${art}
+        <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
+        ${textLines(headlineLines,textX,headlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
+        ${textLines(altBodyLines,textX,altBodyStart,bp,altBLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
+        ${watermark}
+      </svg>`;
+    }
   }
 
   if(photo){
     const photoH=Math.round(h*.57),copyTop=photoH;
     const kickerY=Math.round(copyTop+h*.075);
-    const headlineCenter=Math.round(copyTop+h*.18);
-    const bodyCenter=Math.round(copyTop+h*.33);
-    const headlineStart=headlineCenter-Math.max(0,headlineLines.length-1)*hp*hLeading/2;
-    const bodyStart=bodyCenter-Math.max(0,bodyLines.length-1)*bp*bLeading/2;
-    assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:true,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:bodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+    const headlineSpread=Math.max(0,headlineLines.length-1)*hp*hLeading;
+    const bodySpread=Math.max(0,bodyLines.length-1)*bp*bLeading;
+    const bodyCenter=Math.min(Math.round(copyTop+h*.33),Math.round(h-textSafeInset-bodySpread/2-bp*.28));
+    const bodyStart=bodyCenter-bodySpread/2;
+    const headlineCenter=Math.min(Math.round(copyTop+h*.18),Math.round(bodyStart-bp*.8-hp*.28-headlineSpread/2));
+    const headlineStart=headlineCenter-headlineSpread/2;
+    try {
+      assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:textSafeInset,headlineStart,bodyStart,photo:true,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:bodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+      return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <rect width="${w}" height="${h}" fill="${palette.bg}"/>
+        <image x="0" y="0" width="${w}" height="${photoH}" preserveAspectRatio="xMidYMid slice" href="${base64Asset(photo)}"/>
+        <rect x="0" y="${photoH}" width="${w}" height="${h-photoH}" fill="${palette.bg}"/>
+        <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
+        ${textLines(headlineLines,textX,headlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
+        ${textLines(bodyLines,textX,bodyStart,bp,bLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
+        ${watermark}
+      </svg>`;
+    } catch(primaryErr){
+      const altBodyWidthPct=Math.max(bodyWidthPct,Math.min(94,fit.bodyMaxWidthPct??94));
+      const altBodyWidthPx=Math.min(w-textSafeInset*2,w*(altBodyWidthPct/100));
+      const altBodyLines=wrapText(body,altBodyWidthPx/(bp*.54),doc.locale);
+      const altBLeading=Math.max(1.36,bLeading*.96);
+      const altBodySpread=Math.max(0,altBodyLines.length-1)*bp*altBLeading;
+      const altBodyCenter=Math.min(Math.round(copyTop+h*.33),Math.round(h-textSafeInset-altBodySpread/2-bp*.28));
+      const altBodyStart=altBodyCenter-altBodySpread/2;
+      const altHeadlineCenter=Math.min(Math.round(copyTop+h*.18),Math.round(altBodyStart-bp*.8-hp*.28-headlineSpread/2));
+      const altHeadlineStart=altHeadlineCenter-headlineSpread/2;
+      assertLayoutBounds({headlineLines,bodyLines:altBodyLines,hp,bp,hLeading,bLeading:altBLeading,width:w,height:h,safeInset:textSafeInset,headlineStart:altHeadlineStart,bodyStart:altBodyStart,photo:true,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:altBodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+      return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <rect width="${w}" height="${h}" fill="${palette.bg}"/>
+        <image x="0" y="0" width="${w}" height="${photoH}" preserveAspectRatio="xMidYMid slice" href="${base64Asset(photo)}"/>
+        <rect x="0" y="${photoH}" width="${w}" height="${h-photoH}" fill="${palette.bg}"/>
+        <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
+        ${textLines(headlineLines,textX,altHeadlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
+        ${textLines(altBodyLines,textX,altBodyStart,bp,altBLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
+        ${watermark}
+      </svg>`;
+    }
+  }
+
+  const kickerY=Math.round(h*layout.kickerYPct),sparkY=Math.round(h*layout.signatureYPct);
+  const headlineSpread=Math.max(0,headlineLines.length-1)*hp*hLeading;
+  const bodySpread=Math.max(0,bodyLines.length-1)*bp*bLeading;
+  const bodyCenter=Math.min(Math.round(h*layout.bodyYPct),Math.round(h-textSafeInset-bodySpread/2-bp*.28));
+  const bodyStart=bodyCenter-bodySpread/2;
+  const headlineCenter=Math.min(Math.round(h*layout.headlineYPct),Math.round(bodyStart-bp*.8-hp*.28-headlineSpread/2));
+  const headlineStart=headlineCenter-headlineSpread/2;
+  try {
+    assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:textSafeInset,headlineStart,bodyStart,photo:false,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:bodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
     return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-      <rect width="${w}" height="${h}" fill="${palette.bg}"/>
-      <image x="0" y="0" width="${w}" height="${photoH}" preserveAspectRatio="xMidYMid slice" href="${base64Asset(photo)}"/>
-      <rect x="0" y="${photoH}" width="${w}" height="${h-photoH}" fill="${palette.bg}"/>
+      <rect width="${w}" height="${h}" rx="${Math.max(6,Math.round(18*scale))}" fill="${palette.bg}"/>
+      ${art}
+      ${layout.showBorder?`<rect x="${borderInset}" y="${borderInset}" width="${w-borderInset*2}" height="${h-borderInset*2}" rx="${Math.max(2,Math.round(4*scale))}" fill="none" stroke="${palette.accent}" stroke-width="${borderWidth}" opacity=".68"/>`:""}
       <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
       ${textLines(headlineLines,textX,headlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
       ${textLines(bodyLines,textX,bodyStart,bp,bLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
+      ${layout.showSignatureMark?`<text x="${textX}" y="${sparkY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="serif" font-size="${Math.max(36,Math.round(58*scale))}">✦</text>`:""}
+      ${watermark}
+    </svg>`;
+  } catch(primaryErr){
+    const altBodyWidthPct=Math.max(bodyWidthPct,Math.min(94,fit.bodyMaxWidthPct??94));
+    const altBodyWidthPx=Math.min(w-textSafeInset*2,w*(altBodyWidthPct/100));
+    const altBodyLines=wrapText(body,altBodyWidthPx/(bp*.54),doc.locale);
+    const altHp=Math.max(42,Math.round(hp*0.92));
+    const altBLeading=Math.max(1.36,bLeading*0.96);
+    const altHSpread=Math.max(0,headlineLines.length-1)*altHp*hLeading;
+    const altBSpread=Math.max(0,altBodyLines.length-1)*bp*altBLeading;
+    const altBodyCenter=Math.min(Math.round(h*Math.max(0.52,layout.bodyYPct)),Math.round(h-textSafeInset-altBSpread/2-bp*.28));
+    const altBodyStart=altBodyCenter-altBSpread/2;
+    const altHeadlineCenter=Math.min(Math.round(h*Math.max(0.34,layout.headlineYPct)),Math.round(altBodyStart-bp*.8-altHp*.28-altHSpread/2));
+    const altHeadlineStart=altHeadlineCenter-altHSpread/2;
+
+    assertLayoutBounds({headlineLines,bodyLines:altBodyLines,hp:altHp,bp,hLeading,bLeading:altBLeading,width:w,height:h,safeInset:textSafeInset,headlineStart:altHeadlineStart,bodyStart:altBodyStart,photo:false,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:altBodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
+
+    return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+      <rect width="${w}" height="${h}" rx="${Math.max(6,Math.round(18*scale))}" fill="${palette.bg}"/>
+      ${art}
+      ${layout.showBorder?`<rect x="${borderInset}" y="${borderInset}" width="${w-borderInset*2}" height="${h-borderInset*2}" rx="${Math.max(2,Math.round(4*scale))}" fill="none" stroke="${palette.accent}" stroke-width="${borderWidth}" opacity=".68"/>`:""}
+      <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
+      ${textLines(headlineLines,textX,altHeadlineStart,altHp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${altHp}"`)}
+      ${textLines(altBodyLines,textX,altBodyStart,bp,altBLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
+      ${layout.showSignatureMark?`<text x="${textX}" y="${sparkY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="serif" font-size="${Math.max(36,Math.round(58*scale))}">✦</text>`:""}
       ${watermark}
     </svg>`;
   }
-
-  const kickerY=Math.round(h*layout.kickerYPct),headlineCenter=Math.round(h*layout.headlineYPct),bodyCenter=Math.round(h*layout.bodyYPct),sparkY=Math.round(h*layout.signatureYPct);
-  const headlineStart=headlineCenter-Math.max(0,headlineLines.length-1)*hp*hLeading/2;
-  const bodyStart=bodyCenter-Math.max(0,bodyLines.length-1)*bp*bLeading/2;
-  assertLayoutBounds({headlineLines,bodyLines,hp,bp,hLeading,bLeading,width:w,height:h,safeInset:inset,headlineStart,bodyStart,photo:false,headlineMaxWidthPct:headlineWidthPct,bodyMaxWidthPct:bodyWidthPct,locale:doc.locale,textX,anchor:textAnchor});
-  return`<svg xmlns="http&#58;//www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-    <rect width="${w}" height="${h}" rx="${Math.max(6,Math.round(18*scale))}" fill="${palette.bg}"/>
-    ${art}
-    ${layout.showBorder?`<rect x="${borderInset}" y="${borderInset}" width="${w-borderInset*2}" height="${h-borderInset*2}" rx="${Math.max(2,Math.round(4*scale))}" fill="none" stroke="${palette.accent}" stroke-width="${borderWidth}" opacity=".68"/>`:""}
-    <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
-    ${textLines(headlineLines,textX,headlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
-    ${textLines(bodyLines,textX,bodyStart,bp,bLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
-    ${layout.showSignatureMark?`<text x="${textX}" y="${sparkY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="serif" font-size="${Math.max(36,Math.round(58*scale))}">✦</text>`:""}
-    ${watermark}
-  </svg>`;
 }
 
-export function renderPreviewSvg(doc:CardDocument,assets?:RenderAssets){return renderSafeSvg(doc,{watermark:true,assets});}
-export function renderFinalSvg(doc:CardDocument,assets?:RenderAssets){return renderSafeSvg(doc,{watermark:false,assets});}
+export function renderPreviewSvg(doc:CardDocument,assets?:RenderAssets,presentation?:CanonicalPresentation){return renderSafeSvg(doc,{watermark:true,assets,presentation});}
+export function renderFinalSvg(doc:CardDocument,assets?:RenderAssets,presentation?:CanonicalPresentation){return renderSafeSvg(doc,{watermark:false,assets,presentation});}
 
 export async function rasterizeSvgWithResvg(svg:string,input:{width:number;height:number;locale:string}){
   const font=rendererFontConfig(input.locale);
@@ -292,27 +405,42 @@ async function encodeJpeg(png:Uint8Array,width:number,height:number){
   return new Uint8Array(out);
 }
 
-export async function renderProductionFinal(input:CardDocument,options:{assets?:RenderAssets;rasterize?:RasterizeSvg}={}):Promise<{jpg:Uint8Array;pdf:Uint8Array;metadata:ProductionRenderMetadata}>{
+export async function renderProductionFinal(input:CardDocument,options:{assets?:RenderAssets;rasterize?:RasterizeSvg;presentation?:CanonicalPresentation}={}):Promise<{jpg:Uint8Array;pdf:Uint8Array;metadata:ProductionRenderMetadata}>{
   const doc=CardDocumentSchema.parse(input);
+  const presentation = options.presentation ?? doc.presentation;
+  if(presentation){
+    if(presentation.rendererTemplateKey !== doc.templateId){
+      throw new Error(`presentation_template_mismatch: presentation rendererTemplateKey (${presentation.rendererTemplateKey}) !== doc.templateId (${doc.templateId})`);
+    }
+    assertRendererTemplateId(presentation.rendererTemplateKey);
+  } else {
+    assertRendererTemplateId(doc.templateId);
+  }
   if(doc.rendererVersion!==CURRENT_RENDERER_VERSION)throw new Error(`unsupported_renderer_version:${doc.rendererVersion}`);
   if((doc.templateId==="photo-story"||doc.photoTreatment)&&!firstPhoto(doc,options.assets))throw new Error("trusted_photo_asset_required");
-  const spec=getCardFormatSpec(doc.format),svg=renderFinalSvg(doc,options.assets);
+  const spec=getCardFormatSpec(doc.format),svg=renderFinalSvg(doc,options.assets,presentation);
   const rasterize=options.rasterize??rasterizeSvgWithResvg;
   const png=await rasterize(svg,{width:spec.front.widthPx,height:spec.front.heightPx,locale:doc.locale});
   const jpg=await encodeJpeg(png,spec.front.widthPx,spec.front.heightPx);
   const pdf=createPrintPdfFromJpeg({jpeg:jpg,format:doc.format,pixelWidth:spec.front.widthPx,pixelHeight:spec.front.heightPx});
+  const deterministicKey = presentation
+    ? `${doc.id}:${doc.rendererVersion}:${doc.templateVersion}:${presentation.templateId}:${presentation.templateVersionId}:${doc.format}`
+    : `${doc.id}:${doc.rendererVersion}:${doc.templateVersion}:${doc.format}`;
   return{
     jpg,pdf,
     metadata:{
-      format:doc.format,rendererVersion:doc.rendererVersion,deterministicKey:`${doc.id}:${doc.rendererVersion}:${doc.templateVersion}:${doc.format}`,
+      format:doc.format,rendererVersion:doc.rendererVersion,deterministicKey,
+      presentation,
       jpg:{widthPx:spec.front.widthPx,heightPx:spec.front.heightPx,dpi:300,contentType:"image/jpeg"},
       pdf:{widthIn:spec.pdf.widthIn,heightIn:spec.pdf.heightIn,pageCount:spec.pdf.pageCount,contentType:"application/pdf",layout:spec.pdf.layout}
     }
   };
 }
 
-export async function renderProductionPreview(input:CardDocument,options:{assets?:RenderAssets;rasterize?:RasterizeSvg;maxLongEdge?:number}={}):Promise<{jpg:Uint8Array;width:number;height:number}>{
-  const doc=CardDocumentSchema.parse(input),spec=getCardFormatSpec(doc.format),svg=renderPreviewSvg(doc,options.assets),max=options.maxLongEdge??1200;
+export async function renderProductionPreview(input:CardDocument,options:{assets?:RenderAssets;rasterize?:RasterizeSvg;maxLongEdge?:number;presentation?:CanonicalPresentation}={}):Promise<{jpg:Uint8Array;width:number;height:number}>{
+  const doc=CardDocumentSchema.parse(input);
+  const presentation = options.presentation ?? doc.presentation;
+  const spec=getCardFormatSpec(doc.format),svg=renderPreviewSvg(doc,options.assets,presentation),max=options.maxLongEdge??1200;
   const ratio=Math.min(1,max/Math.max(spec.front.widthPx,spec.front.heightPx));
   const width=Math.max(1,Math.round(spec.front.widthPx*ratio)),height=Math.max(1,Math.round(spec.front.heightPx*ratio));
   const rasterize=options.rasterize??rasterizeSvgWithResvg;
@@ -326,6 +454,16 @@ export { createPrintPdfFromJpeg } from "./pdf.ts";
 export { getCardFormatSpec } from "./formats.ts";
 export { rendererFontConfig } from "./fonts.ts";
 export { rendererTemplateIds, assertRendererTemplateId } from "./template-art.ts";
+export {
+  CARD_BODY_MIN_CSS_PX,
+  CARD_BODY_MIN_RENDER_PX,
+  CanonicalPresentationSchema,
+  PresentationLayoutProfileSchema,
+  enforceReadableBodyFloor,
+  type CanonicalPresentation,
+  type PresentationLayoutProfile,
+  type RendererTypographyContract
+} from "@cardelume/card-schema";
 
 export function assertRendererFontsReady(){
   for(const locale of ["en","ja","ko","zh"] as const)rendererFontConfig(locale);

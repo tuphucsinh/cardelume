@@ -20,7 +20,7 @@ type Ctx={
   haptic:(kind?:"reveal"|"select"|"confirm")=>void;
 };
 
-const defaults:Prefs={master:true,haptics:true,gyro:true,lighting:true};
+const defaults:Prefs={master:false,haptics:false,gyro:false,lighting:false};
 const EffectsContext=createContext<Ctx|null>(null);
 const STORAGE="cardelume.physical-effects.v2";
 
@@ -227,8 +227,15 @@ export function PhysicalEffectsControl({locale}:{locale:LocaleCode}){
 
   return(
     <div className={`effects-control ${open?"open":""}`} ref={root}>
-      <button ref={trigger} className="effects-trigger" type="button" aria-label={t.button} aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>
-        <Sparkles size={16}/><span className="effects-trigger-label">{prefs.master?t.on:t.off}</span>
+      <button ref={trigger} className="effects-trigger" type="button" aria-label={`${t.button}: ${prefs.master?t.on:t.off}`} aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>
+        <Sparkles size={16}/>
+        <span className="effects-trigger-label">
+          <span className="effects-trigger-name">
+            <span className="effects-trigger-full">{t.button}</span>
+            <span className="effects-trigger-short">{t.master}</span>
+          </span>
+          <span className="effects-trigger-state">{prefs.master?t.on:t.off}</span>
+        </span>
       </button>
       {open?<div className="effects-menu" role="menu" aria-label={t.title}>
         <div className="effects-menu-head"><div><strong>{t.title}</strong><p>{t.subtitle}</p></div><span className={`effects-master-dot ${prefs.master?"on":""}`}/></div>

@@ -1,5 +1,5 @@
 import { GenerationResultSchema, cardCopyMetrics, type GeneratedDirection, type GenerationBrief, type GenerationResult } from "@cardelume/card-schema";
-import { templateCreativeRecipe, type RankedTemplate, type RecentStyleFingerprint, type SignatureMove, type CreativeAccentMode } from "@cardelume/templates";
+import { templateCreativeRecipe, templateArchetype, type RankedTemplate, type RecentStyleFingerprint, type SignatureMove, type CreativeAccentMode, type TemplateArchetype, type VisualDirection, type TemplatePhotoMode, type TemplateMaterialWorld, type TemplateEnergy, type TemplateColorWorld, type TemplateMeta, type TemplateRankInput } from "@cardelume/templates";
 
 export type AIProviderUsage={inputTokens?:number;outputTokens?:number};
 export type AIProviderResponse={data:unknown;provider:string;model:string;usage?:AIProviderUsage;latencyMs:number};
@@ -38,6 +38,81 @@ function confidenceRepairThreshold(){return threshold("AI_CONFIDENCE_REPAIR_THRE
 function noveltyRepairThreshold(){return threshold("AI_NOVELTY_REPAIR_THRESHOLD",.50);}
 function assertPromptBudget(prompt:string){if(new TextEncoder().encode(prompt).byteLength>maxCreativePromptBytes())throw new Error("ai_prompt_budget_exceeded");}
 
+export const DEFAULT_GENERATION_DEADLINE_MS = 20_000;
+export const DEFAULT_FALLBACK_RESERVE_MS = 2_000;
+export const MAX_GENERATION_DEADLINE_MS = 22_000;
+
+export function defaultGenerationDeadlineMs(): number {
+  const n = Number(process.env.AI_GENERATION_DEADLINE_MS || process.env.GENERATION_DEADLINE_MS || DEFAULT_GENERATION_DEADLINE_MS);
+  return Number.isFinite(n) && n > 0 ? Math.min(MAX_GENERATION_DEADLINE_MS, Math.floor(n)) : DEFAULT_GENERATION_DEADLINE_MS;
+}
+
+export function defaultFallbackReserveMs(): number {
+  const n = Number(process.env.AI_FALLBACK_RESERVE_MS || DEFAULT_FALLBACK_RESERVE_MS);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : DEFAULT_FALLBACK_RESERVE_MS;
+}
+
+export interface GenerationBudgetOptions {
+  totalTimeoutMs?: number;
+  fallbackReserveMs?: number;
+  now?: () => number;
+}
+
+export class GenerationBudget {
+  readonly startedAt: number;
+  readonly totalTimeoutMs: number;
+  readonly fallbackReserveMs: number;
+  readonly deadlineAt: number;
+  readonly aiCutoffAt: number;
+  private readonly nowFn: () => number;
+
+  constructor(options: GenerationBudgetOptions = {}) {
+    this.nowFn = options.now ?? Date.now;
+    this.startedAt = this.nowFn();
+    this.totalTimeoutMs = options.totalTimeoutMs ?? defaultGenerationDeadlineMs();
+    this.fallbackReserveMs = options.fallbackReserveMs ?? defaultFallbackReserveMs();
+    this.deadlineAt = this.startedAt + this.totalTimeoutMs;
+    this.aiCutoffAt = Math.max(this.startedAt, this.deadlineAt - this.fallbackReserveMs);
+  }
+
+  get elapsedMs(): number {
+    return Math.max(0, this.nowFn() - this.startedAt);
+  }
+
+  get remainingTotalMs(): number {
+    return Math.max(0, this.deadlineAt - this.nowFn());
+  }
+
+  get remainingAiMs(): number {
+    return Math.max(0, this.aiCutoffAt - this.nowFn());
+  }
+
+  isExpired(): boolean {
+    return this.remainingAiMs <= 0;
+  }
+
+  ensureAiBudget(minRequiredMs = 1): number {
+    const remaining = this.remainingAiMs;
+    if (remaining < minRequiredMs) {
+      throw new Error("ai_budget_exhausted");
+    }
+    return remaining;
+  }
+
+  clampTimeoutMs(requestedTimeoutMs?: number, minRequiredMs = 1): number {
+    const remaining = this.ensureAiBudget(minRequiredMs);
+    if (typeof requestedTimeoutMs === "number" && requestedTimeoutMs > 0) {
+      return Math.max(1, Math.min(requestedTimeoutMs, remaining));
+    }
+    return Math.max(1, remaining);
+  }
+}
+
+export function createGenerationBudget(options?: GenerationBudgetOptions | GenerationBudget): GenerationBudget {
+  if (options instanceof GenerationBudget) return options;
+  return new GenerationBudget(options);
+}
+
 export class OpenAICompatibleProvider implements AIProvider{
   readonly providerName="openai-compatible";
   get modelName(){return this.config.model;}
@@ -68,7 +143,7 @@ export class OpenAICompatibleProvider implements AIProvider{
 
 export class MockAIProvider implements AIProvider{
   readonly providerName="mock";readonly modelName="mock-premium";
-  async generateJson(input:{system:string;prompt:string}){const started=Date.now();const ctx=JSON.parse(input.prompt) as {task?:string;slots?:string[];candidates?:Array<{id:string;versionId:string;name:string;photoMode:string;recipe?:{preferredAccents?:string[];signatureMoves?:string[]}}>;directions?:Array<Record<string,unknown>>};
+  async generateJson(input:{system:string;prompt:string;timeoutMs?:number}){const started=Date.now();const ctx=JSON.parse(input.prompt) as {task?:string;slots?:string[];candidates?:Array<{id:string;versionId:string;name:string;photoMode:string;recipe?:{preferredAccents?:string[];signatureMoves?:string[]}}>;directions?:Array<Record<string,unknown>>};
     if(ctx.task==="critic_repair")return{data:{repairs:(ctx.directions??[]).map((d,i)=>({...d,body:`${String(d.body??"")} ${i===0?"With a little more heart.":"Made especially for this moment."}`.trim(),confidence:.91,noveltyScore:.82,wowScore:.86,riskCodes:[]}))},provider:this.providerName,model:this.modelName,usage:{inputTokens:150,outputTokens:90},latencyMs:Date.now()-started};
     const candidates=ctx.candidates??[];const slots=ctx.slots??["editorial","midnight","quiet"];
     return{data:{action:"select",directions:slots.map((slot,i)=>{const c=candidates[i]??candidates[0];return{id:slot,templateId:c?.id,templateVersionId:c?.versionId,creativeThesis:["A refined expression of this exact moment.","A contrasting, cinematic interpretation with warmth.","A fresh keepsake direction that avoids repetition."][i]??"A premium direction.",customerRationale:["Quiet, personal warmth for this exact moment.","A richer contrast for a moment worth celebrating.","A keepsake direction with a more unexpected point of view."][i]??"A thoughtful fit for this moment.",signatureMove:c?.recipe?.signatureMoves?.[0]??"recipient_anchor",accentMode:c?.photoMode==="required"?"photo":c?.recipe?.preferredAccents?.[0]??"original",kicker:["FOR THIS MOMENT","A LITTLE LIGHT","MADE TO REMEMBER"][i]??"JUST FOR YOU",headline:["Something beautiful, just for you.","Here is to what comes next.","A moment worth keeping."][i]??"With warm wishes.",body:["May this day feel as thoughtful, warm, and entirely yours as it deserves to be.","For everything this moment holds — and all the good still waiting just ahead.","A small keepsake for the details, feelings, and memories that make this day yours."][i]??"With warm wishes.",confidence:.92,noveltyScore:.84,wowScore:.86,riskCodes:[]};})},provider:this.providerName,model:this.modelName,usage:{inputTokens:420,outputTokens:260},latencyMs:Date.now()-started};
@@ -100,13 +175,200 @@ function telemetry(phase:AICallTelemetry["phase"],response:AIProviderResponse):A
 function candidateContext(candidates:RankedTemplate[]){return candidates.map((item,index)=>({rank:index+1,id:item.template.id,versionId:item.template.versionId,familyId:item.template.familyId,name:item.template.name,visualDirection:item.template.visualDirection,photoMode:item.template.photoMode,materialWorld:item.template.materialWorld,materialCues:item.template.materialCues,energy:item.template.energy,colorWorld:item.template.colorWorld,motionProfile:item.template.motionProfile,score:Number(item.score.toFixed(4)),scoreComponents:Object.fromEntries(Object.entries(item.components).map(([k,v])=>[k,Number(Number(v).toFixed(3))])),reasons:item.reasons,recipe:templateCreativeRecipe(item.template)}));}
 function compactRecentStyles(recent:RecentStyleFingerprint[]|undefined){return (recent??[]).slice(0,5).map(s=>({familyId:s.familyId,visualDirection:s.visualDirection,accentMode:s.accentMode??"unknown"}));}
 
+export interface DirectionDiversityTarget {
+  id?: string;
+  templateId?: string;
+  templateVersionId?: string;
+  familyId: string;
+  visualDirection: VisualDirection | string;
+  photoMode?: TemplatePhotoMode | string;
+  materialWorld?: TemplateMaterialWorld | string;
+  colorWorld?: TemplateColorWorld | string;
+  energy?: TemplateEnergy | string;
+  archetype?: TemplateArchetype | string;
+  signatureMove?: SignatureMove | string;
+  creativeThesis?: string;
+  name?: string;
+}
+
+export interface DiversityContract {
+  readonly ok: true;
+  readonly directionCount: 3;
+  readonly uniqueFamilyIds: 3;
+  readonly uniqueVisualDirections: 3;
+  readonly minDistinctArchetypes: 2;
+  readonly distinctFamilyCount: number;
+  readonly distinctVisualDirectionCount: number;
+  readonly distinctArchetypeCount: number;
+  readonly familyIds: [string, string, string];
+  readonly visualDirections: [VisualDirection | string, VisualDirection | string, VisualDirection | string];
+  readonly archetypes: [TemplateArchetype, TemplateArchetype, TemplateArchetype];
+}
+
+export type ThreeDirectionDiversityContract = DiversityContract;
+
+export function isLegacyCandidateContext(candidates?: unknown, brief?: unknown): boolean {
+  if (!Array.isArray(candidates) || candidates.length < 3 || !brief || typeof brief !== "object") return true;
+  return candidates.some(c => {
+    if (!c || typeof c !== "object") return true;
+    const item = c as Record<string, unknown>;
+    if (typeof item.score !== "number" || !item.components || typeof item.components !== "object") return true;
+    const t = item.template as Record<string, unknown> | undefined;
+    if (!t || typeof t !== "object" || typeof t.status !== "string") return true;
+    return false;
+  });
+}
+
+export function validateThreeDirectionDiversity(
+  items: unknown[],
+  candidates?: RankedTemplate[],
+  brief?: GenerationBrief
+): DiversityContract {
+  if (!Array.isArray(items) || items.length !== 3) {
+    throw new Error("ai_direction_count_invalid");
+  }
+  const resolved = items.map(item => {
+    if (!item || typeof item !== "object") throw new Error("ai_direction_set_invalid");
+    const obj = item as Record<string, unknown>;
+    const t = (obj.template && typeof obj.template === "object" ? obj.template : obj) as Record<string, unknown>;
+    const familyId = String(t.familyId ?? obj.familyId ?? "").trim();
+    const visualDirection = String(t.visualDirection ?? obj.visualDirection ?? "").trim();
+    const photoMode = String(t.photoMode ?? obj.photoMode ?? "none").trim();
+    const templateId = String(t.templateId ?? obj.templateId ?? t.id ?? obj.id ?? "").trim();
+    const templateVersionId = String(t.templateVersionId ?? obj.templateVersionId ?? "").trim();
+    if (!familyId) throw new Error("ai_template_family_missing");
+    if (!visualDirection) throw new Error("ai_visual_direction_missing");
+    return {
+      templateId,
+      templateVersionId,
+      familyId,
+      visualDirection: visualDirection as VisualDirection,
+      photoMode: photoMode as TemplatePhotoMode,
+      materialWorld: (t.materialWorld ?? obj.materialWorld) as TemplateMaterialWorld | undefined,
+      colorWorld: (t.colorWorld ?? obj.colorWorld) as TemplateColorWorld | undefined,
+      energy: (t.energy ?? obj.energy) as TemplateEnergy | undefined,
+    };
+  });
+
+  const templateKeys = resolved.map(x => x.templateId ? (x.templateVersionId ? `${x.templateId}:${x.templateVersionId}` : x.templateId) : "").filter(Boolean);
+  if (templateKeys.length === 3 && new Set(templateKeys).size !== 3) {
+    throw new Error("ai_template_exact_duplicate");
+  }
+
+  const familyIds = resolved.map(x => x.familyId);
+  const uniqueFamilies = new Set(familyIds);
+  if (uniqueFamilies.size !== 3) {
+    throw new Error("ai_template_family_duplicate");
+  }
+
+  const visualDirections = resolved.map(x => x.visualDirection);
+  const uniqueVisuals = new Set(visualDirections);
+
+  const archetypes = resolved.map(x => templateArchetype({ visualDirection: x.visualDirection, photoMode: x.photoMode }));
+  const uniqueArchetypes = new Set(archetypes);
+
+  if (!candidates || isLegacyCandidateContext(candidates, brief)) {
+    if (uniqueVisuals.size !== 3) {
+      throw new Error("ai_visual_direction_duplicate");
+    }
+    if (uniqueArchetypes.size < 2) {
+      throw new Error("ai_direction_diversity_insufficient");
+    }
+  }
+
+  return {
+    ok: true,
+    directionCount: 3,
+    uniqueFamilyIds: 3,
+    uniqueVisualDirections: 3,
+    minDistinctArchetypes: 2,
+    distinctFamilyCount: uniqueFamilies.size,
+    distinctVisualDirectionCount: uniqueVisuals.size,
+    distinctArchetypeCount: uniqueArchetypes.size,
+    familyIds: [familyIds[0], familyIds[1], familyIds[2]],
+    visualDirections: [visualDirections[0], visualDirections[1], visualDirections[2]],
+    archetypes: [archetypes[0], archetypes[1], archetypes[2]],
+  };
+}
+
+export const enforceThreeDirectionDiversity = validateThreeDirectionDiversity;
+export const validateThreeDirections = validateThreeDirectionDiversity;
+
+export function hasMateriallyDifferentAlternatives(
+  selected: Array<Pick<DirectionDiversityTarget, "templateId" | "materialWorld" | "colorWorld" | "energy" | "visualDirection" | "photoMode">>,
+  candidates?: RankedTemplate[],
+  brief?: GenerationBrief
+): boolean {
+  if (!candidates || candidates.length <= 3) return false;
+  const selectedIds = new Set(selected.map(s => s.templateId).filter(Boolean));
+  const unused = candidates.filter(c => !selectedIds.has(c.template.id));
+  if (!unused.length) return false;
+
+  const eligibleUnused = unused.filter(c => {
+    const t = c.template;
+    if (t.status !== "active" || t.health !== "healthy" || t.launchStatus === "hold" || t.launchStatus === "retired") return false;
+    if (brief && !brief.hasPhoto && t.photoMode === "required") return false;
+    if (brief && brief.format && t.supportedFormats && !t.supportedFormats.includes(brief.format)) return false;
+    return true;
+  });
+  if (!eligibleUnused.length) return false;
+
+  const materials = new Set(selected.map(s => s.materialWorld).filter(Boolean));
+  const colors = new Set(selected.map(s => s.colorWorld).filter(Boolean));
+  const archetypes = new Set(selected.map(s => templateArchetype({ visualDirection: s.visualDirection as VisualDirection, photoMode: (s.photoMode ?? "none") as TemplatePhotoMode })));
+  const energies = new Set(selected.map(s => s.energy).filter(Boolean));
+  const visuals = new Set(selected.map(s => s.visualDirection).filter(Boolean));
+
+  return eligibleUnused.some(c => {
+    const t = c.template;
+    const arch = templateArchetype(t);
+    return (t.materialWorld && !materials.has(t.materialWorld)) ||
+           (t.colorWorld && !colors.has(t.colorWorld)) ||
+           (!archetypes.has(arch)) ||
+           (t.visualDirection && !visuals.has(t.visualDirection)) ||
+           (t.energy && !energies.has(t.energy));
+  });
+}
+
+export function isVisualSiblingTrio(
+  targets: Array<Pick<DirectionDiversityTarget, "materialWorld" | "colorWorld" | "energy" | "visualDirection" | "photoMode" | "signatureMove" | "creativeThesis">>
+): boolean {
+  if (targets.length !== 3) return false;
+
+  const materials = new Set(targets.map(t => t.materialWorld).filter(Boolean));
+  const colors = new Set(targets.map(t => t.colorWorld).filter(Boolean));
+  const energies = new Set(targets.map(t => t.energy).filter(Boolean));
+  const signatures = new Set(targets.map(t => t.signatureMove).filter(Boolean));
+  const archetypes = new Set(targets.map(t => templateArchetype({ visualDirection: t.visualDirection as VisualDirection, photoMode: (t.photoMode ?? "none") as TemplatePhotoMode })));
+
+  const sharesWorld = materials.size <= 1 && colors.size <= 1 && energies.size <= 1;
+  if (!sharesWorld) return false;
+
+  let thesisSimilarity = 0;
+  for (let i = 0; i < targets.length; i++) {
+    for (let j = i + 1; j < targets.length; j++) {
+      const sim = jaccard(targets[i]?.creativeThesis ?? "", targets[j]?.creativeThesis ?? "");
+      if (sim > thesisSimilarity) thesisSimilarity = sim;
+    }
+  }
+
+  return signatures.size <= 1 || archetypes.size <= 1 || thesisSimilarity > 0.35;
+}
+
 function parseCreativeSelection(raw:unknown,brief:GenerationBrief,candidates:RankedTemplate[]):GenerationResult|{expand:true;reasonCode:string;desiredTraits:string[]}{
   if(!raw||typeof raw!=="object")throw new Error("ai_creative_invalid_response");const o=raw as Record<string,unknown>;
   if(o.action==="expand_pool")return{expand:true,reasonCode:str(o.reasonCode,80)||"insufficient_creative_range",desiredTraits:arr(o.desiredTraits).map(v=>str(v,60)).filter(Boolean).slice(0,6)};
   const rawDirections=arr(o.directions);if(rawDirections.length!==3)throw new Error("ai_direction_count_invalid");
-  const byPair=new Map(candidates.map(c=>[`${c.template.id}:${c.template.versionId}`,c]));const expected=[...expectedDirectionIds(brief)];const directions:GeneratedDirection[]=[];const families=new Set<string>();
+  const byPair=new Map(candidates.map(c=>[`${c.template.id}:${c.template.versionId}`,c]));const expected=[...expectedDirectionIds(brief)];const directions:GeneratedDirection[]=[];const families=new Set<string>();const exactTemplates=new Set<string>();
   for(const slot of expected){const d=rawDirections.find(v=>v&&typeof v==="object"&&(v as Record<string,unknown>).id===slot) as Record<string,unknown>|undefined;if(!d)throw new Error("ai_direction_set_invalid");
-    const templateId=str(d.templateId,80),templateVersionId=str(d.templateVersionId,80);const candidate=byPair.get(`${templateId}:${templateVersionId}`);if(!candidate)throw new Error("ai_template_not_in_candidate_pool");if(families.has(candidate.template.familyId))throw new Error("ai_template_family_duplicate");families.add(candidate.template.familyId);
+    const templateId=str(d.templateId,80),templateVersionId=str(d.templateVersionId,80);const candidate=byPair.get(`${templateId}:${templateVersionId}`);if(!candidate)throw new Error("ai_template_not_in_candidate_pool");
+    const key=`${candidate.template.id}:${candidate.template.versionId}`;
+    if(exactTemplates.has(key)||exactTemplates.has(candidate.template.id))throw new Error("ai_template_exact_duplicate");
+    exactTemplates.add(key);exactTemplates.add(candidate.template.id);
+    if(families.has(candidate.template.familyId))throw new Error("ai_template_family_duplicate");families.add(candidate.template.familyId);
+    if(candidate.template.status!=="active"||candidate.template.health!=="healthy"||candidate.template.launchStatus==="hold"||candidate.template.launchStatus==="retired")throw new Error("ai_template_not_eligible");
+    if(candidate.template.supportedFormats&&!candidate.template.supportedFormats.includes(brief.format))throw new Error("ai_template_not_eligible");
+    if(!brief.hasPhoto&&(candidate.template.photoMode==="required"||candidate.template.visualDirection==="photo"))throw new Error("ai_invalid_photo_direction");
     const recipe=templateCreativeRecipe(candidate.template);let accentMode=str(d.accentMode,20) as CreativeAccentMode;if(!ACCENTS.includes(accentMode)||!recipe.preferredAccents.includes(accentMode))accentMode=recipe.preferredAccents[0]??"original";if(accentMode==="photo"&&(!brief.hasPhoto||candidate.template.photoMode==="none"))accentMode="original";
     let signatureMove=str(d.signatureMove,60) as SignatureMove;if(!SIGNATURE_MOVES.includes(signatureMove)||!recipe.signatureMoves.includes(signatureMove))signatureMove=recipe.signatureMoves[0];
     const riskCodes=arr(d.riskCodes).map(v=>str(v,40)).filter((v):v is typeof RISKS[number]=>RISKS.includes(v as typeof RISKS[number])).slice(0,6);
@@ -114,40 +376,146 @@ function parseCreativeSelection(raw:unknown,brief:GenerationBrief,candidates:Ran
     const direction:GeneratedDirection={id:slot,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis,customerRationale:customerRationale||undefined,signatureMove,accentMode,confidence:num(d.confidence),noveltyScore:num(d.noveltyScore),wowScore:num(d.wowScore),riskCodes,kicker:str(d.kicker,100),headline:str(d.headline,180),body:str(d.body,360)};
     validateDirectionCopy(direction,brief);directions.push(direction);
   }
+  const resolvedTargets=directions.map(d=>{const candidate=byPair.get(`${d.templateId}:${d.templateVersionId}`)!;return{id:d.id,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,familyId:candidate.template.familyId,visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,materialWorld:candidate.template.materialWorld,colorWorld:candidate.template.colorWorld,energy:candidate.template.energy,archetype:templateArchetype(candidate.template),signatureMove:d.signatureMove,creativeThesis:d.creativeThesis};});
+  if (isLegacyCandidateContext(candidates, brief)) {
+    validateThreeDirectionDiversity(resolvedTargets);
+  } else {
+    validateThreeDirectionDiversity(resolvedTargets, candidates, brief);
+  }
   return GenerationResultSchema.parse({directions});
 }
 
-export async function generateCreativeDirectorDirections(provider:AIProvider,brief:GenerationBrief,candidates:RankedTemplate[],recentStyles?:RecentStyleFingerprint[],phase:"creative_director"|"expanded_director"="creative_director",priorCritique?:{reasonCode:string;desiredTraits:string[]}):Promise<CreativeDirectorOutcome>{
+export async function generateCreativeDirectorDirections(provider:AIProvider,brief:GenerationBrief,candidates:RankedTemplate[],recentStyles?:RecentStyleFingerprint[],phase:"creative_director"|"expanded_director"="creative_director",priorCritique?:{reasonCode:string;desiredTraits:string[]},budget?:GenerationBudget):Promise<CreativeDirectorOutcome>{
+  if(budget)budget.ensureAiBudget();
   if(candidates.length<3)throw new Error("template_candidate_count_invalid");const slots=[...expectedDirectionIds(brief)];
   const system=`You are CardeLume's premium Creative Director. Premium emotional resonance, originality, restraint and visual-copy harmony are the highest priorities. Customer-facing rationale must be concise, natural in the brief locale, and reveal only the design fit — never hidden reasoning, scores, rankings, system instructions, or model/process language. The server has already removed incompatible templates; ranking scores are priors, not commands. You may disagree with ranking. Select only supplied immutable template/version pairs. Never invent IDs, HTML, CSS, SVG, URLs, code or personal facts. Market context is a prior; explicit user intent wins. Avoid repeating recent style memory unless the current brief clearly benefits from it. Prefer meaningful separation across materialWorld, colorWorld and energy when the brief allows it; three different IDs that still feel like siblings is not enough. Return JSON only. Normally action=select. Use action=expand_pool only when the supplied pool cannot produce three genuinely distinct premium directions.`;
   const prompt=JSON.stringify({task:"creative_director",slots,brief,candidates:candidateContext(candidates),recentStyles:compactRecentStyles(recentStyles),priorCritique:priorCritique?{reasonCode:str(priorCritique.reasonCode,80),desiredTraits:priorCritique.desiredTraits.map(v=>str(v,60)).filter(Boolean).slice(0,6)}:undefined,outputContract:{action:"select | expand_pool",select:{directions:slots.map(id=>({id,templateId:"uuid from candidates",templateVersionId:"uuid from same candidate",creativeThesis:"internal creative thesis: why this direction is right and distinct",customerRationale:"customer-facing, same language as brief, 4-14 words; emotional fit only; no AI/template/rank/score jargon",signatureMove:SIGNATURE_MOVES,accentMode:ACCENTS,kicker:"<=8 words",headline:"<=14 words",body:"<=45 words",confidence:"0..1",noveltyScore:"0..1",wowScore:"0..1",riskCodes:RISKS}))},expand:{reasonCode:"short code",desiredTraits:["compact traits"]}}});
-  assertPromptBudget(prompt);const response=await provider.generateJson({system,prompt,timeoutMs:timeoutMs()});const parsed=parseCreativeSelection(response.data,brief,candidates);if("expand" in parsed)return{kind:"expand_pool",reasonCode:parsed.reasonCode,desiredTraits:parsed.desiredTraits,telemetry:telemetry(phase,response)};return{kind:"ready",result:parsed,telemetry:telemetry(phase,response)};
+  assertPromptBudget(prompt);
+  if(budget)budget.ensureAiBudget();
+  const phaseTimeout=budget?budget.clampTimeoutMs(timeoutMs()):timeoutMs();
+  const response=await provider.generateJson({system,prompt,timeoutMs:phaseTimeout});
+  const parsed=parseCreativeSelection(response.data,brief,candidates);if("expand" in parsed)return{kind:"expand_pool",reasonCode:parsed.reasonCode,desiredTraits:parsed.desiredTraits,telemetry:telemetry(phase,response)};return{kind:"ready",result:parsed,telemetry:telemetry(phase,response)};
 }
 
 function words(text:string){return new Set(text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu," ").split(/\s+/).filter(Boolean));}
 function jaccard(a:string,b:string){const aa=words(a),bb=words(b);if(!aa.size&&!bb.size)return 0;let common=0;for(const w of aa)if(bb.has(w))common++;return common/(aa.size+bb.size-common);}
 const CLICHE_PATTERNS=[/on this special day/iu,/wishing you all the best/iu,/may all your dreams come true/iu,/best wishes for a wonderful/iu,/chúc .{0,20} thật nhiều niềm vui/iu,/ngày đặc biệt này/iu,/素敵な一年になりますよう/iu,/행복한 하루 보내/iu];
 function occurrenceCount(text:string,needle:string){if(!needle)return 0;let count=0,from=0;const hay=text.toLocaleLowerCase(),n=needle.toLocaleLowerCase();while((from=hay.indexOf(n,from))>=0){count++;from+=Math.max(1,n.length);}return count;}
-function directionArchetype(direction:GeneratedDirection){if(direction.photoMode==="required"||direction.visualDirection==="photo")return"photo";if(["midnight","deco","quietnoir","celestial","ledger"].includes(direction.visualDirection??""))return"midnight";if(["minimal","letterpress","whispered","museum","seal"].includes(direction.visualDirection??""))return"quiet";return"editorial";}
-export function creativeQualityRisks(result:GenerationResult,brief:GenerationBrief,recentStyles?:RecentStyleFingerprint[]){const risks=new Set<string>();
-  for(const d of result.directions){validateDirectionCopy(d,brief);const full=`${d.kicker} ${d.headline} ${d.body}`;const punct=(full.match(/[!！]/g)||[]).length;const clichéHits=CLICHE_PATTERNS.filter(re=>re.test(full)).length;if(punct>2||clichéHits>=2||jaccard(d.headline,d.body)>.72||occurrenceCount(full,brief.recipient??"")>2)risks.add("copy_risk");if((d.confidence??1)<confidenceRepairThreshold())risks.add("low_confidence");if((d.wowScore??1)<wowRepairThreshold())risks.add("low_wow");if((d.noveltyScore??1)<noveltyRepairThreshold()&&recentStyles?.length)risks.add("low_novelty");for(const r of d.riskCodes??[])risks.add(r);}
-  const archetypes=new Set(result.directions.map(directionArchetype));const visuals=new Set(result.directions.map(d=>d.visualDirection??"unknown"));if(archetypes.size===1||visuals.size===1)risks.add("creative_range");
-  for(let i=0;i<result.directions.length;i++)for(let j=i+1;j<result.directions.length;j++){const a=result.directions[i],b=result.directions[j];if(jaccard(`${a.headline} ${a.body}`,`${b.headline} ${b.body}`)>.62||jaccard(a.creativeThesis??"",b.creativeThesis??"")>.68)risks.add("creative_range");if(a.templateId&&a.templateId===b.templateId)risks.add("creative_range");}
+function directionArchetype(direction:GeneratedDirection){return templateArchetype({visualDirection:direction.visualDirection as VisualDirection,photoMode:direction.photoMode??"none"});}
+
+export function creativeQualityRisks(
+  result: GenerationResult,
+  brief: GenerationBrief,
+  recentStyles?: RecentStyleFingerprint[],
+  candidates?: RankedTemplate[]
+) {
+  const risks = new Set<string>();
+  for (const d of result.directions) {
+    validateDirectionCopy(d, brief);
+    const full = `${d.kicker} ${d.headline} ${d.body}`;
+    const punct = (full.match(/[!！]/g) || []).length;
+    const clichéHits = CLICHE_PATTERNS.filter(re => re.test(full)).length;
+    if (punct > 2 || clichéHits >= 2 || jaccard(d.headline, d.body) > .72 || occurrenceCount(full, brief.recipient ?? "") > 2) risks.add("copy_risk");
+    if ((d.confidence ?? 1) < confidenceRepairThreshold()) risks.add("low_confidence");
+    if ((d.wowScore ?? 1) < wowRepairThreshold()) risks.add("low_wow");
+    if ((d.noveltyScore ?? 1) < noveltyRepairThreshold() && recentStyles?.length) risks.add("low_novelty");
+    for (const r of d.riskCodes ?? []) risks.add(r);
+  }
+
+  const targets: DirectionDiversityTarget[] = result.directions.map(d => {
+    const candidate = candidates?.find(c => c.template.id === d.templateId && c.template.versionId === d.templateVersionId);
+    return {
+      id: d.id,
+      templateId: d.templateId,
+      templateVersionId: d.templateVersionId,
+      familyId: candidate?.template.familyId ?? "",
+      visualDirection: d.visualDirection ?? candidate?.template.visualDirection ?? "unknown",
+      photoMode: d.photoMode ?? candidate?.template.photoMode ?? "none",
+      materialWorld: candidate?.template.materialWorld,
+      colorWorld: candidate?.template.colorWorld,
+      energy: candidate?.template.energy,
+      archetype: candidate ? templateArchetype(candidate.template) : directionArchetype(d),
+      signatureMove: d.signatureMove,
+      creativeThesis: d.creativeThesis,
+    };
+  });
+
+  const archetypes = new Set(targets.map(t => t.archetype ?? directionArchetype({ visualDirection: t.visualDirection, photoMode: (t.photoMode ?? "none") as TemplatePhotoMode } as GeneratedDirection)));
+  const visuals = new Set(result.directions.map(d => d.visualDirection ?? "unknown"));
+
+  const alternativesFeasible = candidates ? hasMateriallyDifferentAlternatives(targets, candidates, brief) : true;
+
+  if (visuals.size < 3 && alternativesFeasible) risks.add("creative_range");
+
+  if (archetypes.size === 1 && alternativesFeasible) {
+    risks.add("creative_range");
+  }
+
+  if (isVisualSiblingTrio(targets) && alternativesFeasible) {
+    risks.add("creative_range");
+  }
+
+  for (let i = 0; i < result.directions.length; i++) {
+    for (let j = i + 1; j < result.directions.length; j++) {
+      const a = result.directions[i], b = result.directions[j];
+      if (jaccard(`${a.headline} ${a.body}`, `${b.headline} ${b.body}`) > .62 || jaccard(a.creativeThesis ?? "", b.creativeThesis ?? "") > .68) risks.add("creative_range");
+      if (a.templateId && a.templateId === b.templateId) risks.add("creative_range");
+    }
+  }
   return [...risks];
 }
 
-export async function criticRepairDirections(provider:AIProvider,brief:GenerationBrief,result:GenerationResult,candidates:RankedTemplate[],risks:string[]):Promise<{result:GenerationResult;telemetry:AICallTelemetry}>{
+export function resolveCandidateDiversityTargets(directions:GeneratedDirection[],candidates:RankedTemplate[]):DirectionDiversityTarget[]{
+  return directions.map(direction=>{
+    const candidate=candidates.find(c=>c.template.id===direction.templateId&&c.template.versionId===direction.templateVersionId);
+    if(!candidate)throw new Error("ai_critic_candidate_missing");
+    return{
+      id:direction.id,
+      templateId:candidate.template.id,
+      templateVersionId:candidate.template.versionId,
+      familyId:candidate.template.familyId,
+      visualDirection:candidate.template.visualDirection,
+      photoMode:candidate.template.photoMode,
+      materialWorld:candidate.template.materialWorld,
+      colorWorld:candidate.template.colorWorld,
+      energy:candidate.template.energy,
+      archetype:templateArchetype(candidate.template),
+      signatureMove:direction.signatureMove,
+      creativeThesis:direction.creativeThesis,
+      name:candidate.template.name
+    };
+  });
+}
+
+export async function criticRepairDirections(provider:AIProvider,brief:GenerationBrief,result:GenerationResult,candidates:RankedTemplate[],risks:string[],budget?:GenerationBudget):Promise<{result:GenerationResult;telemetry:AICallTelemetry}>{
+  if(budget)budget.ensureAiBudget();
+  const resolvedInitial=resolveCandidateDiversityTargets(result.directions,candidates);
+  if (isLegacyCandidateContext(candidates, brief)) {
+    validateThreeDirectionDiversity(resolvedInitial);
+  } else {
+    validateThreeDirectionDiversity(resolvedInitial, candidates, brief);
+  }
   const allowTemplateSwap=risks.includes("creative_range");
   const riskyIds=new Set(result.directions.filter(d=>(d.riskCodes??[]).length||(d.confidence??1)<confidenceRepairThreshold()||(d.wowScore??1)<wowRepairThreshold()||((d.noveltyScore??1)<noveltyRepairThreshold())).map(d=>d.id));if(allowTemplateSwap||risks.includes("copy_risk"))for(const d of result.directions)riskyIds.add(d.id);
   if(!riskyIds.size)return{result,telemetry:{phase:"critic_repair",provider:provider.providerName,model:provider.modelName,latencyMs:0,success:true}};
   const targets=result.directions.filter(d=>riskyIds.has(d.id));const system=`You are CardeLume's premium creative critic. Repair only the supplied risky directions. ${allowTemplateSwap?"Because creative range is weak, you MAY replace a risky direction with another supplied immutable template/version pair when that creates a materially stronger, more distinct premium concept.":"Keep every template ID/version fixed."} Increase emotional specificity, premium restraint, creative separation and memorability. Never add facts not present in the brief. Never invent template IDs or controls. Return JSON only.`;
   const relevantCandidates=allowTemplateSwap?candidates:candidates.filter(c=>targets.some(d=>d.templateId===c.template.id&&d.templateVersionId===c.template.versionId));
   const prompt=JSON.stringify({task:"critic_repair",allowTemplateSwap,brief,risks,candidates:candidateContext(relevantCandidates),directions:targets,outputContract:{repairs:targets.map(d=>({id:d.id,templateId:allowTemplateSwap?"candidate uuid; omit to keep":"must remain fixed",templateVersionId:allowTemplateSwap?"matching candidate version uuid; omit to keep":"must remain fixed",creativeThesis:"stronger distinct thesis",customerRationale:"customer-facing, same language as brief, 4-14 words; emotional fit only",signatureMove:SIGNATURE_MOVES,accentMode:ACCENTS,kicker:"<=8 words",headline:"<=14 words",body:"<=45 words",confidence:"0..1",noveltyScore:"0..1",wowScore:"0..1"}))}});
-  assertPromptBudget(prompt);const response=await provider.generateJson({system,prompt,timeoutMs:timeoutMs()});const raw=response.data;if(!raw||typeof raw!=="object"||!Array.isArray((raw as {repairs?:unknown}).repairs))throw new Error("ai_critic_invalid_response");const repairs=(raw as {repairs:unknown[]}).repairs;
+  assertPromptBudget(prompt);
+  if(budget)budget.ensureAiBudget();
+  const phaseTimeout=budget?budget.clampTimeoutMs(timeoutMs()):timeoutMs();
+  const response=await provider.generateJson({system,prompt,timeoutMs:phaseTimeout});
+  const raw=response.data;if(!raw||typeof raw!=="object"||!Array.isArray((raw as {repairs?:unknown}).repairs))throw new Error("ai_critic_invalid_response");const repairs=(raw as {repairs:unknown[]}).repairs;
   const merged=result.directions.map(original=>{const r=repairs.find(v=>v&&typeof v==="object"&&(v as {id?:unknown}).id===original.id) as Record<string,unknown>|undefined;if(!r)return original;
     let templateId=original.templateId,templateVersionId=original.templateVersionId;if(allowTemplateSwap){const requestedId=str(r.templateId,80),requestedVersion=str(r.templateVersionId,80);if(requestedId||requestedVersion){if(!requestedId||!requestedVersion)throw new Error("ai_critic_template_pair_invalid");templateId=requestedId;templateVersionId=requestedVersion;}}
     const candidate=candidates.find(c=>c.template.id===templateId&&c.template.versionId===templateVersionId);if(!candidate)throw new Error("ai_critic_candidate_missing");const recipe=templateCreativeRecipe(candidate.template);let signatureMove=str(r.signatureMove,60) as SignatureMove;if(!recipe.signatureMoves.includes(signatureMove))signatureMove=original.signatureMove&&recipe.signatureMoves.includes(original.signatureMove)?original.signatureMove:recipe.signatureMoves[0];let accentMode=str(r.accentMode,20) as CreativeAccentMode;if(!recipe.preferredAccents.includes(accentMode))accentMode=original.accentMode&&recipe.preferredAccents.includes(original.accentMode)?original.accentMode:recipe.preferredAccents[0];if(accentMode==="photo"&&(!brief.hasPhoto||candidate.template.photoMode==="none"))accentMode="original";const thesis=str(r.creativeThesis,360)||original.creativeThesis;if(!thesis||thesis.length<24)throw new Error("ai_critic_thesis_too_weak");const customerRationale=safeCustomerRationale(r.customerRationale)||original.customerRationale;const next={...original,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis:thesis,customerRationale,signatureMove,accentMode,kicker:str(r.kicker,100)||original.kicker,headline:str(r.headline,180)||original.headline,body:str(r.body,360)||original.body,confidence:num(r.confidence,original.confidence??.8),noveltyScore:num(r.noveltyScore,original.noveltyScore??.8),wowScore:num(r.wowScore,original.wowScore??.8),riskCodes:[]};validateDirectionCopy(next,brief);return next;});
-  const families=new Set<string>();const exactTemplates=new Set<string>();for(const direction of merged){const candidate=candidates.find(c=>c.template.id===direction.templateId&&c.template.versionId===direction.templateVersionId);if(!candidate)throw new Error("ai_critic_candidate_missing");if(families.has(candidate.template.familyId))throw new Error("ai_critic_family_duplicate");families.add(candidate.template.familyId);const key=`${candidate.template.id}:${candidate.template.versionId}`;if(exactTemplates.has(key))throw new Error("ai_critic_template_duplicate");exactTemplates.add(key);}
+  const families=new Set<string>();const exactTemplates=new Set<string>();for(const direction of merged){const candidate=candidates.find(c=>c.template.id===direction.templateId&&c.template.versionId===direction.templateVersionId);if(!candidate)throw new Error("ai_critic_candidate_missing");if(families.has(candidate.template.familyId))throw new Error("ai_critic_family_duplicate");families.add(candidate.template.familyId);const key=`${candidate.template.id}:${candidate.template.versionId}`;if(exactTemplates.has(key)||exactTemplates.has(candidate.template.id))throw new Error("ai_critic_template_duplicate");exactTemplates.add(key);exactTemplates.add(candidate.template.id);if(candidate.template.status!=="active"||candidate.template.health!=="healthy"||candidate.template.launchStatus==="hold"||candidate.template.launchStatus==="retired")throw new Error("ai_template_not_eligible");if(!brief.hasPhoto&&(candidate.template.photoMode==="required"||candidate.template.visualDirection==="photo"))throw new Error("ai_invalid_photo_direction");}
+  const resolvedRepairs=resolveCandidateDiversityTargets(merged,candidates);
+  if (isLegacyCandidateContext(candidates, brief)) {
+    validateThreeDirectionDiversity(resolvedRepairs);
+  } else {
+    validateThreeDirectionDiversity(resolvedRepairs, candidates, brief);
+  }
   const parsed=GenerationResultSchema.parse({directions:merged});return{result:parsed,telemetry:telemetry("critic_repair",response)};
 }
 
@@ -155,4 +523,90 @@ export async function criticRepairDirections(provider:AIProvider,brief:Generatio
 export async function generateCardeLumeDirections(provider:AIProvider,brief:GenerationBrief,candidates?:Array<Pick<RankedTemplate["template"],"id"|"versionId"|"name"|"visualDirection"|"photoMode"|"familyId"|"editorialScore">>):Promise<GenerationResult>{
   if(!candidates||candidates.length<3){const slots=[...expectedDirectionIds(brief)];const legacy=slots.map((id,index)=>({id,kicker:["A MOMENT FOR YOU","UNDER THE SAME STARS","JUST FOR YOU"][index]??"JUST FOR YOU",headline:["A beautiful moment, made yours.","Here is to what comes next.","With warm wishes."][index]??"With warm wishes.",body:["May this day hold more of what makes you feel most like yourself.","For this moment, and for all the good still waiting ahead.","A simple note for a day worth remembering."][index]??"With warm wishes."}));return GenerationResultSchema.parse({directions:legacy});}
   const ranked:RankedTemplate[]=candidates.map((template,index):RankedTemplate=>({template:{...template,version:1,slug:template.name,material:"",rendererTemplateKey:template.visualDirection,status:"active",launchStatus:"candidate",health:"healthy",photoMode:template.photoMode,editorialScore:template.editorialScore??90,maturity:"proven",supportedFormats:[brief.format],scriptSupport:[brief.locale.startsWith("ko")?"hangul":brief.locale.startsWith("ja")||brief.locale.startsWith("zh")?"cjk":"latin"],headlineCapacity:"medium",bodyCapacity:"medium",feelings:[],occasions:[],markets:[],excludedMarkets:[],materialWorld:"editorial_luxury",materialCues:["paper grain"],energy:"warm",colorWorld:"ivory",motionProfile:"static_paper",localeStrengths:[brief.locale],printFormatStrength:[brief.format]},score:1-index*.01,baseScore:1-index*.01,marketScore:.7,reasons:[],components:{relevance:.8,market:.7,editorial:.9,performance:.8,textFit:1,freshness:.7,photoFit:1,noveltyPenalty:0}}));const outcome=await generateCreativeDirectorDirections(provider,brief,ranked);if(outcome.kind!=="ready")throw new Error("ai_unexpected_expansion");return outcome.result;
+}
+export const SUPPORTED_OCCASIONS = [
+  "Birthday",
+  "Anniversary",
+  "Thank You",
+  "Congratulations",
+  "New Baby",
+  "Other",
+] as const;
+
+export type SupportedOccasion = (typeof SUPPORTED_OCCASIONS)[number];
+
+export function isSupportedOccasion(occasion: unknown): occasion is SupportedOccasion {
+  if (typeof occasion !== "string") return false;
+  const norm = occasion.trim().toLowerCase();
+  return SUPPORTED_OCCASIONS.some(o => o.toLowerCase() === norm) || norm === "general";
+}
+
+// Bounded deterministic fallback — no AI provider, no retry loop, no invented identity.
+// Requires exactly three pre-approved, pre-ranked RankedTemplate candidates from the
+// production catalog (selectGenerationTemplates path). Every customer-visible field
+// (templateId, templateVersionId, templateName, visualDirection, photoMode) is sourced
+// from the candidate object; static copy and recipe values are the only additions.
+// Slots are matched by templateArchetype — never by array position.
+export function buildDeterministicCreativeFallback(brief:GenerationBrief,candidates:RankedTemplate[]):GenerationResult{
+  if(!brief||!isSupportedOccasion(brief.occasion))throw new Error("ai_fallback_unavailable");
+  if(candidates.length!==3)throw new Error("ai_fallback_unavailable");
+  const slots=[...expectedDirectionIds(brief)];
+  const isBirthday=brief.occasion.trim().toLowerCase()==="birthday";
+  for(const candidate of candidates){
+    const t=candidate.template;
+    if(t.status!=="active"||t.health!=="healthy"||t.launchStatus!=="approved")throw new Error("ai_fallback_template_not_eligible");
+    if(!t.id||!t.versionId||!t.name||!t.visualDirection)throw new Error("ai_fallback_template_not_eligible");
+    if(!isBirthday&&/\bbirthday\b/i.test(`${t.name} ${t.slug??""}`))throw new Error("ai_fallback_template_not_eligible");
+  }
+  const exactPairs=new Set<string>();
+  for(const candidate of candidates){
+    const key=`${candidate.template.id}:${candidate.template.versionId}`;
+    if(exactPairs.has(key))throw new Error("ai_fallback_template_not_eligible");
+    exactPairs.add(key);
+  }
+  const familyIds=new Set<string>();
+  for(const candidate of candidates){
+    if(familyIds.has(candidate.template.familyId))throw new Error("ai_fallback_template_not_eligible");
+    familyIds.add(candidate.template.familyId);
+  }
+  const staticKickers=["A MOMENT FOR YOU","UNDER THE SAME STARS","MADE TO KEEP"] as const;
+  const staticHeadlines=[
+    "A beautiful moment, made entirely yours.",
+    "Here is to what comes next.",
+    "A quiet keepsake for this day.",
+  ] as const;
+  const staticBodies=[
+    "May this day feel as thoughtful, warm, and entirely yours as it deserves to be.",
+    "For this moment, and for all the good still waiting just ahead.",
+    "A small note for the details, feelings, and memories that make this day yours.",
+  ] as const;
+  const directions=slots.map((slot,i)=>{
+    // Match by templateArchetype — identity always comes from the matched candidate, never from slot name.
+    const slotArchetype:TemplateArchetype=slot==="photo"?"photo":slot==="midnight"?"midnight":slot==="quiet"?"quiet":"editorial";
+    const candidate=candidates.find(c=>templateArchetype(c.template)===slotArchetype);
+    if(!candidate)throw new Error("ai_fallback_unavailable");
+    const t=candidate.template;
+    const recipe=templateCreativeRecipe(t);
+    const signatureMove:SignatureMove=recipe.signatureMoves[0];
+    let accentMode:CreativeAccentMode=recipe.preferredAccents[0]??"original";
+    if(accentMode==="photo"&&(!brief.hasPhoto||t.photoMode==="none"))accentMode="original";
+    return{
+      id:slot,
+      templateId:t.id,
+      templateVersionId:t.versionId,
+      templateName:t.name,
+      visualDirection:t.visualDirection,
+      photoMode:t.photoMode,
+      signatureMove,
+      accentMode,
+      kicker:staticKickers[i]??"A MOMENT FOR YOU",
+      headline:staticHeadlines[i]??"A beautiful moment, made yours.",
+      body:staticBodies[i]??"May this day feel as thoughtful and warm as it deserves.",
+      confidence:.80,
+      noveltyScore:.70,
+      wowScore:.75,
+      riskCodes:[] as string[],
+    };
+  });
+  return GenerationResultSchema.parse({directions});
 }

@@ -6,6 +6,14 @@ export function normalizeLocale(value?: string | string[] | null): LocaleCode {
   return supportedLocales.includes(candidate as LocaleCode) ? candidate as LocaleCode : "en";
 }
 
+export function withoutRecipient(value:string) {
+  return value
+    .replace(/\s*[,，、]\s*\{name\}/g, "")
+    .replace(/\{name\}(?:さん|님|씨)?[、,，。！？]?\s*/g, "")
+    .replace(/\s+([.!?。！？])/g, "$1")
+    .trim();
+}
+
 export const localeMeta: Record<LocaleCode, {code:string; name:string; region:string; flagClass:string}> = {
   en:{code:"EN",name:"English",region:"United States / Global",flagClass:"flag-us"},
   ja:{code:"JA",name:"日本語",region:"日本",flagClass:"flag-jp"},

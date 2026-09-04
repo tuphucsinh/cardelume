@@ -15,6 +15,7 @@ COPY packages/db/package.json packages/db/package.json
 COPY packages/core/package.json packages/core/package.json
 COPY packages/storage/package.json packages/storage/package.json
 COPY packages/queue/package.json packages/queue/package.json
+COPY packages/renderer/package.json packages/renderer/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM base AS build
@@ -27,12 +28,24 @@ COPY --from=deps /app/packages/db/node_modules /app/packages/db/node_modules
 COPY --from=deps /app/packages/core/node_modules /app/packages/core/node_modules
 COPY --from=deps /app/packages/storage/node_modules /app/packages/storage/node_modules
 COPY --from=deps /app/packages/queue/node_modules /app/packages/queue/node_modules
+COPY --from=deps /app/packages/renderer/node_modules /app/packages/renderer/node_modules
 COPY . .
 RUN pnpm --filter @cardelume/web build
 
 FROM ${NODE_IMAGE} AS runner
 ENV NODE_ENV=production
+ENV RENDER_REQUIRE_DETERMINISTIC_FONTS=true
 WORKDIR /app
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      fonts-ebgaramond=0.016+git20210310.42d4f9f2-1 \
+      fonts-lato=2.0-2.1 \
+      fonts-noto-cjk=1:20220127+repack1-1 \
+      fontconfig \
+ && test -s /usr/share/doc/fonts-ebgaramond/copyright \
+ && test -s /usr/share/doc/fonts-lato/copyright \
+ && test -s /usr/share/doc/fonts-noto-cjk/copyright \
+ && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --uid 10001 cardelume
 COPY --from=build --chown=cardelume:cardelume /app/apps/web/.next/standalone ./
 COPY --from=build --chown=cardelume:cardelume /app/apps/web/.next/static ./apps/web/.next/static

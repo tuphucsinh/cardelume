@@ -1,4 +1,4 @@
-import { bootstrapTemplates, portfolioV2AllTemplates, rankTemplates, selectGenerationTemplates, surfaceTemplates, templateArchetype } from "../packages/templates/src/index.ts";
+import { bootstrapTemplates, buildCreativeCandidatePack, portfolioV2AllTemplates, rankTemplates, selectGenerationTemplates, surfaceTemplates, templateArchetype } from "../packages/templates/src/index.ts";
 function ok(v:unknown,msg:string):asserts v{if(!v)throw new Error(msg)}
 const base={market:"VN",locale:"vi",format:"portrait-5x7",feeling:"Warm",occasion:"Birthday",hasPhoto:false};
 const surface=surfaceTemplates(portfolioV2AllTemplates,{...base,catalogMode:"experiment"});ok(surface.recommended.length===4,"recommended_count");ok(surface.marketPicks.length===4,"market_count");ok(surface.marketPicks.filter(x=>x.marketScore>=.55).length>=1,"vn_market_signal_missing");ok(surface.more.length<=8,"more_count");const ids=[...surface.recommended,...surface.marketPicks,...surface.more].map(x=>x.template.id);ok(ids.length===new Set(ids).size,"surface_duplicate");
@@ -10,7 +10,6 @@ const archived=portfolioV2AllTemplates.map((t,i)=>i===0?{...t,status:"archived" 
 console.log(JSON.stringify({status:"PASS",catalog:portfolioV2AllTemplates.length,recommended:surface.recommended.map(x=>x.template.name),marketPicks:surface.marketPicks.map(x=>x.template.name),generationNoPhoto:noPhoto.map(x=>x.template.name),generationPhoto:withPhoto.map(x=>x.template.name)},null,2));
 
 // Step 13 creative shortlist contract: 6 strongest diverse candidates + up to 2 high-quality wildcards.
-const {buildCreativeCandidatePack}=await import("../packages/templates/src/index.ts");
 const pack=buildCreativeCandidatePack(portfolioV2AllTemplates,{...base,catalogMode:"experiment"});
 ok(pack.fit.length===6,"creative_fit_count");
 ok(pack.wildcards.length===2,"creative_wildcard_count");

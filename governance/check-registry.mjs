@@ -30,11 +30,12 @@ export const CHECKS = [
   { id: 'runtime.recovery-security', tier: 'release', domain: 'runtime', node: ['--experimental-strip-types', 'scripts/recovery-security-stress.ts'] },
   { id: 'operator.lumer-toolkit', tier: 'release', domain: 'operator', node: ['scripts/lumer-toolkit-source-stress.mjs'] },
   { id: 'quality.premium-benchmark-contract', tier: 'release', domain: 'quality', node: ['scripts/premium-benchmark-source-stress.mjs'] },
+  { id: 'render.export-stress', tier: 'release', domain: 'render', requiresWorkspaceDependencies: true, node: ['--experimental-strip-types', 'scripts/renderer-export-stress.ts'] },
+  { id: 'render.beta-export-matrix', tier: 'release', domain: 'render', requiresWorkspaceDependencies: true, node: ['--experimental-strip-types', 'scripts/beta-export-matrix-stress.ts'] },
 
   // HEAVY: deterministic stress/render checks. Controlled runtime/build gates are appended by the runner.
   { id: 'render.typography-stress', tier: 'heavy', domain: 'render', requiresWorkspaceDependencies: true, node: ['--experimental-strip-types', 'scripts/typography-stress.ts'] },
   { id: 'render.locale-detection', tier: 'heavy', domain: 'render', requiresWorkspaceDependencies: true, node: ['--experimental-strip-types', 'scripts/locale-detection-stress.ts'] },
-  { id: 'render.export-stress', tier: 'heavy', domain: 'render', requiresWorkspaceDependencies: true, node: ['--experimental-strip-types', 'scripts/renderer-export-stress.ts'] },
   { id: 'render.typography-guard', tier: 'heavy', domain: 'render', requiresWorkspaceDependencies: true, node: ['--experimental-strip-types', 'scripts/typography-guard-stress.ts'] },
   { id: 'render.photo-contrast', tier: 'heavy', domain: 'render', node: ['--experimental-strip-types', 'scripts/photo-palette-contrast-stress.ts'] },
 ];

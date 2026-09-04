@@ -1,12 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
 import { CardDocumentSchema, GenerationBriefSchema } from "@cardelume/card-schema";
-import { createAIProviderFromEnv, generateCreativeDirectorDirections, creativeQualityRisks, criticRepairDirections, type AICallTelemetry, type CreativeDirectorOutcome } from "@cardelume/ai";
+import { createAIProviderFromEnv, createGenerationBudget, generateCreativeDirectorDirections, creativeQualityRisks, criticRepairDirections, buildDeterministicCreativeFallback, type AICallTelemetry, type CreativeDirectorOutcome } from "@cardelume/ai";
 import { claimGenerationJob, listManagedTemplates, listRecentStyleFingerprints, recordGenerationAIUsage, recordFunnelEventForOrder, recordTemplateEvent, rollupTemplateMetricsDaily, cleanupTemplateEvents, cleanupFunnelEvents, cleanupStyleFingerprints, cleanupGenerationAIUsage, cleanupCompletedGenerationJobs, cleanupRateLimitBuckets, cleanupStaleWorkerHeartbeats, completeGenerationJob, failGenerationJob, failStaleGenerationJobs, hasCompleteFinalEntitlements, listPhotoAssetCleanupCandidates, loadPaidCardRenderContext, loadTrustedAssetsForVersion, markPhotoAssetDeleted, persistFinalEntitlements, removeWorkerHeartbeat, updateGenerationStage, upsertWorkerHeartbeat } from "@cardelume/db";
 import { createBoss, ensureCardeLumeQueues, QUEUES } from "@cardelume/queue";
 import { assertRendererFontsReady, CURRENT_RENDERER_VERSION, renderProductionFinal } from "@cardelume/renderer";
 import { R2ObjectStorage } from "@cardelume/storage";
 import { z } from "zod";
-import { buildCreativeCandidatePack, expandedCreativeCandidatePool } from "@cardelume/templates";
+import { buildCreativeCandidatePack, expandedCreativeCandidatePool, selectGenerationTemplates, type TemplateRankInput, type RecentStyleFingerprint } from "@cardelume/templates";
 import { assertEnvironmentIsolation } from "@cardelume/core";
 
 assertEnvironmentIsolation(process.env);
@@ -61,46 +61,75 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
   const payload=GenerationJobSchema.safeParse(job.data);if(!payload.success)throw new Error("invalid_ai_plan_job_payload");
   log("ai_plan_start",{queueJobId:job.id,jobId:payload.data.jobId});
   const claim=await claimGenerationJob({jobId:payload.data.jobId});if(claim.state==="ready"){log("ai_plan_already_ready",{jobId:payload.data.jobId});return;}
+  let brief:ReturnType<typeof GenerationBriefSchema.parse>|undefined;
+  let catalog:Awaited<ReturnType<typeof listManagedTemplates>>|undefined;
+  let rankInput:TemplateRankInput|undefined;
   try{
-    const brief=GenerationBriefSchema.parse(claim.job.brief);
+    brief=GenerationBriefSchema.parse(claim.job.brief);
     await updateGenerationStage({jobId:payload.data.jobId,status:"composing",stage:2});
-    const catalog=await listManagedTemplates();
+    catalog=await listManagedTemplates();
     const persistedRecent=await listRecentStyleFingerprints({userId:claim.job.user_id,limit:5}).catch(()=>[]);
     const refreshRecent=(brief.refreshContext?.priorTemplateIds??[]).flatMap(templateId=>{
-      const template=catalog.find(item=>item.id===templateId);
+      const template=catalog!.find(item=>item.id===templateId);
       return template?[{familyId:template.familyId,templateId:template.id,visualDirection:template.visualDirection,createdAt:new Date().toISOString()}]:[];
     });
     // Refresh evidence is intentionally soft. It nudges novelty but cannot veto the best candidate.
-    const recentStyles=[...refreshRecent,...persistedRecent].slice(0,8);
-    const rankInput={market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.feeling,occasion:brief.occasion,hasPhoto:brief.hasPhoto,recentStyles};
-    const pack=buildCreativeCandidatePack(catalog,rankInput);
+    const recentStyles:RecentStyleFingerprint[]=[...refreshRecent,...persistedRecent.map(r=>({familyId:r.familyId,templateId:r.templateId??undefined,visualDirection:r.visualDirection,accentMode:r.accentMode??undefined,createdAt:r.createdAt??undefined}))].slice(0,8);
+    const narrowedRankInput:TemplateRankInput={market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.feeling,occasion:brief.occasion,hasPhoto:brief.hasPhoto,recentStyles};
+    rankInput=narrowedRankInput;
+    const pack=buildCreativeCandidatePack(catalog,narrowedRankInput);
     if(pack.all.length<3)throw new Error("ai_template_candidates_insufficient");
+    const budget=createGenerationBudget();
     const provider=createAIProviderFromEnv();
     let outcome:CreativeDirectorOutcome;const directorStarted=Date.now();
-    try{outcome=await generateCreativeDirectorDirections(provider,brief,pack.all,recentStyles,"creative_director");await persistAiTelemetry(payload.data.jobId,outcome.telemetry);}catch(error){await persistAiTelemetry(payload.data.jobId,{phase:"creative_director",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-directorStarted,success:false,errorCode:error instanceof Error?error.message:"generation_provider_failed"});throw error;}
+    try{outcome=await generateCreativeDirectorDirections(provider,brief,pack.all,recentStyles,"creative_director",undefined,budget);await persistAiTelemetry(payload.data.jobId,outcome.telemetry);}catch(error){await persistAiTelemetry(payload.data.jobId,{phase:"creative_director",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-directorStarted,success:false,errorCode:error instanceof Error?error.message:"generation_provider_failed"});throw error;}
     let candidatePool=pack.all;
     if(outcome.kind==="expand_pool"){
+      budget.ensureAiBudget();
       const priorCritique={reasonCode:outcome.reasonCode,desiredTraits:outcome.desiredTraits};
-      candidatePool=expandedCreativeCandidatePool(catalog,rankInput,16);
+      candidatePool=expandedCreativeCandidatePool(catalog,narrowedRankInput,16);
       if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
       const expandedStarted=Date.now();
-      try{outcome=await generateCreativeDirectorDirections(provider,brief,candidatePool,recentStyles,"expanded_director",priorCritique);await persistAiTelemetry(payload.data.jobId,outcome.telemetry);}catch(error){await persistAiTelemetry(payload.data.jobId,{phase:"expanded_director",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-expandedStarted,success:false,errorCode:error instanceof Error?error.message:"generation_provider_failed"});throw error;}
+      try{outcome=await generateCreativeDirectorDirections(provider,brief,candidatePool,recentStyles,"expanded_director",priorCritique,budget);await persistAiTelemetry(payload.data.jobId,outcome.telemetry);}catch(error){await persistAiTelemetry(payload.data.jobId,{phase:"expanded_director",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-expandedStarted,success:false,errorCode:error instanceof Error?error.message:"generation_provider_failed"});throw error;}
       if(outcome.kind!=="ready")throw new Error("ai_creative_range_insufficient");
     }
     if(outcome.kind!=="ready")throw new Error("ai_creative_range_insufficient");
     let result=outcome.result;const risks=creativeQualityRisks(result,brief,recentStyles);
     const criticTriggers=new Set(["creative_range","copy_risk","low_confidence","low_wow","market_tension","low_novelty"]);
     const premiumCritical=new Set(["creative_range","copy_risk","low_confidence","low_wow"]);
-    if(risks.includes("creative_range")&&candidatePool.length<12)candidatePool=expandedCreativeCandidatePool(catalog,rankInput,16);
-    if(risks.some(r=>criticTriggers.has(r))){const criticStarted=Date.now();try{const repaired=await criticRepairDirections(provider,brief,result,candidatePool,risks);result=repaired.result;if(repaired.telemetry.latencyMs>0)await persistAiTelemetry(payload.data.jobId,repaired.telemetry);}catch(error){await persistAiTelemetry(payload.data.jobId,{phase:"critic_repair",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-criticStarted,success:false,errorCode:error instanceof Error?error.message:"ai_critic_failed"});if(risks.some(r=>premiumCritical.has(r)))throw error;}const remaining=creativeQualityRisks(result,brief,recentStyles);if(remaining.some(r=>premiumCritical.has(r)))throw new Error("ai_premium_quality_not_met");}
+    if(risks.includes("creative_range")&&candidatePool.length<12)candidatePool=expandedCreativeCandidatePool(catalog,narrowedRankInput,16);
+    if(risks.some(r=>criticTriggers.has(r))){
+      budget.ensureAiBudget();
+      const criticStarted=Date.now();
+      try{
+        const repaired=await criticRepairDirections(provider,brief,result,candidatePool,risks,budget);
+        result=repaired.result;
+        if(repaired.telemetry.latencyMs>0)await persistAiTelemetry(payload.data.jobId,repaired.telemetry);
+      }catch(error){
+        await persistAiTelemetry(payload.data.jobId,{phase:"critic_repair",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-criticStarted,success:false,errorCode:error instanceof Error?error.message:"ai_critic_failed"});
+        if(risks.some(r=>premiumCritical.has(r))||(error instanceof Error&&(error.message==="ai_budget_exhausted"||error.message==="ai_provider_timeout")))throw error;
+      }
+      const remaining=creativeQualityRisks(result,brief,recentStyles);
+      if(remaining.some(r=>premiumCritical.has(r)))throw new Error("ai_premium_quality_not_met");
+    }
     await completeGenerationJob({jobId:payload.data.jobId,result});
-    await Promise.all(result.directions.flatMap((direction,index)=>direction.templateId&&direction.templateVersionId?[recordTemplateEvent({eventId:randomUUID(),templateId:direction.templateId,templateVersionId:direction.templateVersionId,eventType:"ai_assigned",source:"ai_direction",market:brief.market,locale:brief.locale,rankPosition:index+1})]:[])).catch(()=>undefined);
+    await Promise.all(result.directions.flatMap((direction,index)=>direction.templateId&&direction.templateVersionId?[recordTemplateEvent({eventId:randomUUID(),templateId:direction.templateId,templateVersionId:direction.templateVersionId,eventType:"ai_assigned",source:"ai_direction",market:brief!.market,locale:brief!.locale,rankPosition:index+1})]:[])).catch(()=>undefined);
     log("ai_plan_complete",{jobId:payload.data.jobId,directionCount:result.directions.length});
   }catch(error){
     const raw=error instanceof Error?error.message:"generation_provider_failed";
-    const safe=raw.startsWith("ai_")?raw:"generation_provider_failed";
-    await failGenerationJob({jobId:payload.data.jobId,errorCode:safe});
-    log("ai_plan_failed",{jobId:payload.data.jobId,error:safe});
+    const safe=raw.startsWith("ai_")||raw.startsWith("generation_")?raw:"generation_provider_failed";
+    const errorCode=safe.startsWith("ai_")?safe:"generation_provider_failed";
+    log("ai_plan_recovery_started",{jobId:payload.data.jobId,errorCode});
+    try{
+      if(!brief||!catalog||!rankInput)throw new Error("ai_generation_safe_failure");
+      const fallbackCandidates=selectGenerationTemplates(catalog,{...rankInput,catalogMode:"production"});
+      const fallbackResult=buildDeterministicCreativeFallback(brief,fallbackCandidates);
+      await completeGenerationJob({jobId:payload.data.jobId,result:fallbackResult});
+      log("ai_plan_fallback_used",{jobId:payload.data.jobId,directionCount:fallbackResult.directions.length});
+    }catch{
+      await failGenerationJob({jobId:payload.data.jobId,errorCode:"ai_generation_safe_failure"});
+      log("ai_plan_safe_failure",{jobId:payload.data.jobId,errorCode:"ai_generation_safe_failure"});
+    }
   }
 }));
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { listManagedTemplates, listRecentStyleFingerprints } from "@cardelume/db";
-import { portfolioV2AllTemplates, surfaceTemplates, templateArchetype } from "@cardelume/templates";
+import { portfolioV2AllTemplates, surfaceTemplates, templateArchetype, resolveCanonicalPresentationFromTemplate } from "@cardelume/templates";
 import { normalizeMarket } from "../../../lib/pricing";
 import { issueTemplateEventToken, type TemplateEventSource } from "../../../lib/template-event-token.server";
 import { anonymousIdFromCookieHeader } from "../../../lib/pricing-quote.server";
@@ -14,7 +14,7 @@ export async function GET(req:Request){
  let catalog;try{catalog=await listManagedTemplates();if(!catalog.length){if(process.env.APP_MODE==="mock")catalog=portfolioV2AllTemplates;else return NextResponse.json({error:"template_catalog_unavailable"},{status:503,headers:{"cache-control":"no-store"}});}}catch{if(process.env.APP_MODE==="mock")catalog=portfolioV2AllTemplates;else return NextResponse.json({error:"template_catalog_unavailable"},{status:503,headers:{"cache-control":"no-store"}});}
  const recentStyles=await listRecentStyleFingerprints({userId:anonymousId,limit:5}).then(rows=>rows.map(row=>({...row,accentMode:row.accentMode??undefined}))).catch(()=>[]);
  const surface=surfaceTemplates(catalog,{...parsed.data,market,hasPhoto:parsed.data.hasPhoto==="1",recentStyles});
- const expose=(item:typeof surface.recommended[number],source:TemplateEventSource,position:number)=>({id:item.template.id,versionId:item.template.versionId,name:item.template.name,material:item.template.material,visualDirection:item.template.visualDirection,photoMode:item.template.photoMode,source,position,marketMatch:item.marketScore>=.55,archetype:templateArchetype(item.template),eventToken:issueTemplateEventToken({templateId:item.template.id,templateVersionId:item.template.versionId,source,rankPosition:position,market,locale:parsed.data.locale,anonymousId})});
+ const expose=(item:typeof surface.recommended[number],source:TemplateEventSource,position:number)=>({id:item.template.id,versionId:item.template.versionId,name:item.template.name,material:item.template.material,visualDirection:item.template.visualDirection,photoMode:item.template.photoMode,source,position,marketMatch:item.marketScore>=.55,archetype:templateArchetype(item.template),presentation:resolveCanonicalPresentationFromTemplate(item.template,{hasPhoto:parsed.data.hasPhoto==="1",locale:parsed.data.locale,format:parsed.data.format}),eventToken:issueTemplateEventToken({templateId:item.template.id,templateVersionId:item.template.versionId,source,rankPosition:position,market,locale:parsed.data.locale,anonymousId})});
  const marketSpecificCount=surface.marketPicks.filter(x=>x.marketScore>=.55).length;
  return NextResponse.json({market,marketSpecificCount,recommended:surface.recommended.map((x,i)=>expose(x,"recommended",i+1)),marketPicks:surface.marketPicks.map((x,i)=>expose(x,"market_pick",i+1)),more:surface.more.map((x,i)=>expose(x,"show_more",i+1))},{headers:{"cache-control":"private, max-age=15"}});
 }

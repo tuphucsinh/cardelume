@@ -7,10 +7,10 @@ import { extractPhotoPalette, type PhotoPalette } from "./photo-palette";
 import { preparePhotoForUpload } from "./photo-preprocess";
 import { magicTypography, measureTextWidth } from "./magic-typography";
 import { PhysicalCardSurface, usePhysicalEffects } from "./physical-effects";
-import type { VisualDirection } from "@cardelume/templates";
-import { cardCopyMetrics, shortenCardBody, type GenerationResult } from "@cardelume/card-schema";
+import { curatedFallbackPresentations, type VisualDirection } from "@cardelume/templates";
+import { cardCopyMetrics, shortenCardBody, type GenerationResult, type CanonicalPresentation } from "@cardelume/card-schema";
 import { interpolate, type LocaleCode, type Messages } from "../i18n/messages";
-import { directionDisplay } from "../i18n/display-copy";
+import { resolveCustomerStyleDisplay } from "../i18n/display-copy";
 import { launchCopy } from "../i18n/launch-copy";
 import { betaCopy } from "../i18n/beta-copy";
 import type { ResolvedPrice } from "../lib/pricing";
@@ -25,12 +25,62 @@ const feelings=["Elegant","Warm","Romantic","Fun","Surprise me"] as const;
 type Phase="brief"|"revealing"|"results"|"finish"|"checkout";
 type AccentMode="original"|"photo"|"navy"|"sage"|"rose";
 type DirectionId="editorial"|"midnight"|"photo"|"quiet";
-type Direction={id:DirectionId;visual:VisualDirection;templateId?:string;templateVersionId?:string;templateName?:string;templateSource?:"ai_direction"|"recommended"|"market_pick"|"show_more";templatePosition?:number;templateEventToken?:string;photoMode?:"none"|"optional"|"required";suggestedAccentMode?:AccentMode};
+type Direction={
+  id:DirectionId;
+  visual:VisualDirection;
+  templateId?:string;
+  templateVersionId?:string;
+  templateName?:string;
+  templateMaterial?:string;
+  presentation?:CanonicalPresentation;
+  templateSource?:"ai_direction"|"recommended"|"market_pick"|"show_more";
+  templatePosition?:number;
+  templateEventToken?:string;
+  photoMode?:"none"|"optional"|"required";
+  suggestedAccentMode?:AccentMode;
+};
 type TemplateOption={id:string;versionId:string;name:string;material:string;visualDirection:VisualDirection;photoMode:"none"|"optional"|"required";source:"ai_direction"|"recommended"|"market_pick"|"show_more";position:number;archetype:string;eventToken:string};
-const editorial:Direction={id:"editorial",visual:"editorial",photoMode:"none"};
-const midnight:Direction={id:"midnight",visual:"midnight",photoMode:"none"};
-const photo:Direction={id:"photo",visual:"photo",photoMode:"required"};
-const quiet:Direction={id:"quiet",visual:"letterpress",photoMode:"none"};
+
+const editorial:Direction={
+  id:"editorial",
+  visual:curatedFallbackPresentations.editorial.visualDirection,
+  templateId:curatedFallbackPresentations.editorial.templateId,
+  templateVersionId:curatedFallbackPresentations.editorial.templateVersionId,
+  templateName:curatedFallbackPresentations.editorial.name,
+  templateMaterial:curatedFallbackPresentations.editorial.material,
+  presentation:curatedFallbackPresentations.editorial,
+  photoMode:curatedFallbackPresentations.editorial.photoMode
+};
+const midnight:Direction={
+  id:"midnight",
+  visual:curatedFallbackPresentations.midnight.visualDirection,
+  templateId:curatedFallbackPresentations.midnight.templateId,
+  templateVersionId:curatedFallbackPresentations.midnight.templateVersionId,
+  templateName:curatedFallbackPresentations.midnight.name,
+  templateMaterial:curatedFallbackPresentations.midnight.material,
+  presentation:curatedFallbackPresentations.midnight,
+  photoMode:curatedFallbackPresentations.midnight.photoMode
+};
+const photo:Direction={
+  id:"photo",
+  visual:curatedFallbackPresentations.photo.visualDirection,
+  templateId:curatedFallbackPresentations.photo.templateId,
+  templateVersionId:curatedFallbackPresentations.photo.templateVersionId,
+  templateName:curatedFallbackPresentations.photo.name,
+  templateMaterial:curatedFallbackPresentations.photo.material,
+  presentation:curatedFallbackPresentations.photo,
+  photoMode:curatedFallbackPresentations.photo.photoMode
+};
+const quiet:Direction={
+  id:"quiet",
+  visual:curatedFallbackPresentations.quiet.visualDirection,
+  templateId:curatedFallbackPresentations.quiet.templateId,
+  templateVersionId:curatedFallbackPresentations.quiet.templateVersionId,
+  templateName:curatedFallbackPresentations.quiet.name,
+  templateMaterial:curatedFallbackPresentations.quiet.material,
+  presentation:curatedFallbackPresentations.quiet,
+  photoMode:curatedFallbackPresentations.quiet.photoMode
+};
 
 function formatClass(value:string){
   if(value.startsWith("Square"))return"format-square";
@@ -149,6 +199,8 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   const previewCopy=useMemo(()=>{
     const entered=recipient.trim();
     const name=entered||launch.someoneSpecial;
+    if(occasion==="New Baby")return{kicker:launch.quiet.kicker,headline:launch.quiet.headline,body:detail||launch.quiet.body};
+    if(occasion==="Other")return{kicker:launch.quiet.kicker,headline:launch.quiet.headline,body:detail||launch.quiet.body};
     const formal=relation==="Coworker"||relation==="Client";
     if(occasion==="Anniversary")return{kicker:m.copy.anniversaryKicker,headline:interpolate(m.copy.anniversaryHeadline,{name}),body:detail||m.copy.anniversaryBody};
     if(occasion==="Thank You")return{kicker:m.copy.thankKicker,headline:interpolate(m.copy.thankHeadline,{name}),body:detail||m.copy.thankBody};
@@ -156,20 +208,20 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
     if(formal)return{kicker:m.copy.formalBirthdayKicker,headline:interpolate(m.copy.formalBirthdayHeadline,{name}),body:detail||m.copy.formalBirthdayBody};
     if(!entered&&feeling==="Elegant")return{kicker:m.copy.birthdayKicker,headline:m.copy.editorialHeadline,body:detail||m.copy.editorialBody};
     return{kicker:m.copy.birthdayKicker,headline:interpolate(feeling==="Fun"?m.copy.birthdayFun:feeling==="Romantic"?m.copy.birthdayRomantic:m.copy.birthdayHeadline,{name}),body:detail||m.copy.birthdayBody};
-  },[occasion,recipient,relation,feeling,detail,m,launch.someoneSpecial]);
+  },[occasion,recipient,relation,feeling,detail,m,launch.someoneSpecial,launch.quiet.kicker,launch.quiet.headline,launch.quiet.body]);
 
   const personalMark=useMemo(()=>{const chars=Array.from((recipient.trim()||launch.someoneSpecial).replace(/\s+/g,""));return (chars.slice(0,2).join("")||"CL").toLocaleUpperCase(locale);},[recipient,launch.someoneSpecial,locale]);
   const experience=useMemo(()=>({
-    en:{relationshipOptional:"Choose if useful (optional)",printLayout:"Print layout (optional)",printLayoutHint:"Digital PDF layout · no physical card is shipped",whyFits:"Why this fits",direction:"Direction",refine:"Refine wording",undo:"Undo",curatedColor:"Curated accent",photoColor:"From your photo"},
-    ja:{relationshipOptional:"必要な場合のみ選択（任意）",printLayout:"印刷レイアウト（任意）",printLayoutHint:"デジタルPDFのレイアウトです · 実物のカードは発送されません",whyFits:"この方向が合う理由",direction:"デザイン",refine:"言葉を整える",undo:"元に戻す",curatedColor:"おすすめの色",photoColor:"写真の色から"},
-    ko:{relationshipOptional:"필요한 경우 선택 (선택)",printLayout:"인쇄 레이아웃 (선택)",printLayoutHint:"디지털 PDF 레이아웃 · 실물 카드는 배송되지 않습니다",whyFits:"이 방향이 어울리는 이유",direction:"디자인",refine:"문구 다듬기",undo:"되돌리기",curatedColor:"추천 색상",photoColor:"사진에서 가져온 색"},
-    es:{relationshipOptional:"Elige solo si ayuda (opcional)",printLayout:"Formato de impresión (opcional)",printLayoutHint:"Formato del PDF digital · no se envía tarjeta física",whyFits:"Por qué encaja",direction:"Dirección",refine:"Refinar el texto",undo:"Deshacer",curatedColor:"Acento curado",photoColor:"De tu foto"},
-    fr:{relationshipOptional:"Choisissez si utile (facultatif)",printLayout:"Mise en page d’impression (facultatif)",printLayoutHint:"Mise en page du PDF numérique · aucune carte physique n’est expédiée",whyFits:"Pourquoi cela convient",direction:"Direction",refine:"Affiner le texte",undo:"Annuler",curatedColor:"Accent choisi",photoColor:"Depuis votre photo"},
-    de:{relationshipOptional:"Nur bei Bedarf wählen (optional)",printLayout:"Drucklayout (optional)",printLayoutHint:"Layout für die digitale PDF · keine physische Karte wird versendet",whyFits:"Warum das passt",direction:"Richtung",refine:"Text verfeinern",undo:"Rückgängig",curatedColor:"Kuratierter Akzent",photoColor:"Aus Ihrem Foto"},
-    pt:{relationshipOptional:"Escolha só se ajudar (opcional)",printLayout:"Layout de impressão (opcional)",printLayoutHint:"Layout do PDF digital · nenhum cartão físico é enviado",whyFits:"Por que combina",direction:"Direção",refine:"Refinar o texto",undo:"Desfazer",curatedColor:"Acento curado",photoColor:"Da sua foto"},
-    it:{relationshipOptional:"Scegli solo se utile (facoltativo)",printLayout:"Layout di stampa (facoltativo)",printLayoutHint:"Layout del PDF digitale · non viene spedito alcun biglietto fisico",whyFits:"Perché funziona",direction:"Direzione",refine:"Affina il testo",undo:"Annulla",curatedColor:"Accento scelto",photoColor:"Dalla tua foto"},
-    zh:{relationshipOptional:"有帮助时再选择（可选）",printLayout:"打印版式（可选）",printLayoutHint:"数字PDF版式 · 不会寄送实体卡片",whyFits:"为什么适合",direction:"方向",refine:"润色文字",undo:"撤销",curatedColor:"精选配色",photoColor:"来自你的照片"},
-    vi:{relationshipOptional:"Chọn nếu thật sự hữu ích (không bắt buộc)",printLayout:"Bố cục in (không bắt buộc)",printLayoutHint:"Bố cục cho file PDF số · không giao thiệp vật lý",whyFits:"Vì sao hướng này phù hợp",direction:"Hướng",refine:"Tinh chỉnh lời chúc",undo:"Hoàn tác",curatedColor:"Màu nhấn được chọn",photoColor:"Từ ảnh của bạn"}
+    en:{relationshipOptional:"Choose if useful (optional)",printLayout:"Print layout (optional)",printLayoutHint:"Digital PDF layout · no physical card is shipped",whyFits:"Why this fits",direction:"Direction",refine:"Refine wording",undo:"Undo",curatedColor:"Curated accent",photoColor:"From your photo",originalColor:"Original",original:"Original"},
+    ja:{relationshipOptional:"必要な場合のみ選択（任意）",printLayout:"印刷レイアウト（任意）",printLayoutHint:"デジタルPDFのレイアウトです · 実物のカードは発送されません",whyFits:"この方向が合う理由",direction:"デザイン",refine:"言葉を整える",undo:"元に戻す",curatedColor:"おすすめの色",photoColor:"写真の色から",originalColor:"オリジナル",original:"オリジナル"},
+    ko:{relationshipOptional:"필요한 경우 선택 (선택)",printLayout:"인쇄 레이아웃 (선택)",printLayoutHint:"디지털 PDF 레이아웃 · 실물 카드는 배송되지 않습니다",whyFits:"이 방향이 어울리는 이유",direction:"디자인",refine:"문구 다듬기",undo:"되돌리기",curatedColor:"추천 색상",photoColor:"사진에서 가져온 색",originalColor:"오리지널",original:"오리지널"},
+    es:{relationshipOptional:"Elige solo si ayuda (opcional)",printLayout:"Formato de impresión (opcional)",printLayoutHint:"Formato del PDF digital · no se envía tarjeta física",whyFits:"Por qué encaja",direction:"Dirección",refine:"Refinar el texto",undo:"Deshacer",curatedColor:"Acento curado",photoColor:"De tu foto",originalColor:"Original",original:"Original"},
+    fr:{relationshipOptional:"Choisissez si utile (facultatif)",printLayout:"Mise en page d’impression (facultatif)",printLayoutHint:"Mise en page du PDF numérique · aucune carte physique n’est expédiée",whyFits:"Pourquoi cela convient",direction:"Direction",refine:"Affiner le texte",undo:"Annuler",curatedColor:"Accent choisi",photoColor:"Depuis votre photo",originalColor:"Original",original:"Original"},
+    de:{relationshipOptional:"Nur bei Bedarf wählen (optional)",printLayout:"Drucklayout (optional)",printLayoutHint:"Layout für die digitale PDF · keine physische Karte wird versendet",whyFits:"Warum das passt",direction:"Richtung",refine:"Text verfeinern",undo:"Rückgängig",curatedColor:"Kuratierter Akzent",photoColor:"Aus Ihrem Foto",originalColor:"Original",original:"Original"},
+    pt:{relationshipOptional:"Escolha só se ajudar (opcional)",printLayout:"Layout de impressão (opcional)",printLayoutHint:"Layout do PDF digital · nenhum cartão físico é enviado",whyFits:"Por que combina",direction:"Direção",refine:"Refinar o texto",undo:"Desfazer",curatedColor:"Acento curado",photoColor:"Da sua foto",originalColor:"Original",original:"Original"},
+    it:{relationshipOptional:"Scegli solo se utile (facoltativo)",printLayout:"Layout di stampa (facoltativo)",printLayoutHint:"Layout del PDF digitale · non viene spedito alcun biglietto fisico",whyFits:"Perché funziona",direction:"Direzione",refine:"Affina il testo",undo:"Annulla",curatedColor:"Accento scelto",photoColor:"Dalla tua foto",originalColor:"Originale",original:"Originale"},
+    zh:{relationshipOptional:"有帮助时再选择（可选）",printLayout:"打印版式（可选）",printLayoutHint:"数字PDF版式 · 不会寄送实体卡片",whyFits:"为什么适合",direction:"方向",refine:"润色文字",undo:"撤销",curatedColor:"精选配色",photoColor:"来自你的照片",originalColor:"原版",original:"原版"},
+    vi:{relationshipOptional:"Chọn nếu thật sự hữu ích (không bắt buộc)",printLayout:"Bố cục in (không bắt buộc)",printLayoutHint:"Bố cục cho file PDF số · không giao thiệp vật lý",whyFits:"Vì sao hướng này phù hợp",direction:"Hướng",refine:"Tinh chỉnh lời chúc",undo:"Hoàn tác",curatedColor:"Màu nhấn được chọn",photoColor:"Từ ảnh của bạn",originalColor:"Nguyên bản",original:"Nguyên bản"}
   })[locale],[locale]);
 
   const generatedSelected=generatedResult?.directions.find(direction=>direction.id===selected.id);
@@ -191,6 +243,11 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   }),[selectedHeadline,message,locale,format,measured]);
 
   const copyGuard=useMemo(()=>cardCopyMetrics(selectedHeadline,message,locale,format),[selectedHeadline,message,locale,format]);
+  const finishDisplay=useMemo(()=>resolveCustomerStyleDisplay({
+    locale,
+    templateName:selected.templateName??selected.presentation?.name,
+    material:selected.templateMaterial??selected.presentation?.material
+  }),[locale,selected.templateName,selected.templateMaterial,selected.presentation]);
 
   function withTransition(update:()=>void){
     const d=document as DocWithViewTransition;
@@ -280,6 +337,9 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   }
 
   function choose(direction:Direction){
+    if(!direction.presentation){
+      return;
+    }
     const generated=generatedResult?.directions.find(item=>item.id===direction.id);
     const next=generated?.body??(direction.id==="midnight"?m.copy.midnightBody:direction.id==="photo"?m.copy.photoBody:direction.id==="quiet"?launch.quiet.body:m.copy.editorialBody);
     if(direction.templateId&&direction.templateVersionId)trackTemplate([{id:direction.templateId,versionId:direction.templateVersionId,name:direction.templateName??"Template",material:"",visualDirection:direction.visual,photoMode:direction.photoMode??"none",source:direction.templateSource??"recommended",position:direction.templatePosition??1,archetype:direction.id,eventToken:direction.templateEventToken??""}],"selected");
@@ -364,6 +424,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       direction:selected.id,
       templateId:selected.templateId,
       templateVersionId:selected.templateVersionId,
+      presentation:selected.presentation,
       templateSource:selected.templateSource,
       occasion:effectiveOccasion,
       relationship:effectiveRelation,
@@ -376,12 +437,17 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
         primary:photoPalette.primary,secondary:photoPalette.secondary,accent:photoPalette.accent,
         temperature:photoPalette.temperature,luminance:photoPalette.luminance
       }:undefined,
-      photoAssetId:(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?(photoAssetId??undefined):undefined
+      photoAssetId:(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?(photoAssetId??undefined):undefined,
+      visualDirection:selected.presentation?.visualDirection??selected.visual
     };
   }
 
   async function downloadBetaAsset(assetKind:"jpg"|"pdf"){
     if(paymentMode!=="off"||betaBusy)return;
+    if(!selected.templateId||!selected.templateVersionId||!selected.presentation){
+      setBetaNote(beta.unavailable);
+      return;
+    }
     setBetaBusy(assetKind);setBetaNote("");
     try{
       const res=await fetch("/api/beta/export",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({assetKind,card:buildCardSnapshot(),priceQuote})});
@@ -397,6 +463,10 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
 
   async function beginCheckout(){
     if(checkoutInFlight.current)return;
+    if(!selected.templateId||!selected.templateVersionId||!selected.presentation){
+      setCheckoutNote(launch.checkoutUnavailable);
+      return;
+    }
     trackFunnelEvent("checkout_started",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",direction:selected.visual,photoUsed:Boolean(photoUrl&&photoState==="ready"),templateId:selected.templateId,templateVersionId:selected.templateVersionId});
     checkoutInFlight.current=true;
     setCheckoutNote(launch.preparingCheckout);
@@ -552,16 +622,62 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
               const resultHeadline=generated?.headline??(d.id==="midnight"?m.copy.midnightHeadline:d.id==="photo"?m.copy.photoHeadline:d.id==="quiet"?launch.quiet.headline:previewCopy.headline);
               const resultBody=generated?.body??(detail||(d.id==="midnight"?m.copy.midnightBody:d.id==="photo"?m.copy.photoBody:d.id==="quiet"?launch.quiet.body:previewCopy.body));
               const resultKicker=generated?.kicker??(d.id==="quiet"?launch.quiet.kicker:previewCopy.kicker);
-              const visual=(generated?.visualDirection as VisualDirection|undefined)??d.visual;
-              const direction:Direction={...d,visual,templateId:generated?.templateId,templateVersionId:generated?.templateVersionId,templateName:generated?.templateName,templateSource:generated?.templateId?"ai_direction":undefined,templatePosition:i+1,templateEventToken:generated?.templateEventToken,photoMode:generated?.photoMode,suggestedAccentMode:generated?.accentMode};
-              const display=d.id==="quiet"?launch.quiet:directionDisplay(locale,d.id as "editorial"|"midnight"|"photo");
-              const rationale=generated?.customerRationale?.trim()||(generated?.photoMode==="required"?m.photoAdapted:display.sub);
+              const presentation=generated?.presentation??d.presentation;
+              const visual=(presentation?.visualDirection as VisualDirection|undefined)??(generated?.visualDirection as VisualDirection|undefined)??d.visual;
+              const templateId=presentation?.templateId??generated?.templateId??d.templateId;
+              const templateVersionId=presentation?.templateVersionId??generated?.templateVersionId??d.templateVersionId;
+              const templateName=presentation?.name??generated?.presentation?.name??generated?.templateName??d.templateName;
+              const templateMaterial=presentation?.material??generated?.presentation?.material??d.templateMaterial;
+              const photoMode=presentation?.photoMode??generated?.photoMode??d.photoMode;
+              const direction:Direction={
+                ...d,
+                visual,
+                templateId,
+                templateVersionId,
+                templateName,
+                templateMaterial,
+                presentation,
+                templateSource:generated?.templateId?"ai_direction":d.templateSource,
+                templatePosition:i+1,
+                templateEventToken:generated?.templateEventToken??d.templateEventToken,
+                photoMode,
+                suggestedAccentMode:generated?.accentMode??d.suggestedAccentMode
+              };
+              const display=resolveCustomerStyleDisplay({
+                locale,
+                templateName,
+                material:templateMaterial,
+                slotIndex:i
+              });
+              const rationale=generated?.customerRationale?.trim()||(photoMode==="required"?m.photoAdapted:(display.material||previewCopy.kicker));
+              const isPhotoRequired = photoMode === "required";
               return <article className="result-card result-enter" style={{animationDelay:`${i*85}ms`}} key={d.id}>
                 <div className="result-direction-index">{experience.direction} {String(i+1).padStart(2,"0")}</div>
                 <div className="result-physical">
-                  <CardVisual direction={visual} kicker={resultKicker} headline={resultHeadline} body={resultBody} photoUrl={generated?.photoMode==="required"?photoUrl:null} photoPalette={generated?.photoMode==="required"?photoPalette:null} accentMode={(generated?.accentMode??(generated?.photoMode==="required"&&photoPalette?"photo":"original")) as AccentMode} watermark className={fClass} transitionName={`card-${d.id}`} locale={locale} format={format}/>
+                  <CardVisual
+                    presentation={presentation}
+                    direction={visual}
+                    kicker={resultKicker}
+                    headline={resultHeadline}
+                    body={resultBody}
+                    photoUrl={isPhotoRequired?photoUrl:null}
+                    photoPalette={isPhotoRequired?photoPalette:null}
+                    accentMode={(generated?.accentMode??(isPhotoRequired&&photoPalette?"photo":"original")) as AccentMode}
+                    watermark
+                    className={fClass}
+                    transitionName={`card-${d.id}`}
+                    locale={locale}
+                    format={format}
+                    requirePresentation
+                  />
                 </div>
-                <div className="result-meta"><h3>{display.name}</h3><p className="direction-rationale"><span>{experience.whyFits}</span>{rationale}</p>{photoPalette&&generated?.photoMode!=="none"?<div className="result-palette" aria-label={experience.photoColor}><i style={{background:photoPalette.primary}}/><i style={{background:photoPalette.secondary}}/><i style={{background:photoPalette.accent}}/><small>{experience.photoColor}</small></div>:null}<button aria-label={launch.chooseNamed(display.name)} className="button button-secondary" onClick={()=>choose(direction)}>{m.choose}</button></div>
+                <div className="result-meta">
+                  <h3>{display.name}</h3>
+                  {display.material?<p className="result-material" style={{margin:"2px 0 6px",fontSize:"12px",color:"var(--muted)",letterSpacing:"0.02em"}}>{display.material}</p>:null}
+                  <p className="direction-rationale"><span>{experience.whyFits}</span>{rationale}</p>
+                  {photoPalette&&photoMode!=="none"?<div className="result-palette" aria-label={experience.photoColor}><i style={{background:photoPalette.primary}}/><i style={{background:photoPalette.secondary}}/><i style={{background:photoPalette.accent}}/><small>{experience.photoColor}</small></div>:null}
+                  <button aria-label={launch.chooseNamed(display.name)} className="button button-secondary" onClick={()=>choose(direction)}>{m.choose}</button>
+                </div>
               </article>;
             })}
           </div>
@@ -578,12 +694,35 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
           <div className="finish-grid refined-editor">
             <div className="finish-canvas">
               <PhysicalCardSurface className="finish-physical" intensity={1.05}>
-                <CardVisual direction={selected.visual} kicker={selectedKicker} headline={selectedHeadline} body={message} photoUrl={(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?photoUrl:null} photoPalette={(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?photoPalette:null} accentMode={accentMode} watermark className={fClass} transitionName={`card-${selected.id}`} locale={locale} format={format} fitOverride={typeFit}/>
+                <CardVisual
+                  presentation={selected.presentation}
+                  direction={selected.visual}
+                  kicker={selectedKicker}
+                  headline={selectedHeadline}
+                  body={message}
+                  photoUrl={(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?photoUrl:null}
+                  photoPalette={(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?photoPalette:null}
+                  accentMode={accentMode}
+                  watermark
+                  className={fClass}
+                  transitionName={`card-${selected.id}`}
+                  locale={locale}
+                  format={format}
+                  fitOverride={typeFit}
+                  requirePresentation
+                />
               </PhysicalCardSurface>
             </div>
             <aside className="finish-controls simple-finish">
               <span className="eyebrow">{m.finishEyebrow}</span>
               <h2 data-phase-focus tabIndex={-1}><span className="display-line">{m.finishTitleA}</span>{" "}<span className="display-line">{m.finishTitleB}</span></h2>
+              <div className="finish-identity" data-finish-identity data-template-id={selected.templateId} data-template-version-id={selected.templateVersionId}>
+                <span className="finish-identity-name">{finishDisplay.name}</span>
+                {finishDisplay.material ? <span className="finish-identity-material">{finishDisplay.material}</span> : null}
+              </div>
+              {paymentMode==="off"?(
+                <p className="finish-beta-notice" data-finish-beta-notice role="status">{beta.finishNotice}</p>
+              ):null}
               <label htmlFor="message">{m.message}</label>
               <textarea id="message" rows={7} value={message} onChange={e=>{setMessageUndo(null);setMessage(e.target.value);}} maxLength={420}/>
               <div className="message-meta"><span>{message.length}/420</span><span>{copyGuard.suggestShortening?launch.messageFull:launch.magicBalanced}</span></div>
@@ -593,7 +732,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
               <div className="finish-option">
                 <div><Palette size={17}/><span><b>{m.colorMood}</b><small>{m.artDirected}</small></span></div>
                 <div className="color-moods" aria-label={m.colorMood}>
-                  <button type="button" aria-label="Original" title="Original" className={accentMode==="original"?"selected":""} onClick={()=>setAccentMode("original")}><i className="mood-original"/></button>
+                  <button type="button" aria-label={experience.originalColor} title={experience.originalColor} className={accentMode==="original"?"selected":""} onClick={()=>setAccentMode("original")}><i className="mood-original"/></button>
                   {photoPalette&&selected.photoMode!=="none"?<button type="button" aria-label={experience.photoColor} title={experience.photoColor} className={accentMode==="photo"?"selected":""} onClick={()=>setAccentMode("photo")}><i style={{background:photoPalette.primary}}/></button>:null}
                   <button type="button" aria-label={experience.curatedColor} title={experience.curatedColor} className={accentMode===curatedAccent?"selected":""} onClick={()=>setAccentMode(curatedAccent)}><i className={`mood-${curatedAccent}`}/></button>
                 </div>
@@ -611,7 +750,23 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
           <div className="checkout-shell">
             <div className="checkout-product">
               <PhysicalCardSurface className="checkout-physical" intensity={1.05}>
-                <CardVisual direction={selected.visual} kicker={selectedKicker} headline={selectedHeadline} body={message} photoUrl={(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?photoUrl:null} photoPalette={(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?photoPalette:null} accentMode={accentMode} watermark className={fClass} transitionName={`card-${selected.id}`} locale={locale} format={format} fitOverride={typeFit}/>
+                <CardVisual
+                  presentation={selected.presentation}
+                  direction={selected.visual}
+                  kicker={selectedKicker}
+                  headline={selectedHeadline}
+                  body={message}
+                  photoUrl={(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?photoUrl:null}
+                  photoPalette={(selected.photoMode==="required"||(selected.photoMode==="optional"&&accentMode==="photo"))?photoPalette:null}
+                  accentMode={accentMode}
+                  watermark
+                  className={fClass}
+                  transitionName={`card-${selected.id}`}
+                  locale={locale}
+                  format={format}
+                  fitOverride={typeFit}
+                  requirePresentation
+                />
               </PhysicalCardSurface>
               <span className="checkout-caption">{paymentMode==="off"?beta.eyebrow:m.caption}</span>
               <strong className="checkout-ownership">{paymentMode==="off"?beta.title:launch.buyingThisCard}</strong>

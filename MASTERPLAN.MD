@@ -1,160 +1,175 @@
-# CardeLume Master Plan — Current Execution
+# CardeLume Master Plan — Regression Recovery
 
-**Project:** CardeLume
-**Source baseline:** `0.4.3-step.17j`
-**Primary plan:** `.ai/MASTER_PLAN.md`
-**Exact mirror:** `MASTERPLAN.MD`
+**Baseline:** `0.4.3-step.17j` + public non-payment beta changes
+**Canonical editable plan:** `.ai/MASTER_PLAN.md`
+**Mirror:** `MASTERPLAN.MD` must exist and be byte-identical; it is not an independent authority.
 **Updated:** 2026-09-03
 
-## Executive status
+## Status
 
-| Area | Status | Meaning |
-|---|---|---|
-| Phase 19 Premium/WOW | `DONE — PASS_FOR_MVP` | Owner accepted MVP progression only; not Final Golden or production-template approval. |
-| Phase 20 Buyer Confidence Core | `DONE — PASS` | Core buyer-journey/browser/accessibility/performance gate passed on candidate `ee9ec4a814c668b326edd9fc10eda752bacbbdf7`. |
-| Help me choose | `DEFERRED_FEATURE_OFF` | Optional; it must not block the core launch. |
-| Phase 21 Runtime Qualification | `PENDING` | No production runtime, payment, storage, queue or restore proof is complete. |
-| Phase 22 Soft/Public Launch | `PENDING` | Starts only after Phase 20 core and Phase 21 gates pass. |
-| Non-payment public beta | `PASS — PAYMENT OFF` | Public CardeLume route, health, security, bounded fallback journey and legal closure verified; beta is Owner-approved with payment OFF. |
-| Production | `NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES` | No production deploy, promotion or public traffic is authorized by source checks alone. |
+| Area | Status |
+|---|---|
+| Phase 19 Premium/WOW | `DONE — PASS_FOR_MVP` |
+| Phase 20 Buyer Confidence | `DONE — PASS` — historical closure retained |
+| Public non-payment beta | `BLOCKED_BY_REGRESSION` |
+| Phase 21R Product Correctness Recovery | `ACTIVE` |
+| Payment / Dodo | `OFF / DEFERRED_BY_OWNER` |
+| Help me choose | `DEFERRED_FEATURE_OFF` |
+| Oracle failover | `DEFERRED_BY_OWNER_INFRA` |
+| Paid launch | `NO_GO` |
 
-### Current next action
+## Reconciled remote baseline — historical, not final RC evidence
 
-`Public non-payment beta`: PASS on the isolated Pi5 runtime and public Cloudflare route with payment OFF. Owner-approved legal closure is recorded; keep payment OFF, do not reopen Phase 20, start Dodo, or merge `main`.
+Remote `origin/main` advanced to `ff6660576864f04a54cc322f58b23ffd6e579e21` after the former candidate tree was verified. Its additive baseline is retained here without promoting it to the Phase 21R RC evidence:
 
-## Product contract and non-goals
+- Phase 20 Buyer Confidence Core remained `DONE — PASS`; historical evidence and Owner visual/UX acceptance boundaries are preserved.
+- The remote public non-payment beta record remains historical evidence only. It records payment OFF, public health/security checks, bounded fallback/export behavior and Owner-approved legal-copy flags; it does not prove the reconciled RC or authorize paid launch.
+- Legal identity/config additions from the remote baseline are carried into the reconciled candidate as non-secret, Owner-approved beta metadata. `PAYMENT_MODE=off`, Dodo deferred, Oracle deferred and paid launch `NO_GO` remain unchanged.
+- The reconciled candidate must repeat root, product, browser and public-edge verification after the remote overlap; no former runtime or tree is authoritative.
 
-CardeLume is a premium digital keepsake for one meaningful recipient: brief → CardeLume intelligence → three distinct directions → choose/refine → preview → one-time payment → secure JPG/PDF. It is not a template editor, marketplace, public gallery, RSVP system, subscription or physical-fulfilment service.
+## Decision
 
-Launch invariants:
+Freeze feature expansion. Keep `PAYMENT_MODE=off`.
 
-- Browser state cannot author payment, entitlement, template approval, price/currency or final-file access.
-- AI cannot bypass compatibility, IP, security or production-approval gates.
-- Pre-purchase previews never expose paid files, private object URLs, raw recovery secrets or unredacted private brief data.
-- No fabricated testimonials, ratings, customer stories, usage numbers or visual evidence.
-- State-changing runtime tests use isolated test data with snapshot/restore and exact-ID cleanup.
-- Production credentials, live migrations, production promotion, external beta invitations and public launch require separate explicit Owner approval.
+The recovery is complete only when the card selected in Studio and the downloaded JPG/PDF use one server-owned resolved presentation contract for the same exact managed template/version, with correct visible text, three genuinely distinct directions, and semantic output tests that fail on visually broken files.
 
-Deferred until evidence justifies them: `N=30`, Final Golden, evaluator infrastructure, mandatory accounts, subscriptions/credits, social profiles, RSVP/bulk invitations, physical fulfilment, HA complexity and broad catalog expansion.
+Do not rewrite historical PASS evidence. Record new candidate-bound regression evidence.
 
-## Verified foundation and evidence
+## Non-negotiable invariants
 
-- Phase 18 reproducible install/build, strict lint, typecheck and test baseline is retained; residual dependency/native and production-template risks remain production blockers.
-- Phase 19 closure evidence: `.ai/evidence/phase19-mvp-closure.json` and `/home/pi5/hermes-artifacts/cardelume/phase19/P19M1T03-CODEX-REWORK-20260830T053726Z/`.
-- Phase 20 baseline evidence: `/home/pi5/hermes-artifacts/browser-evidence/cardelume/phase20-baseline/3fb66eb841ec6907230e997e89e2d2e612bbc9db/`.
-- Template Admin presentation-only follow-up evidence: `.ai/TEMPLATE_ADMIN_SIMPLIFICATION_PLAN.md`.
-- `P20M1T03` Owner-approved v3 PNG promoted to `apps/web/public/brand/og-card.png`; `apps/web/app/layout.tsx` already had valid same-origin `1200×630` OpenGraph metadata. Evidence: `.ai/evidence/phase20-p20m1t03-og.json`.
+1. **One presentation source of truth:** AI/result, Studio preview and final export consume one server-owned resolved presentation contract containing the managed `templateId`, `templateVersionId`, exact renderer identity, customer-facing style identity, visual/layout/archetype data, typography identity and photo compatibility/state.
+2. **Template identity is authoritative:** internal slot names cannot become misleading customer-facing style names.
+3. **Real diversity:** the final three directions must differ materially, not only by ID/color.
+4. **HTTP 200 is not correctness:** JPG/PDF PASS requires the real production raster path, visible headline/body content, wrong-template rejection and preview/final parity assertions.
+5. **Server authority remains intact:** browser cannot author template approval, renderer key, payment, entitlement or private asset access.
+6. **Payment stays OFF:** no Dodo/order/PAID/entitlement mutation in Phase 21R.
+7. **No scope creep:** Help me choose, accounts, subscriptions, Final Golden, Oracle HA and paid launch are excluded.
+8. **Every PASS is SHA-bound and evidence-backed.**
 
-Phase 19 Owner result:
+## Execution model
 
-- `12` frozen briefs × `3` repeats = `36` primary generations;
-- `36` schema validations, `108` review renders, `324` physical render files;
-- zero evaluator calls, retries and fallbacks;
-- provider/model: `OpenAI Codex` / `gpt-5.6-luna`;
-- retained candidate families: `letterpress`, `midnight`, `orbit`, `memory`, `photo`, `museum`, `petal`, `softfold`;
-- result: `PASS_FOR_MVP`, not production-template approval.
+- **Implementer:** Agy — `gemini-3.8-flash-high`.
+- **Reviewer:** Mika only at explicit checkpoints or when Agy returns `REVIEW_REQUIRED`.
+- Mika reviews read-only and returns `PASS`, `PASS_WITH_NOTES`, or `REWORK`.
+- One task = one concern, independently verifiable. Split tasks that mix unrelated concerns.
+- No commit/push/deploy/secret rotation/payment activation unless explicitly authorized.
 
-## Public non-payment technical beta — 2026-09-03
+## Phase 21R workstreams
 
-Evidence: `.ai/evidence/public-beta-20260903.json` and `/home/pi5/hermes-artifacts/browser-evidence/cardelume-public-20260903/`.
+### R0 — Freeze and truth reset
+Record exact regression baseline, mark current beta blocked, preserve old evidence, freeze deferred lanes.
 
-- Public route `https://cardelume.vorigin.vn` resolves through Cloudflare to the isolated CardeLume binding `127.0.0.1:3010`; homepage and TLS verified.
-- Public health is PASS: `/health/live`, `/health/ready` and `/health/worker` each returned `200`; web and worker services were active with zero worker restarts at verification.
-- Public security is PASS: enforced CSP, HSTS, `X-Frame-Options: DENY`, `nosniff`, Referrer-Policy, anonymous admin `403`, no permissive CORS, and no tested secret/private-R2 markers.
-- Public browser journey is `PASS_PUBLIC` through one bounded real fallback: brief → AI attempt → exactly three directions → select → finish → JPG `200 image/jpeg` → PDF `200 application/pdf`; console JS errors `0`.
-- OpenCode Go configuration was verified as `https://opencode.ai/zen/go/v1` with model `gpt-5.6-luna`. The primary public attempt returned `ai_direction_count_invalid` and was fail-softed once; no retry/tuning loop was run.
-- Desktop `1440×900` and mobile `390×844` snapshots are usable. Finish focus geometry passed after the minimal `scroll-margin-top` fix: heading top `90px`, sticky header bottom `71px`, not covered.
-- Payment remains fail-closed: public checkout returned `503` with `payment_disabled`; no Dodo, order, PAID state or entitlement bypass. Dodo recovery remains `DEFERRED_BY_OWNER`.
-- `vorigin.vn`, `www.vorigin.vn`, local ports `8080/8081` remained VOrigin; `/srv/vorigin` and the existing Cloudflare VOrigin route were not changed.
-- `NON_PAYMENT_PRODUCT_READY=PASS`, `CSP_ADMIN_SECURITY=PASS`, `PUBLIC_TECHNICAL_BETA_READY_WITH_PAYMENT_OFF=PASS`; after explicit Owner approval, `LEGAL_CONTENT_APPROVED=true`, `LEGAL_NATIVE_COPY=APPROVED`, and `PUBLIC_BETA_READY_WITH_PAYMENT_OFF=PASS`. Payment remains OFF, Dodo remains `DEFERRED_BY_OWNER`, and Oracle remains `DEFERRED_BY_OWNER_INFRA`.
+**P21R0T01 baseline:**
+- HEAD: `214b5ff011c01594cfaf14c1757bf814b55e0d8a`
+- branch: `main`
+- dirty-state: `NON-CLEAN` (pre-existing tracked and untracked changes preserved)
+- `PUBLIC_BETA=BLOCKED_BY_REGRESSION`
+- `PAYMENT_MODE=off`
 
-## Phase 20 — Buyer Confidence Core
-
-**Objective:** make the value, proof and digital delivery immediately credible without changing the approved hero composition or turning the product into a marketplace.
-
-### Completed checkpoint
-
-- `P20M1T01`: desktop/tablet/mobile baseline captured and source remained unchanged during capture.
-- `P20M1T02`: Product Proof renders locally with provenance-bound data, fail-closed filtering and serializable Server → Client props; stale SSR serialization defect is not reproduced on the current dev server. Local HTTP/browser probes: `5/5` HTTP 200, `0/5` serialization/server exceptions, `5/5` Product Proof, `0` browser JS errors.
-- `P20M1T04`: readable body floor is sourced from `@cardelume/card-schema`; renderer/stress contract covers long Latin, CJK/Hangul/Vietnamese, photo and lower-capability paths. Independent stress: PASS, `5` formats, `10.4 CSS px`, `32 render px`.
-- `P20M1T05`: customer-facing A/B/C diversity guard requires three family IDs, three visual directions and at least two effective archetypes; pre-critic and post-repair paths are guarded. Independent stress and AI/templates checks: PASS.
-- `P20M1T06`: Case 06 review-fixture/context metadata is hash-bound without model rerun or raw-artifact replacement. Packet remains an evidence artifact; no new Owner approval is inferred.
-- `P20M1T03`: Owner-approved product-specific OG v3 promoted with candidate/target SHA-256 match; reduced-preview, metadata, provenance, `git diff --check` and production build PASS. Evidence: `.ai/evidence/phase20-p20m1t03-og.json`.
-- `P20M3T01`: final buyer-journey gate PASS on candidate `ee9ec4a814c668b326edd9fc10eda752bacbbdf7`; all required viewports/states/keyboard/semantics/reduced motion/overflow/action/performance checks passed. Evidence: `.ai/evidence/phase20-p20m3t01-browser.json`.
-- Template Admin follow-up: presentation-only catalog-first/progressive-disclosure work accepted by Owner; auth/API/lifecycle/launch/eligibility semantics were preserved. Details remain in `.ai/TEMPLATE_ADMIN_SIMPLIFICATION_PLAN.md`.
-
-### Core closure
-
-`P20M3T01` is complete for the technical Phase 20 core gate. The Owner's authenticated visual/UX acceptance remains a separate manual step.
-
-### Optional M2B — Help me choose
-
-Keep feature and routes disabled unless Owner explicitly activates this lane. If activated, the contract requires exactly three watermarked reduced-resolution directions, one-way token-hash storage, seven-day default expiry, immediate revoke/replace invalidation, creator-only results, plaintext note ≤`280` characters, no clean JPG/PDF/private URL leakage, rate limits, no-store/noindex/no-referrer behavior, and exact-ID cleanup. Its own browser/security gate must pass before enablement; otherwise record `DEFERRED_FEATURE_OFF`.
-
-### Phase 20 exit gate
-
+**Exit**
 ```text
-VALUE_COMPREHENSION PASS
-MARKETING_LOCALIZATION PASS
-PRODUCT_PROOF_RENDERED PASS
-CORE_BROWSER_ACCESSIBILITY_PERFORMANCE PASS
-HELP_ME_CHOOSE PASS | DEFERRED_FEATURE_OFF
+REGRESSION_BASELINE PASS
+PAYMENT_MODE OFF
+RECOVERY_SCOPE_FROZEN PASS
 ```
 
-`P20M1T03` and `P20M3T01` are verified. Phase 20 core is closed. Source/build/browser PASS is not runtime or production approval.
+### R1 — Canonical preview/final rendering
+Create one server-owned resolved presentation contract tied to an exact managed template/version; remove slot-name/template-name conflation; make preview and final export consume that contract; align renderer/font/runtime ownership. `visualDirection` alone is never sufficient preview identity and the browser cannot author approval or renderer identity.
 
-## Phase 21 — Controlled Runtime Qualification
+**Mika R1 review:** cross-package architecture and preview/final identity.
 
-Start only after Phase 20 core is PASS and the Owner authorizes the bounded staging run. Use isolated staging/test services, never production or an unrelated Supabase project.
-
-| Task | Scope | Exit gate |
-|---|---|---|
-| `P21M1` | Backup DB, sequential migrations, constraints/triggers, user A/B/service/admin RLS and IDOR matrix, restore verification. | `STAGING_DB_RLS PASS` + `BACKUP_RESTORE PASS` |
-| `P21M2` | pg-boss/worker readiness, retry/idempotency, R2 quarantine/sanitize/ownership, real AI, final JPG/PDF renderer parity, resource/latency/failure measurements. | `QUEUE_WORKER PASS` + `R2_PHOTO_RENDER PASS` |
-| `P21M3` | Dodo test-mode quote, checkout idempotency, webhook signature/replay, exact amount/currency/session reconciliation, PAID/fulfilment/entitlement/recovery. | `DODO_PAYMENT_RECOVERY PASS` |
-| `P21M4` | CSP, admin defense in depth, rate limits, PII/token/secret log review, rotation, legal/native copy, incident/refund/runbooks and backup rehearsal. | `CSP_ADMIN_SECURITY PASS` + `LEGAL_NATIVE_COPY APPROVED` |
-
-If Help me choose stays off, its Phase 21 overlay is explicitly `DEFERRED_FEATURE_OFF`; it cannot be silently exposed to satisfy a checklist.
-
-## Phase 22 — Limited Soft Launch and Public Launch Decision
-
-A soft-launch candidate requires Phase 19 MVP quality closure, Phase 20 core PASS, Phase 21 core/security PASS, fixed or Owner-accepted Phase 18 residual risks, a non-empty catalog of `6–8` exact production-approved template versions, reproducible production node/monitoring/backups/restore, verified pricing/currency, assigned support/refund/incident ownership and explicit Owner approval for `15–30` consented participants and paid transactions.
-
-During private beta, predeclare reliability, conversion, satisfaction, refund and unit-economics targets before reviewing results. Collect field performance only when the sample is usable; otherwise report `INSUFFICIENT_FIELD_SAMPLE`. Public launch requires reliable payment/fulfilment/recovery, acceptable commercial and quality metrics, no unresolved P0 security/privacy/IP/legal/accessibility issue, recoverable operations/current backups and explicit Owner approval.
-
-Final verdict is `LAUNCH_READY` only when evidence-backed.
-
-## When production deployment is allowed
-
-**Not yet.** Production deploy/promotion is allowed only after all of these are true:
-
-1. Phase 20 core exit gate is PASS, including Owner approval of the product-specific OG asset and the core browser/accessibility/performance evidence.
-2. Phase 21 staging DB/RLS, queue/worker, R2/photo/renderer, Dodo/payment/recovery, security/legal and backup/restore gates are PASS.
-3. The production catalog contains exact human-approved template versions; no `approved-only` catalog remains empty.
-4. Phase 18 dependency/native, IP/font/asset and other residual risks are fixed or explicitly accepted by the Owner with rationale.
-5. Exact production preflight is bound to the release commit, with monitoring, backups, tested rollback/restore and secret scope/rotation ready.
-6. Owner separately approves production promotion and, later, public traffic/paid transactions.
-
-Phase 22 beta evidence and public-launch decision still follow the production candidate. A green build or a pushed commit never substitutes for these gates.
-
-## Verification commands and evidence rules
-
-Project gates:
-
+**Exit**
 ```text
-/tmp/cardelume-pnpm-bin/pnpm run test
-/tmp/cardelume-pnpm-bin/pnpm run lint
-/tmp/cardelume-pnpm-bin/pnpm run typecheck
-/tmp/cardelume-pnpm-bin/pnpm run build
+CANONICAL_PRESENTATION_CONTRACT PASS
+TEMPLATE_LABEL_IDENTITY PASS
+PREVIEW_TEMPLATE_PARITY PASS
+TYPOGRAPHY_RUNTIME_PARITY PASS
 ```
 
-Focused gates:
+### R2 — Renderer/export semantic correctness
+Replace fake raster release evidence with the real production renderer/raster path; add simple fixture-based visible-content assertions; add preview-vs-final parity fixtures; qualify beta JPG/PDF in the real runtime. The authoritative matrix covers portrait-5x7, folded-5x7, square-5x5, landscape-7x5 and postcard-6x4; Latin/Vietnamese, Japanese, Korean and Simplified Chinese; photo/no-photo; and one edited Finish-state case.
 
+**Exit**
 ```text
-node --experimental-strip-types scripts/renderer-export-stress.ts
-./node_modules/.bin/tsx scripts/ai-creative-director-source-stress.ts
+REAL_RENDER_STRESS PASS
+GLYPH_CONTENT_ASSERTIONS PASS
+PREVIEW_FINAL_PARITY PASS
+BETA_EXPORT_RUNTIME PASS
+R2_EXIT PASS
 ```
 
-Record exact source/revision SHA, scope, command result, redacted evidence path, residual risk and rollback/recovery path. `UNKNOWN`, skipped, unavailable or preparation-only evidence must never be relabeled PASS. Local secret-scan failure caused by non-empty assignments in `.env` and `.env.development.local` remains a production blocker; values must not be printed or committed.
+### R3 — AI exactly-three + true diversity
+Make the known AI verification path executable, handle valid/invalid structured output including the real `ai_direction_count_invalid` class, and keep repair/fallback bounded by one server-owned deadline and call budget. Every customer-visible normal or fallback direction carries an approved managed template/version. Hard constraints veto; soft creative signals inform; premium AI makes the final creative decision.
 
-Historical detail belongs in Git, `.ai/DECISIONS_LOG.md`, `.ai/KNOWN_BUGS.md` and evidence artifacts—not in this current execution plan.
+**Mika R3 review:** PASS — server fallback, rendered New Baby/Other neutral copy, preserved occasion state and Birthday regression checks passed in production Chrome at 390×844, 768×1024 and 1440×900.
+
+**Exit**
+```text
+AI_EXACTLY_THREE PASS
+AI_BOUNDED_FAILURE PASS
+CUSTOMER_DIRECTION_DIVERSITY PASS
+FALLBACK_OCCASION_COVERAGE PASS
+GENERATION_DEADLINE_BUDGET PASS
+R3_EXIT PASS
+```
+
+### R4 — Studio/beta UX cleanup
+Make Studio a real Brief → Choose → Finish flow; show actual selected style identity; make beta/payment copy consistent; effects off by default; remove customer-facing localization drift.
+
+**Mika R4 review:** desktop + mobile visual/UX.
+
+**Exit**
+```text
+STUDIO_3_STEP_HIERARCHY PASS
+BETA_MESSAGING_CONSISTENT PASS
+VISUAL_IDENTITY_CORRECT PASS
+PHYSICAL_EFFECTS_DEFAULT_OFF PASS
+CUSTOMER_COPY_LOCALIZED PASS
+R4_EXIT PASS
+```
+
+### R5 — Release hardening — DONE — PASS
+Keep R5 lean: wire the authoritative product release gate so source-string or HTTP-only checks cannot claim readiness, and keep a simple source-of-truth consistency check. Preserve existing security controls; do not add new Turnstile, abuse-control, synthetic-canary or monitoring infrastructure in this recovery unless an existing launch blocker independently requires it.
+
+**Exit**
+```text
+RELEASE_PRODUCT_CORRECTNESS_GATE PASS
+SOURCE_OF_TRUTH_SYNC PASS
+```
+
+**R5 execution evidence (2026-09-04):** `P21R5T03` passed with product correctness `PASS`: product/source, creative, commerce, media, runtime, templates, IP, real renderer, semantic JPG/PDF matrix, Chrome CDP browser evidence, and root test/lint/typecheck/build all passed on candidate `0.4.3-step.17j` / HEAD `214b5ff011c01594cfaf14c1757bf814b55e0d8a`. A deliberate browser-failure artifact produced `RELEASE_PRODUCT_CORRECTNESS_GATE: FAIL`, confirming fail-closed behavior. `P21R5T04` passed source-of-truth consistency. Existing security/owner gates remain `NO_GO`; this does not activate payment or make a production-release claim.
+
+### R6 — Regression acceptance
+Run root gates and semantic E2E across desktop/tablet/mobile, reduced motion/200%, AI normal/fallback, photo/no-photo, five formats, representative scripts and all launch locales.
+
+**Mika R6 review:** final read-only product review after automation passes.
+
+**R6 execution evidence (2026-09-04):** `R6T01 PASS`, `R6T02 PASS`, and `R6T03 PASS` on candidate `0.4.3-step.17j` / HEAD `214b5ff011c01594cfaf14c1757bf814b55e0d8a`. Fresh Chrome CDP covered 5 primary locales plus 5 remaining locales across `390x844`, `768x1024`, and `1440x900`; exactly-three/diversity, Finish/payment-off visibility, localization, overflow and runtime/network checks passed. Semantic JPG/PDF/photo/no-photo/five-format and bounded failure contracts passed. `R6T04 BLOCKED_EXTERNAL_PREREQUISITE`: no Owner-approved deployed candidate was available, and no deployment was performed. Mika local final review is `PASS_WITH_NOTES` with no P0/P1; `R6T05` remains open and the public-beta block is preserved.
+
+**Final exit**
+```text
+ROOT_GATES PASS
+BROWSER_JOURNEY PASS
+EXPORT_SEMANTIC_MATRIX PASS
+MIKA_FINAL_REVIEW PASS
+PUBLIC_BETA_READY_WITH_PAYMENT_OFF PASS
+PAYMENT_MODE OFF
+PAID_LAUNCH NO_GO
+```
+
+## Deferred until explicit Owner activation
+
+- Dodo/payment/recovery and paid entitlement.
+- Oracle/VPS failover.
+- Help me choose.
+- Final Golden / N=30 evaluator program.
+- Accounts/subscriptions/social/physical fulfilment.
+- Broad catalog expansion unrelated to regression recovery.
+
+## Evidence standard
+
+Each gate PASS records the candidate SHA, relevant commands/results, and the artifact or review result needed to support that gate. Historical evidence remains unchanged; no new synchronization or evidence framework is introduced.
+
+`UNKNOWN`, `SKIPPED`, `BLOCKED`, `NOT_RUN`, HTTP `200`, valid MIME, or “build succeeded” alone are never product correctness.
+
+Detailed executable work lives only in `tasks.md`; historical completion detail stays in Git/evidence.

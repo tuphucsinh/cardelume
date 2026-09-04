@@ -3,6 +3,7 @@ import { GenerationError, runGeneration } from "../apps/web/lib/generation-clien
 
 function must(value:boolean,message:string){if(!value)throw new Error(message);}
 
+async function main() {
 const studio=fs.readFileSync("apps/web/components/card-studio.tsx","utf8");
 const client=fs.readFileSync("apps/web/lib/generation-client.ts","utf8");
 const copy=fs.readFileSync("apps/web/i18n/launch-copy.ts","utf8");
@@ -77,3 +78,6 @@ try{
 }
 
 console.log("generation fallback source + runtime contract: PASS");
+}
+
+main().catch((error)=>{ console.error(error); process.exit(1); });

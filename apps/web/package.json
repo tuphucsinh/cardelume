@@ -15,6 +15,7 @@
     "@cardelume/core": "workspace:*",
     "@cardelume/db": "workspace:*",
     "@cardelume/queue": "workspace:*",
+    "@cardelume/renderer": "workspace:*",
     "@cardelume/storage": "workspace:*",
     "@cardelume/templates": "workspace:*",
     "@cardelume/ui": "workspace:*",

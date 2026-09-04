@@ -50,6 +50,9 @@ importers:
       '@cardelume/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@cardelume/renderer':
+        specifier: workspace:*
+        version: link:../../packages/renderer
       '@cardelume/storage':
         specifier: workspace:*
         version: link:../../packages/storage

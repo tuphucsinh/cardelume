@@ -258,6 +258,11 @@ export function templateArchetype(t:Pick<TemplateMeta,"visualDirection"|"photoMo
   if(["minimal","letterpress","whispered","museum","seal"].includes(t.visualDirection))return"quiet";
   return"editorial";
 }
+export function hasDiverseEffectiveArchetypes(templates:Array<Pick<TemplateMeta,"visualDirection"|"photoMode">>,minDistinct=2):boolean{
+  if(!Array.isArray(templates)||templates.length<minDistinct)return false;
+  const archetypes=new Set(templates.map(t=>templateArchetype(t)));
+  return archetypes.size>=minDistinct;
+}
 export function selectGenerationTemplates(templates:TemplateMeta[],input:TemplateRankInput){
   // Backward-compatible deterministic fallback only. Step 13 normal generation uses
   // buildCreativeCandidatePack() and lets the premium AI Creative Director choose.
@@ -350,3 +355,227 @@ export function featuredTemplatesForEnvironment(appEnv:string|undefined){
   return appEnv==="production"?reviewable.filter(t=>t.launchStatus==="approved"):reviewable;
 }
 export function bootstrapTemplateById(id:string){return bootstrapTemplates.find(t=>t.id===id);}
+
+export type TemplateTextAnchor = "start" | "middle" | "end";
+export type TemplateLayoutProfile = {
+  anchor: TemplateTextAnchor;
+  xPct: number;
+  kickerYPct: number;
+  headlineYPct: number;
+  bodyYPct: number;
+  signatureYPct: number;
+  headlineWidthPct: number;
+  bodyWidthPct: number;
+  headlineScale: number;
+  bodyScale: number;
+  showBorder: boolean;
+  showSignatureMark: boolean;
+  darkSurface?: boolean;
+  photoWindow?: { xPct: number; yPct: number; widthPct: number; heightPct: number };
+};
+
+const centeredLayoutProfile: TemplateLayoutProfile = {
+  anchor: "middle",
+  xPct: 0.5,
+  kickerYPct: 0.267,
+  headlineYPct: 0.43,
+  bodyYPct: 0.59,
+  signatureYPct: 0.755,
+  headlineWidthPct: 88,
+  bodyWidthPct: 90,
+  headlineScale: 1,
+  bodyScale: 1,
+  showBorder: true,
+  showSignatureMark: true
+};
+
+const layoutProfiles: Record<string, Partial<TemplateLayoutProfile>> = {
+  "whispered-type": { anchor: "start", xPct: 0.14, kickerYPct: 0.20, headlineYPct: 0.43, bodyYPct: 0.61, signatureYPct: 0.80, headlineWidthPct: 73, bodyWidthPct: 72, headlineScale: 1.08, showBorder: false, showSignatureMark: false },
+  "museum-note": { anchor: "start", xPct: 0.12, kickerYPct: 0.19, headlineYPct: 0.46, bodyYPct: 0.61, signatureYPct: 0.82, headlineWidthPct: 70, bodyWidthPct: 70, headlineScale: 0.92, bodyScale: 0.92, showBorder: false, showSignatureMark: false },
+  "monogram-orbit": { anchor: "middle", xPct: 0.5, kickerYPct: 0.16, headlineYPct: 0.61, bodyYPct: 0.70, signatureYPct: 0.82, headlineWidthPct: 78, bodyWidthPct: 75, headlineScale: 0.92, bodyScale: 0.9, showBorder: false, showSignatureMark: false },
+  "ribbon-line": { anchor: "start", xPct: 0.14, kickerYPct: 0.23, headlineYPct: 0.55, bodyYPct: 0.68, signatureYPct: 0.82, headlineWidthPct: 76, bodyWidthPct: 74, headlineScale: 0.96, bodyScale: 0.94, showBorder: false, showSignatureMark: false },
+  "memory-window": { anchor: "start", xPct: 0.12, kickerYPct: 0.70, headlineYPct: 0.78, bodyYPct: 0.87, signatureYPct: 0.94, headlineWidthPct: 74, bodyWidthPct: 74, headlineScale: 0.78, bodyScale: 0.78, showBorder: false, showSignatureMark: false, photoWindow: { xPct: 0.12, yPct: 0.10, widthPct: 0.68, heightPct: 0.48 } },
+  "type-celebration": { anchor: "start", xPct: 0.14, kickerYPct: 0.18, headlineYPct: 0.39, bodyYPct: 0.68, signatureYPct: 0.82, headlineWidthPct: 78, bodyWidthPct: 72, headlineScale: 1.12, bodyScale: 0.94, showBorder: false, showSignatureMark: false },
+  "quiet-seal": { anchor: "middle", xPct: 0.5, kickerYPct: 0.19, headlineYPct: 0.49, bodyYPct: 0.61, signatureYPct: 0.77, headlineWidthPct: 76, bodyWidthPct: 72, headlineScale: 0.9, bodyScale: 0.9, showBorder: false, showSignatureMark: false },
+  "pressed-shadow": { anchor: "start", xPct: 0.12, kickerYPct: 0.18, headlineYPct: 0.64, bodyYPct: 0.75, signatureYPct: 0.87, headlineWidthPct: 74, bodyWidthPct: 72, headlineScale: 0.94, bodyScale: 0.9, showBorder: false, showSignatureMark: false },
+  "ink-pause": { anchor: "start", xPct: 0.14, kickerYPct: 0.19, headlineYPct: 0.56, bodyYPct: 0.68, signatureYPct: 0.82, headlineWidthPct: 77, bodyWidthPct: 74, headlineScale: 0.96, bodyScale: 0.92, showBorder: false, showSignatureMark: false },
+  "petal-geometry": { anchor: "start", xPct: 0.14, kickerYPct: 0.21, headlineYPct: 0.54, bodyYPct: 0.67, signatureYPct: 0.81, headlineWidthPct: 70, bodyWidthPct: 70, headlineScale: 0.95, bodyScale: 0.9, showBorder: false, showSignatureMark: false },
+  "night-ledger": { anchor: "start", xPct: 0.14, kickerYPct: 0.19, headlineYPct: 0.55, bodyYPct: 0.68, signatureYPct: 0.82, headlineWidthPct: 76, bodyWidthPct: 74, headlineScale: 0.96, bodyScale: 0.9, showBorder: false, showSignatureMark: false, darkSurface: true },
+  "soft-fold": { anchor: "start", xPct: 0.14, kickerYPct: 0.19, headlineYPct: 0.45, bodyYPct: 0.58, signatureYPct: 0.82, headlineWidthPct: 70, bodyWidthPct: 70, headlineScale: 0.96, bodyScale: 0.9, showBorder: false, showSignatureMark: false }
+};
+
+export function templateLayoutProfile(templateIdOrKey: string): TemplateLayoutProfile {
+  return { ...centeredLayoutProfile, ...(layoutProfiles[templateIdOrKey] ?? {}) };
+}
+
+export type CanonicalPresentation = {
+  templateId: string;
+  templateVersionId: string;
+  rendererTemplateKey: string;
+  name: string;
+  material: string;
+  visualDirection: VisualDirection;
+  archetype: TemplateArchetype;
+  layout: TemplateLayoutProfile;
+  typographyId: string;
+  headlineCapacity: TextCapacity;
+  bodyCapacity: TextCapacity;
+  scriptSupport: TemplateScript[];
+  photoMode: TemplatePhotoMode;
+  photoSupported: boolean;
+  photoRequired: boolean;
+  familyId?: string;
+  version: number;
+  materialWorld?: TemplateMaterialWorld;
+  colorWorld?: TemplateColorWorld;
+  motionProfile?: TemplateMotionProfile;
+  energy?: TemplateEnergy;
+};
+
+export type CanonicalPresentationResolverInput = {
+  templateId?: string | null;
+  templateVersionId?: string | null;
+  visualDirection?: string | null;
+  hasPhoto?: boolean;
+  locale?: string;
+  format?: string;
+  catalog?: TemplateMeta[];
+  catalogMode?: "development" | "experiment" | "staging" | "production";
+};
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function assertCanonicalTemplateIdentity(input: {
+  templateId?: string | null;
+  templateVersionId?: string | null;
+  visualDirection?: string | null;
+}): { templateId: string; templateVersionId: string } {
+  if (input.visualDirection && (!input.templateId || !input.templateVersionId)) {
+    throw new Error(`invalid_presentation_identity: visualDirection alone ('${input.visualDirection}') is not valid presentation identity; managed templateId and templateVersionId are mandatory`);
+  }
+  if (!input.templateId && !input.templateVersionId) {
+    throw new Error("missing_template_identity: managed templateId and templateVersionId are mandatory");
+  }
+  if (!input.templateId || !input.templateVersionId) {
+    throw new Error(`partial_template_identity_rejected: both templateId (${input.templateId ?? "missing"}) and templateVersionId (${input.templateVersionId ?? "missing"}) are mandatory`);
+  }
+  if (!UUID_REGEX.test(input.templateId)) {
+    throw new Error(`invalid_template_id_format: templateId must be a valid UUID, got '${input.templateId}'`);
+  }
+  if (!UUID_REGEX.test(input.templateVersionId)) {
+    throw new Error(`invalid_template_version_id_format: templateVersionId must be a valid UUID, got '${input.templateVersionId}'`);
+  }
+  return { templateId: input.templateId, templateVersionId: input.templateVersionId };
+}
+
+export function findManagedTemplateByIdAndVersion(
+  templateId: string,
+  templateVersionId: string,
+  catalog: TemplateMeta[] = portfolioV2AllTemplates
+): TemplateMeta | undefined {
+  return catalog.find(t => t.id === templateId && t.versionId === templateVersionId);
+}
+
+export function resolveCanonicalPresentationFromTemplate(
+  template: TemplateMeta,
+  options: { hasPhoto?: boolean; locale?: string; format?: string } = {}
+): CanonicalPresentation {
+  const archetype = templateArchetype(template);
+  const layout = templateLayoutProfile(template.rendererTemplateKey);
+  const photoRequired = template.photoMode === "required";
+  const photoSupported = template.photoMode !== "none";
+
+  if (options.hasPhoto === false && photoRequired) {
+    throw new Error(`template_photo_required: template '${template.name}' (${template.id}) requires a photo`);
+  }
+  if (options.hasPhoto === true && !photoSupported) {
+    throw new Error(`template_photo_not_supported: template '${template.name}' (${template.id}) does not support photos`);
+  }
+  if (options.format && !template.supportedFormats.includes(options.format)) {
+    throw new Error(`template_format_not_supported: template '${template.name}' (${template.id}) does not support format '${options.format}'`);
+  }
+  if (options.locale && !template.scriptSupport.includes(scriptForLocale(options.locale))) {
+    throw new Error(`template_script_not_supported: template '${template.name}' (${template.id}) does not support script for locale '${options.locale}'`);
+  }
+
+  return {
+    templateId: template.id,
+    templateVersionId: template.versionId,
+    rendererTemplateKey: template.rendererTemplateKey,
+    name: template.name,
+    material: template.material,
+    visualDirection: template.visualDirection,
+    archetype,
+    layout,
+    typographyId: "editorial-serif",
+    headlineCapacity: template.headlineCapacity,
+    bodyCapacity: template.bodyCapacity,
+    scriptSupport: [...template.scriptSupport],
+    photoMode: template.photoMode,
+    photoSupported,
+    photoRequired,
+    familyId: template.familyId,
+    version: template.version,
+    materialWorld: template.materialWorld,
+    colorWorld: template.colorWorld,
+    motionProfile: template.motionProfile,
+    energy: template.energy
+  };
+}
+
+export function resolveCanonicalPresentation(
+  input: CanonicalPresentationResolverInput
+): CanonicalPresentation {
+  const identity = assertCanonicalTemplateIdentity(input);
+  const catalog = input.catalog ?? portfolioV2AllTemplates;
+  const templateWithId = catalog.find(t => t.id === identity.templateId);
+  if (!templateWithId) {
+    throw new Error(`template_not_found: templateId '${identity.templateId}' was not found in managed catalog`);
+  }
+  if (templateWithId.versionId !== identity.templateVersionId) {
+    throw new Error(`incompatible_template_version_rejected: template '${identity.templateId}' has active versionId '${templateWithId.versionId}', incompatible with requested '${identity.templateVersionId}'`);
+  }
+  if (templateWithId.status !== "active" || templateWithId.health !== "healthy" || templateWithId.launchStatus === "retired") {
+    throw new Error(`template_not_launchable: template '${identity.templateId}' status='${templateWithId.status}' health='${templateWithId.health}' launchStatus='${templateWithId.launchStatus}'`);
+  }
+  if (input.catalogMode === "production" && templateWithId.launchStatus !== "approved") {
+    throw new Error(`template_not_approved_for_production: template '${identity.templateId}' launchStatus is '${templateWithId.launchStatus}'`);
+  }
+  return resolveCanonicalPresentationFromTemplate(templateWithId, {
+    hasPhoto: input.hasPhoto,
+    locale: input.locale,
+    format: input.format
+  });
+}
+
+export const curatedFallbackPresentations: Record<TemplateArchetype, CanonicalPresentation> = {
+  editorial: resolveCanonicalPresentationFromTemplate(
+    bootstrapTemplates.find(t => t.slug === "luxury-editorial")!
+  ),
+  midnight: resolveCanonicalPresentationFromTemplate(
+    bootstrapTemplates.find(t => t.slug === "midnight-lume")!
+  ),
+  photo: resolveCanonicalPresentationFromTemplate(
+    bootstrapTemplates.find(t => t.slug === "photo-story")!,
+    { hasPhoto: true }
+  ),
+  quiet: resolveCanonicalPresentationFromTemplate(
+    bootstrapTemplates.find(t => t.slug === "classic-letterpress")!
+  )
+};
+
+export function resolveCuratedFallbackPresentation(
+  slot: TemplateArchetype,
+  options: { hasPhoto?: boolean; locale?: string; format?: string } = {}
+): CanonicalPresentation {
+  const fallback = curatedFallbackPresentations[slot];
+  if (!fallback) {
+    throw new Error(`unknown_fallback_slot: '${slot}'`);
+  }
+  const tmpl = bootstrapTemplates.find(t => t.id === fallback.templateId)!;
+  return resolveCanonicalPresentationFromTemplate(tmpl, {
+    hasPhoto: options.hasPhoto ?? (slot === "photo" ? true : undefined),
+    locale: options.locale,
+    format: options.format
+  });
+}

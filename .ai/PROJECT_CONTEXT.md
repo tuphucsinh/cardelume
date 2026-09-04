@@ -8,8 +8,8 @@ shared workflow authority remains the root `AGENTS.md` template.
 - **Release:** `0.4.3-step.17i`
 - **Baseline:** `STEP17I_PREMIUM_EXPERIENCE_CONVERGENCE`
 - **Production:** `NO_GO_UNTIL_RUNTIME_AND_OWNER_GATES`
-- **Current phase:** Phase 0 Pi5/import and Phase 18 Controlled Runtime remain
-  open; source/offline validation is not production validation.
+- **Current phase:** Phase 21R Product Correctness Recovery is the current
+  active phase; source/offline validation is not production validation.
 
 ## Product invariant
 
@@ -44,12 +44,13 @@ At project start, read:
 
 1. `AGENTS.md`
 2. `HANDOFF.md`
-3. `MASTERPLAN.MD`
-4. `tasks.md`
-5. `.ai/ARCHITECT.md`
-6. `.ai/UI_UX.md`
-7. `.ai/KNOWN_BUGS.md`
-8. this file when CardeLume-specific context is needed
+3. `.ai/MASTER_PLAN.md` (canonical)
+4. `MASTERPLAN.MD` (byte-identical mirror)
+5. `tasks.md`
+6. `.ai/ARCHITECT.md`
+7. `.ai/UI_UX.md`
+8. `.ai/KNOWN_BUGS.md`
+9. this file when CardeLume-specific context is needed
 
 If `.tmp/SYSTEM_ALERT.md` exists, read and surface it before unrelated work.
 
@@ -59,10 +60,11 @@ When sources conflict:
 
 1. current explicit owner instruction;
 2. root `AGENTS.md` template and this project context;
-3. `MASTERPLAN.MD` + `HANDOFF.md`;
-4. current source, migrations, and tests;
-5. canonical `docs/` and `.ai/` specifications;
-6. historical reports and handoffs.
+3. canonical `.ai/MASTER_PLAN.md`, with `MASTERPLAN.MD` accepted only when byte-identical;
+4. `tasks.md` for executable remaining work;
+5. current source, migrations, and tests;
+6. canonical `docs/` and `.ai/` specifications;
+7. historical reports and handoffs.
 
 Never silently reconcile a material conflict. Record the conflict in
 `HANDOFF.md` or `.ai/KNOWN_BUGS.md` and state which authority wins.
@@ -194,8 +196,9 @@ Run from the repository root:
 
 `check:fast` and `check:release` are source/offline gates. `check:status` may
 remain `NO_GO` while runtime or owner evidence is missing. Follow
-`MASTERPLAN.MD` and `docs/STEP18_CONTROLLED_RUNTIME_RUNBOOK.md` for the exact
-runtime evidence sequence.
+`.ai/MASTER_PLAN.md` as the canonical plan and `MASTERPLAN.MD` as its
+byte-identical mirror, together with `docs/STEP18_CONTROLLED_RUNTIME_RUNBOOK.md`
+for the exact runtime evidence sequence.
 
 ## Completion and documentation
 
@@ -205,6 +208,7 @@ tests/build/browser evidence, and documentation updates are complete. Update
 state materially changes; record new unresolved issues in
 `.ai/KNOWN_BUGS.md`.
 
-Use `MASTERPLAN.MD` as canonical phase detail and `tasks.md` as the active WBS.
-Do not create a parallel master plan, duplicate WBS, empty design files, or an
-unapproved catalog/template authority.
+Use `.ai/MASTER_PLAN.md` as the canonical phase detail, `MASTERPLAN.MD` only as
+its byte-identical mirror, and `tasks.md` as the active WBS. Do not create a
+parallel master plan, duplicate WBS, empty design files, or an unapproved
+catalog/template authority.

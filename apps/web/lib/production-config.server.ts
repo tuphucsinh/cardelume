@@ -67,6 +67,7 @@ export function validateLiveRuntimeConfig(){
   if(bool(process.env.HOLIDAY_BUNDLE_ENABLED))invalid.push("HOLIDAY_BUNDLE_ENABLED");
   if(process.env.LEGAL_CONTENT_APPROVED!=="true")invalid.push("LEGAL_CONTENT_APPROVED");
   if(process.env.ADMIN_REQUIRE_EDGE_ACCESS!=="true")invalid.push("ADMIN_REQUIRE_EDGE_ACCESS");
+  if(process.env.CSP_ENFORCE!=="true")invalid.push("CSP_ENFORCE");
   if(process.env.LEGAL_CONTACT_EMAIL&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(process.env.LEGAL_CONTACT_EMAIL))invalid.push("LEGAL_CONTACT_EMAIL");
   if(!process.env.NEXT_PUBLIC_SITE_URL?.startsWith("https://"))invalid.push("NEXT_PUBLIC_SITE_URL");
   for(const key of ["PRICING_QUOTE_SECRET","CHECKOUT_RETURN_SECRET","GENERATION_STATUS_SECRET","TEMPLATE_ADMIN_PASSWORD","TEMPLATE_EVENT_SECRET","ANALYTICS_PSEUDONYM_KEY"] as const){if(process.env[key]&&process.env[key]!.length<32)invalid.push(key);}
