@@ -8,7 +8,7 @@ import { preparePhotoForUpload } from "./photo-preprocess";
 import { magicTypography, measureTextWidth } from "./magic-typography";
 import { PhysicalCardSurface, usePhysicalEffects } from "./physical-effects";
 import { curatedFallbackPresentations, type VisualDirection } from "@cardelume/templates";
-import { cardCopyMetrics, shortenCardBody, type GenerationResult, type CanonicalPresentation } from "@cardelume/card-schema";
+import { cardCopyMetrics, shortenCardBody, type GenerationResult, type CanonicalPresentation, type CanonicalPresentationIdentity } from "@cardelume/card-schema";
 import { interpolate, type LocaleCode, type Messages } from "../i18n/messages";
 import { resolveCustomerStyleDisplay } from "../i18n/display-copy";
 import { launchCopy } from "../i18n/launch-copy";
@@ -158,6 +158,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   const [generationMessage,setGenerationMessage]=useState(m.revealing);
   const [usedCuratedFallback,setUsedCuratedFallback]=useState(false);
   const [generatedResult,setGeneratedResult]=useState<GenerationResult|null>(null);
+  const [exhaustionState,setExhaustionState]=useState<"none"|"partial"|"total">("none");
   const [rewriteBusy,setRewriteBusy]=useState<"warmer"|"playful"|null>(null);
   const [rewriteNote,setRewriteNote]=useState("");
   const [messageUndo,setMessageUndo]=useState<string|null>(null);
@@ -170,6 +171,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   const checkoutAttempt=useRef<{fingerprint:string;key:string}|null>(null);
   const checkoutInFlight=useRef(false);
   const impressedTemplates=useRef(new Set<string>());
+  const seenTemplateIdentities=useRef<CanonicalPresentationIdentity[]>([]);
   const studioShellRef=useRef<HTMLElement>(null);
 
   useEffect(()=>()=>{if(photoUrl)URL.revokeObjectURL(photoUrl);},[photoUrl]);
@@ -255,10 +257,21 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
     else update();
   }
 
+  function rememberDisplayed(items:Array<{templateId?:string;templateVersionId?:string}>){
+    const known=new Set(seenTemplateIdentities.current.map(item=>`${item.templateId}:${item.templateVersionId}`));
+    for(const item of items){
+      if(!item.templateId||!item.templateVersionId)continue;
+      const key=`${item.templateId}:${item.templateVersionId}`;
+      if(known.has(key))continue;
+      known.add(key);
+      seenTemplateIdentities.current.push({templateId:item.templateId,templateVersionId:item.templateVersionId});
+    }
+  }
+
   async function generate(regenerating=false){
     if(phase==="revealing")return;
     trackFunnelEvent("generation_requested",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",photoUsed:Boolean(photoUrl&&photoState==="ready")});
-    const previousTemplateIds=regenerating?(generatedResult?.directions.flatMap(item=>item.templateId?[item.templateId]:[])??[]):[];
+    const seen=regenerating?[...seenTemplateIdentities.current]:[];
     if(regenerating&&generatedResult?.directions?.length){
       const prior=generatedResult.directions.flatMap((item,index)=>item.templateId&&item.templateVersionId&&item.visualDirection&&item.templateEventToken?[{id:item.templateId,versionId:item.templateVersionId,name:item.templateName??"CardeLume",material:"",visualDirection:item.visualDirection as VisualDirection,photoMode:item.photoMode??"none",source:"ai_direction" as const,position:index+1,archetype:item.id,eventToken:item.templateEventToken}]:[]);
       trackTemplate(prior,"regenerated");
@@ -269,6 +282,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
     setPhase("revealing");
     setUsedCuratedFallback(false);
     setGeneratedResult(null);
+    setExhaustionState("none");
     setGenerationMessage(launch.generationStages[0]);
     const started=performance.now();
     let hapticPlayed=false;
@@ -296,13 +310,15 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
           locale,
           hasPhoto:Boolean(photoUrl&&photoState==="ready"),
           photoProfile:photoProfile??undefined,
-          refreshContext:previousTemplateIds.length?{priorTemplateIds:previousTemplateIds}:undefined
+          refreshContext:seen.length?{seenTemplateIdentities:seen,priorTemplateIds:seen.slice(-3).map(item=>item.templateId)}:undefined
         },
         sessionCapability:priceQuote,
         onStatus:updateStatus,
         signal:controller.signal
       });
       setGeneratedResult(generated);
+      setExhaustionState(generated?.exhaustionState??"none");
+      rememberDisplayed(generated?.directions??resultDirections);
       if(generated?.directions?.length){
         const aiOptions:TemplateOption[]=generated.directions.flatMap((item,index)=>item.templateId&&item.templateVersionId&&item.visualDirection?[{id:item.templateId,versionId:item.templateVersionId,name:item.templateName??"CardeLume",material:"",visualDirection:item.visualDirection as VisualDirection,photoMode:item.photoMode??"none",source:"ai_direction",position:index+1,archetype:item.id,eventToken:item.templateEventToken??""}]:[]);
         trackTemplate(aiOptions,"impression");
@@ -320,6 +336,8 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       // available in the CardeLume product layer; never expose technical errors.
       setGeneratedResult(null);
       setUsedCuratedFallback(true);
+      setExhaustionState("none");
+      rememberDisplayed(resultDirections);
       setGenerationMessage(launch.generationFallbackReady);
       const minimum=reducedMotion?80:1050;
       const elapsed=performance.now()-started;
@@ -683,7 +701,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
           </div>
           <div className="direction-refresh">
             <span>{launch.noneFeelRight}</span>
-            <button className="text-action" type="button" onClick={()=>void generate(true)}><RefreshCw size={15}/>{m.more}</button>
+            <button className="text-action" type="button" disabled={exhaustionState==="total"} data-exhaustion-state={exhaustionState} onClick={()=>void generate(true)}><RefreshCw size={15}/>{m.more}</button>
           </div>
         </div>
       )}

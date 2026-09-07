@@ -6,7 +6,7 @@ import { createBoss, ensureCardeLumeQueues, QUEUES } from "@cardelume/queue";
 import { assertRendererFontsReady, CURRENT_RENDERER_VERSION, renderProductionFinal } from "@cardelume/renderer";
 import { R2ObjectStorage } from "@cardelume/storage";
 import { z } from "zod";
-import { buildCreativeCandidatePack, expandedCreativeCandidatePool, selectGenerationTemplates, selectQualityAwareDiversifiedCandidates, type TemplateArchetype, type TemplateRankInput, type RecentStyleFingerprint } from "@cardelume/templates";
+import { buildCreativeCandidatePack, expandedCreativeCandidatePool, selectNovelGenerationTemplates, selectQualityAwareDiversifiedCandidates, type TemplateArchetype, type TemplateRankInput, type RecentStyleFingerprint, type TemplateIdentity } from "@cardelume/templates";
 import { assertEnvironmentIsolation } from "@cardelume/core";
 
 assertEnvironmentIsolation(process.env);
@@ -69,18 +69,23 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
     await updateGenerationStage({jobId:payload.data.jobId,status:"composing",stage:2});
     catalog=await listManagedTemplates();
     const persistedRecent=await listRecentStyleFingerprints({userId:claim.job.user_id,limit:5}).catch(()=>[]);
-    const refreshRecent=(brief.refreshContext?.priorTemplateIds??[]).flatMap(templateId=>{
+    const legacyIds=brief.refreshContext?.priorTemplateIds??[];
+    const seenTemplateIdentities:TemplateIdentity[]=[...(brief.refreshContext?.seenTemplateIdentities??[]),...legacyIds.flatMap(templateId=>{
       const template=catalog!.find(item=>item.id===templateId);
+      return template?[{templateId:template.id,templateVersionId:template.versionId}]:[];
+    })];
+    const refreshRecent=seenTemplateIdentities.flatMap(identity=>{
+      const template=catalog!.find(item=>item.id===identity.templateId&&item.versionId===identity.templateVersionId);
       return template?[{familyId:template.familyId,templateId:template.id,visualDirection:template.visualDirection,createdAt:new Date().toISOString()}]:[];
     });
-    // Refresh evidence is intentionally soft. It nudges novelty but cannot veto the best candidate.
     const recentStyles:RecentStyleFingerprint[]=[...refreshRecent,...persistedRecent.map(r=>({familyId:r.familyId,templateId:r.templateId??undefined,visualDirection:r.visualDirection,accentMode:r.accentMode??undefined,createdAt:r.createdAt??undefined}))].slice(0,8);
-    const narrowedRankInput:TemplateRankInput={market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.feeling,occasion:brief.occasion,hasPhoto:brief.hasPhoto,recentStyles};
+    const narrowedRankInput:TemplateRankInput={market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.feeling,occasion:brief.occasion,hasPhoto:brief.hasPhoto,recentStyles,seenTemplateIdentities};
     const requiredArchetypes:TemplateArchetype[]=brief.hasPhoto?["editorial","midnight","photo"]:["editorial","midnight","quiet"];
     rankInput=narrowedRankInput;
+    const noveltySelection=selectNovelGenerationTemplates(catalog,narrowedRankInput);
+    if(noveltySelection.candidates.length<3)throw new Error("ai_template_candidates_insufficient");
     const pack=buildCreativeCandidatePack(catalog,narrowedRankInput);
-    if(pack.all.length<3)throw new Error("ai_template_candidates_insufficient");
-    let candidatePool=selectQualityAwareDiversifiedCandidates(pack.all,3,{requirePhoto:brief.hasPhoto,requiredArchetypes});
+    let candidatePool=noveltySelection.exhaustionState==="none"?selectQualityAwareDiversifiedCandidates(pack.all,3,{requirePhoto:brief.hasPhoto,requiredArchetypes}):noveltySelection.candidates;
     if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
     const budget=createGenerationBudget();
     const provider=createAIProviderFromEnv();
@@ -89,7 +94,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
     if(outcome.kind==="expand_pool"){
       budget.ensureAiBudget();
       const priorCritique={reasonCode:outcome.reasonCode,desiredTraits:outcome.desiredTraits};
-      candidatePool=selectQualityAwareDiversifiedCandidates(expandedCreativeCandidatePool(catalog,narrowedRankInput,16),3,{requirePhoto:brief.hasPhoto,requiredArchetypes});
+      candidatePool=noveltySelection.exhaustionState==="none"?selectQualityAwareDiversifiedCandidates(expandedCreativeCandidatePool(catalog,narrowedRankInput,16),3,{requirePhoto:brief.hasPhoto,requiredArchetypes}):noveltySelection.candidates;
       if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
       const expandedStarted=Date.now();
       try{outcome=await generateCreativeDirectorDirections(provider,brief,candidatePool,recentStyles,"expanded_director",priorCritique,budget);await persistAiTelemetry(payload.data.jobId,outcome.telemetry);}catch(error){await persistAiTelemetry(payload.data.jobId,{phase:"expanded_director",provider:provider.providerName,model:provider.modelName,latencyMs:Date.now()-expandedStarted,success:false,errorCode:error instanceof Error?error.message:"generation_provider_failed"});throw error;}
@@ -100,7 +105,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
     const criticTriggers=new Set(["creative_range","copy_risk","low_confidence","low_wow","market_tension","low_novelty"]);
     const premiumCritical=new Set(["creative_range","copy_risk","low_confidence","low_wow"]);
     if(risks.includes("creative_range")&&candidatePool.length<12){
-      candidatePool=selectQualityAwareDiversifiedCandidates(expandedCreativeCandidatePool(catalog,narrowedRankInput,16),3,{requirePhoto:brief.hasPhoto,requiredArchetypes});
+      candidatePool=noveltySelection.exhaustionState==="none"?selectQualityAwareDiversifiedCandidates(expandedCreativeCandidatePool(catalog,narrowedRankInput,16),3,{requirePhoto:brief.hasPhoto,requiredArchetypes}):noveltySelection.candidates;
       if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
     }
     if(risks.some(r=>criticTriggers.has(r))){
@@ -117,6 +122,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       const remaining=creativeQualityRisks(result,brief,recentStyles,candidatePool);
       if(remaining.some(r=>premiumCritical.has(r)))throw new Error("ai_premium_quality_not_met");
     }
+    result={...result,exhaustionState:noveltySelection.exhaustionState==="none"?undefined:noveltySelection.exhaustionState};
     await completeGenerationJob({jobId:payload.data.jobId,result});
     await Promise.all(result.directions.flatMap((direction,index)=>direction.templateId&&direction.templateVersionId?[recordTemplateEvent({eventId:randomUUID(),templateId:direction.templateId,templateVersionId:direction.templateVersionId,eventType:"ai_assigned",source:"ai_direction",market:brief!.market,locale:brief!.locale,rankPosition:index+1})]:[])).catch(()=>undefined);
     log("ai_plan_complete",{jobId:payload.data.jobId,directionCount:result.directions.length});
@@ -127,8 +133,9 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
     log("ai_plan_recovery_started",{jobId:payload.data.jobId,errorCode});
     try{
       if(!brief||!catalog||!rankInput)throw new Error("ai_generation_safe_failure");
-      const fallbackCandidates=selectGenerationTemplates(catalog,{...rankInput,catalogMode:"production"});
-      const fallbackResult=buildDeterministicCreativeFallback(brief,fallbackCandidates);
+      const fallbackSelection=selectNovelGenerationTemplates(catalog,{...rankInput,catalogMode:"production"});
+      if(fallbackSelection.candidates.length<3)throw new Error("ai_generation_safe_failure");
+      const fallbackResult=buildDeterministicCreativeFallback(brief,fallbackSelection.candidates,{exhaustionState:fallbackSelection.exhaustionState});
       await completeGenerationJob({jobId:payload.data.jobId,result:fallbackResult});
       log("ai_plan_fallback_used",{jobId:payload.data.jobId,directionCount:fallbackResult.directions.length});
     }catch{

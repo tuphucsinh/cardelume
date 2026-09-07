@@ -1,5 +1,5 @@
 import { GenerationResultSchema, cardCopyMetrics, type GeneratedDirection, type GenerationBrief, type GenerationResult } from "@cardelume/card-schema";
-import { templateCreativeRecipe, templateArchetype, type RankedTemplate, type RecentStyleFingerprint, type SignatureMove, type CreativeAccentMode, type TemplateArchetype, type VisualDirection, type TemplatePhotoMode, type TemplateMaterialWorld, type TemplateEnergy, type TemplateColorWorld, type TemplateMeta, type TemplateRankInput } from "@cardelume/templates";
+import { templateCreativeRecipe, templateArchetype, templatePairKey, type RankedTemplate, type RecentStyleFingerprint, type SignatureMove, type CreativeAccentMode, type TemplateArchetype, type VisualDirection, type TemplatePhotoMode, type TemplateMaterialWorld, type TemplateEnergy, type TemplateColorWorld, type TemplateMeta, type TemplateRankInput } from "@cardelume/templates";
 
 export type AIProviderUsage={inputTokens?:number;outputTokens?:number};
 export type AIProviderResponse={data:unknown;provider:string;model:string;usage?:AIProviderUsage;latencyMs:number};
@@ -174,6 +174,7 @@ function arr(value:unknown){return Array.isArray(value)?value:[];}
 function telemetry(phase:AICallTelemetry["phase"],response:AIProviderResponse):AICallTelemetry{return{phase,provider:response.provider,model:response.model,inputTokens:response.usage?.inputTokens,outputTokens:response.usage?.outputTokens,latencyMs:response.latencyMs,success:true};}
 function candidateContext(candidates:RankedTemplate[]){return candidates.map((item,index)=>({rank:index+1,id:item.template.id,versionId:item.template.versionId,familyId:item.template.familyId,name:item.template.name,visualDirection:item.template.visualDirection,photoMode:item.template.photoMode,materialWorld:item.template.materialWorld,materialCues:item.template.materialCues,energy:item.template.energy,colorWorld:item.template.colorWorld,motionProfile:item.template.motionProfile,score:Number(item.score.toFixed(4)),scoreComponents:Object.fromEntries(Object.entries(item.components).map(([k,v])=>[k,Number(Number(v).toFixed(3))])),reasons:item.reasons,recipe:templateCreativeRecipe(item.template)}));}
 function compactRecentStyles(recent:RecentStyleFingerprint[]|undefined){return (recent??[]).slice(0,5).map(s=>({familyId:s.familyId,visualDirection:s.visualDirection,accentMode:s.accentMode??"unknown"}));}
+function seenTemplateKeys(brief:GenerationBrief){return new Set((brief.refreshContext?.seenTemplateIdentities??[]).map(templatePairKey));}
 
 export interface DirectionDiversityTarget {
   id?: string;
@@ -364,6 +365,11 @@ function parseCreativeSelection(raw:unknown,brief:GenerationBrief,candidates:Ran
     const templateId=str(d.templateId,80),templateVersionId=str(d.templateVersionId,80);const candidate=byPair.get(`${templateId}:${templateVersionId}`);if(!candidate)throw new Error("ai_template_not_in_candidate_pool");
     const key=`${candidate.template.id}:${candidate.template.versionId}`;
     if(exactTemplates.has(key)||exactTemplates.has(candidate.template.id))throw new Error("ai_template_exact_duplicate");
+    const seenKeys = seenTemplateKeys(brief);
+    const unusedUnseen = candidates.filter(c => !seenKeys.has(templatePairKey(c.template)) && !exactTemplates.has(`${c.template.id}:${c.template.versionId}`));
+    if(seenKeys.has(templatePairKey(candidate.template)) && unusedUnseen.length > 0){
+      throw new Error("ai_template_seen_duplicate");
+    }
     exactTemplates.add(key);exactTemplates.add(candidate.template.id);
     if(families.has(candidate.template.familyId))throw new Error("ai_template_family_duplicate");families.add(candidate.template.familyId);
     if(candidate.template.status!=="active"||candidate.template.health!=="healthy"||candidate.template.launchStatus==="hold"||candidate.template.launchStatus==="retired")throw new Error("ai_template_not_eligible");
@@ -509,7 +515,23 @@ export async function criticRepairDirections(provider:AIProvider,brief:Generatio
   const merged=result.directions.map(original=>{const r=repairs.find(v=>v&&typeof v==="object"&&(v as {id?:unknown}).id===original.id) as Record<string,unknown>|undefined;if(!r)return original;
     let templateId=original.templateId,templateVersionId=original.templateVersionId;if(allowTemplateSwap){const requestedId=str(r.templateId,80),requestedVersion=str(r.templateVersionId,80);if(requestedId||requestedVersion){if(!requestedId||!requestedVersion)throw new Error("ai_critic_template_pair_invalid");templateId=requestedId;templateVersionId=requestedVersion;}}
     const candidate=candidates.find(c=>c.template.id===templateId&&c.template.versionId===templateVersionId);if(!candidate)throw new Error("ai_critic_candidate_missing");const recipe=templateCreativeRecipe(candidate.template);let signatureMove=str(r.signatureMove,60) as SignatureMove;if(!recipe.signatureMoves.includes(signatureMove))signatureMove=original.signatureMove&&recipe.signatureMoves.includes(original.signatureMove)?original.signatureMove:recipe.signatureMoves[0];let accentMode=str(r.accentMode,20) as CreativeAccentMode;if(!recipe.preferredAccents.includes(accentMode))accentMode=original.accentMode&&recipe.preferredAccents.includes(original.accentMode)?original.accentMode:recipe.preferredAccents[0];if(accentMode==="photo"&&(!brief.hasPhoto||candidate.template.photoMode==="none"))accentMode="original";const thesis=str(r.creativeThesis,360)||original.creativeThesis;if(!thesis||thesis.length<24)throw new Error("ai_critic_thesis_too_weak");const customerRationale=safeCustomerRationale(r.customerRationale)||original.customerRationale;const next={...original,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis:thesis,customerRationale,signatureMove,accentMode,kicker:str(r.kicker,100)||original.kicker,headline:str(r.headline,180)||original.headline,body:str(r.body,360)||original.body,confidence:num(r.confidence,original.confidence??.8),noveltyScore:num(r.noveltyScore,original.noveltyScore??.8),wowScore:num(r.wowScore,original.wowScore??.8),riskCodes:[]};validateDirectionCopy(next,brief);return next;});
-  const families=new Set<string>();const exactTemplates=new Set<string>();for(const direction of merged){const candidate=candidates.find(c=>c.template.id===direction.templateId&&c.template.versionId===direction.templateVersionId);if(!candidate)throw new Error("ai_critic_candidate_missing");if(families.has(candidate.template.familyId))throw new Error("ai_critic_family_duplicate");families.add(candidate.template.familyId);const key=`${candidate.template.id}:${candidate.template.versionId}`;if(exactTemplates.has(key)||exactTemplates.has(candidate.template.id))throw new Error("ai_critic_template_duplicate");exactTemplates.add(key);exactTemplates.add(candidate.template.id);if(candidate.template.status!=="active"||candidate.template.health!=="healthy"||candidate.template.launchStatus==="hold"||candidate.template.launchStatus==="retired")throw new Error("ai_template_not_eligible");if(!brief.hasPhoto&&(candidate.template.photoMode==="required"||candidate.template.visualDirection==="photo"))throw new Error("ai_invalid_photo_direction");}
+  const families=new Set<string>();const exactTemplates=new Set<string>();
+  const criticSeenKeys = seenTemplateKeys(brief);
+  for(const direction of merged){
+    const candidate=candidates.find(c=>c.template.id===direction.templateId&&c.template.versionId===direction.templateVersionId);
+    if(!candidate)throw new Error("ai_critic_candidate_missing");
+    if(families.has(candidate.template.familyId))throw new Error("ai_critic_family_duplicate");
+    families.add(candidate.template.familyId);
+    const key=`${candidate.template.id}:${candidate.template.versionId}`;
+    if(exactTemplates.has(key)||exactTemplates.has(candidate.template.id))throw new Error("ai_critic_template_duplicate");
+    const unusedUnseen = candidates.filter(c => !criticSeenKeys.has(templatePairKey(c.template)) && !exactTemplates.has(`${c.template.id}:${c.template.versionId}`));
+    if(criticSeenKeys.has(templatePairKey(candidate.template)) && unusedUnseen.length > 0){
+      throw new Error("ai_critic_seen_duplicate");
+    }
+    exactTemplates.add(key);exactTemplates.add(candidate.template.id);
+    if(candidate.template.status!=="active"||candidate.template.health!=="healthy"||candidate.template.launchStatus==="hold"||candidate.template.launchStatus==="retired")throw new Error("ai_template_not_eligible");
+    if(!brief.hasPhoto&&(candidate.template.photoMode==="required"||candidate.template.visualDirection==="photo"))throw new Error("ai_invalid_photo_direction");
+  }
   const resolvedRepairs=resolveCandidateDiversityTargets(merged,candidates);
   if (isLegacyCandidateContext(candidates, brief)) {
     validateThreeDirectionDiversity(resolvedRepairs);
@@ -547,7 +569,7 @@ export function isSupportedOccasion(occasion: unknown): occasion is SupportedOcc
 // (templateId, templateVersionId, templateName, visualDirection, photoMode) is sourced
 // from the candidate object; static copy and recipe values are the only additions.
 // Slots are matched by templateArchetype — never by array position.
-export function buildDeterministicCreativeFallback(brief:GenerationBrief,candidates:RankedTemplate[]):GenerationResult{
+export function buildDeterministicCreativeFallback(brief:GenerationBrief,candidates:RankedTemplate[],metadata?:{exhaustionState?:"none"|"partial"|"total"}):GenerationResult{
   if(!brief||!isSupportedOccasion(brief.occasion))throw new Error("ai_fallback_unavailable");
   if(candidates.length!==3)throw new Error("ai_fallback_unavailable");
   const slots=[...expectedDirectionIds(brief)];
@@ -580,11 +602,14 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
     "For this moment, and for all the good still waiting just ahead.",
     "A small note for the details, feelings, and memories that make this day yours.",
   ] as const;
+  const usedCandidates = new Set<string>();
   const directions=slots.map((slot,i)=>{
     // Match by templateArchetype — identity always comes from the matched candidate, never from slot name.
     const slotArchetype:TemplateArchetype=slot==="photo"?"photo":slot==="midnight"?"midnight":slot==="quiet"?"quiet":"editorial";
-    const candidate=candidates.find(c=>templateArchetype(c.template)===slotArchetype);
+    let candidate=candidates.find(c=>!usedCandidates.has(c.template.id)&&templateArchetype(c.template)===slotArchetype);
+    if(!candidate) candidate=candidates.find(c=>!usedCandidates.has(c.template.id));
     if(!candidate)throw new Error("ai_fallback_unavailable");
+    usedCandidates.add(candidate.template.id);
     const t=candidate.template;
     const recipe=templateCreativeRecipe(t);
     const signatureMove:SignatureMove=recipe.signatureMoves[0];
@@ -608,5 +633,8 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
       riskCodes:[] as string[],
     };
   });
-  return GenerationResultSchema.parse({directions});
+  return GenerationResultSchema.parse({
+    directions,
+    exhaustionState: metadata?.exhaustionState && metadata.exhaustionState !== "none" ? metadata.exhaustionState : undefined
+  });
 }

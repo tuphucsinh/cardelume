@@ -209,9 +209,10 @@ export const GenerationBriefSchema=z.object({
     paletteConfidence:z.number().min(0).max(1),
     softened:z.boolean()
   }).optional(),
-  // A refresh is a SOFT novelty request. These IDs are never hard-excluded;
-  // worker ranking and the Creative Director may still reuse an excellent fit.
-  refreshContext:z.object({priorTemplateIds:z.array(z.string().uuid()).max(3)}).optional(),
+  refreshContext:z.object({
+    priorTemplateIds:z.array(z.string().uuid()).max(3).optional(),
+    seenTemplateIdentities:z.array(CanonicalPresentationIdentitySchema).max(128).optional()
+  }).optional(),
   market:z.string().min(2).max(16).default("GLOBAL")
 });
 export const GeneratedDirectionSchema=z.object({
@@ -235,7 +236,10 @@ export const GeneratedDirectionSchema=z.object({
   headline:z.string().min(1).max(180),
   body:z.string().min(1).max(360)
 });
-export const GenerationResultSchema=z.object({directions:z.array(GeneratedDirectionSchema).length(3)});
+export const GenerationResultSchema=z.object({
+  directions:z.array(GeneratedDirectionSchema).length(3),
+  exhaustionState:z.enum(["none","partial","total"]).optional()
+});
 export type GenerationBrief=z.infer<typeof GenerationBriefSchema>;
 export type GeneratedDirection=z.infer<typeof GeneratedDirectionSchema>;
 export type GenerationResult=z.infer<typeof GenerationResultSchema>;

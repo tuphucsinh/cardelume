@@ -1,4 +1,4 @@
-import type { GenerationResult } from "@cardelume/card-schema";
+import type { CanonicalPresentationIdentity, GenerationResult } from "@cardelume/card-schema";
 export type GenerationState="queued"|"planning"|"composing"|"rendering"|"ready"|"failed";
 
 export type GenerationStatus={
@@ -18,7 +18,7 @@ export type GenerationBrief={
   locale:string;
   hasPhoto:boolean;
   photoProfile?:{orientation:"portrait"|"landscape"|"square";temperature:"warm"|"cool"|"balanced";luminance:number;paletteConfidence:number;softened:boolean};
-  refreshContext?:{priorTemplateIds:string[]};
+  refreshContext?:{priorTemplateIds?:string[];seenTemplateIdentities?:CanonicalPresentationIdentity[]};
 };
 
 export type GenerationFailureCode=

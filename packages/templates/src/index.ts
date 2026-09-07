@@ -63,6 +63,18 @@ export type RecentStyleFingerprint={
   createdAt?:string;
 };
 
+export type TemplateIdentity={
+  templateId:string;
+  templateVersionId:string;
+};
+
+export function templatePairKey(template: Pick<TemplateMeta, "id" | "versionId"> | TemplateIdentity | { id?: string; versionId?: string; templateId?: string; templateVersionId?: string }): string {
+  const tId = "templateId" in template && template.templateId ? template.templateId : (template as { id?: string }).id ?? "";
+  const vId = "templateVersionId" in template && template.templateVersionId ? template.templateVersionId : (template as { versionId?: string }).versionId ?? "";
+  return `${tId}:${vId}`.toLowerCase();
+}
+export const templateIdentityKey = templatePairKey;
+
 export type TemplateRankInput={
   market:string;
   locale:string;
@@ -72,6 +84,7 @@ export type TemplateRankInput={
   hasPhoto:boolean;
   bodyPressure?:number;
   recentStyles?:RecentStyleFingerprint[];
+  seenTemplateIdentities?:TemplateIdentity[];
   catalogMode?:"development"|"experiment"|"staging"|"production";
 };
 
@@ -167,8 +180,22 @@ function creativeDistance(candidate:RankedTemplate,chosen:RankedTemplate[]){
   return 1-closest;
 }
 
+function partitionTemplatesBySeen(templates: TemplateMeta[], input: TemplateRankInput): TemplateMeta[] {
+  const seenKeys = new Set((input.seenTemplateIdentities ?? []).map(templatePairKey));
+  if (!seenKeys.size) return templates;
+  const eligible = templates.filter(t => templateEligible(t, input));
+  const unseen = eligible.filter(t => !seenKeys.has(templatePairKey(t)));
+  if (unseen.length >= 3) return unseen;
+  if (unseen.length > 0) {
+    const seen = eligible.filter(t => seenKeys.has(templatePairKey(t)));
+    return [...unseen, ...seen];
+  }
+  return eligible;
+}
+
 export function buildCreativeCandidatePack(templates:TemplateMeta[],input:TemplateRankInput):CreativeCandidatePack{
-  const ranked=rankTemplates(templates,input);const used=new Set<string>();
+  const pool=partitionTemplatesBySeen(templates,input);
+  const ranked=rankTemplates(pool,input);const used=new Set<string>();
   const fit=diversePick(ranked,Math.min(6,ranked.length),used);
   const remaining=ranked.filter(item=>!used.has(item.template.id)&&item.template.editorialScore>=84);
   const wildcardRanked=[...remaining].sort((a,b)=>{
@@ -181,7 +208,9 @@ export function buildCreativeCandidatePack(templates:TemplateMeta[],input:Templa
 }
 
 export function expandedCreativeCandidatePool(templates:TemplateMeta[],input:TemplateRankInput,max=16){
-  const limit=Math.max(3,Math.min(16,Math.floor(max)));const ranked=rankTemplates(templates,input);const used=new Set<string>();
+  const limit=Math.max(3,Math.min(16,Math.floor(max)));
+  const pool=partitionTemplatesBySeen(templates,input);
+  const ranked=rankTemplates(pool,input);const used=new Set<string>();
   const fitTarget=Math.max(3,Math.floor(limit*.75));const fit=diversePick(ranked,Math.min(fitTarget,ranked.length),used);
   const exploration=[...ranked.filter(item=>!used.has(item.template.id)&&item.template.editorialScore>=82)].sort((a,b)=>{
     const av=creativeDistance(a,fit)*.58+(a.template.editorialScore/100)*.27+a.components.freshness*.15;
@@ -399,9 +428,163 @@ export function selectQualityAwareDiversifiedCandidates(ranked:RankedTemplate[],
   return result;
 }
 
-export function selectGenerationTemplates(templates:TemplateMeta[],input:TemplateRankInput){
-  // Deterministic fallback shares the same perceptual final-selection policy as initial generation.
-  return selectQualityAwareDiversifiedCandidates(rankTemplates(templates,input),3,{requirePhoto:input.hasPhoto,requiredArchetypes:input.hasPhoto?["editorial","midnight","photo"]:["editorial","midnight","quiet"]});
+export type NovelSelectionOutcome = {
+  candidates: RankedTemplate[];
+  unseenCount: number;
+  exhaustionState: "none" | "partial" | "total";
+  exhausted: boolean;
+};
+
+export function selectNovelGenerationTemplates(
+  templates: TemplateMeta[],
+  input: TemplateRankInput
+): NovelSelectionOutcome {
+  const eligible = templates.filter(t => templateEligible(t, input));
+  const seenKeys = new Set((input.seenTemplateIdentities ?? []).map(templatePairKey));
+
+  const unseenEligible = eligible.filter(t => !seenKeys.has(templatePairKey(t)));
+  const seenEligible = eligible.filter(t => seenKeys.has(templatePairKey(t)));
+
+  const requiredArchetypes: TemplateArchetype[] = input.hasPhoto
+    ? ["editorial", "midnight", "photo"]
+    : ["editorial", "midnight", "quiet"];
+
+  // Case 1: >= 3 unseen templates
+  if (unseenEligible.length >= 3) {
+    const rankedUnseen = rankTemplates(unseenEligible, input);
+    let trio = selectQualityAwareDiversifiedCandidates(rankedUnseen, 3, {
+      requirePhoto: input.hasPhoto,
+      requiredArchetypes
+    });
+    if (trio.length < 3) {
+      const usedIds = new Set(trio.map(item => item.template.id));
+      const usedFamilies = new Set(trio.map(item => item.template.familyId));
+      for (const item of rankedUnseen) {
+        if (!usedIds.has(item.template.id) && !usedFamilies.has(item.template.familyId)) {
+          trio.push(item);
+          usedIds.add(item.template.id);
+          usedFamilies.add(item.template.familyId);
+          if (trio.length === 3) break;
+        }
+      }
+      if (trio.length < 3) {
+        for (const item of rankedUnseen) {
+          if (!usedIds.has(item.template.id)) {
+            trio.push(item);
+            usedIds.add(item.template.id);
+            if (trio.length === 3) break;
+          }
+        }
+      }
+    }
+    return {
+      candidates: trio,
+      unseenCount: unseenEligible.length,
+      exhaustionState: "none",
+      exhausted: false
+    };
+  }
+
+  // Case 2: 1-2 unseen templates
+  if (unseenEligible.length >= 1 && unseenEligible.length < 3) {
+    const rankedUnseen = rankTemplates(unseenEligible, input);
+    const rankedSeen = rankTemplates(seenEligible, input);
+
+    // Partial exhaustion must surface every unseen candidate before any recycled
+    // candidate. Do not let the trio family gate discard one of the only unseen choices.
+    const selected: RankedTemplate[] = rankedUnseen.slice(0, unseenEligible.length);
+
+    // Existing bounded fill for remaining slots
+    const needed = 3 - selected.length;
+    if (needed > 0 && rankedSeen.length > 0) {
+      const seenArchetypes = new Set<TemplateArchetype>();
+      for (const c of selected) {
+        seenArchetypes.add(templateArchetype(c.template));
+      }
+      const missingArchetypes = requiredArchetypes.filter(a => !seenArchetypes.has(a));
+
+      const pool = rankedSeen.filter(
+        item => !selected.some(c => c.template.id === item.template.id || c.template.familyId === item.template.familyId)
+      );
+      const fillPool = pool.length >= needed ? pool : rankedSeen.filter(
+        item => !selected.some(c => c.template.id === item.template.id)
+      );
+
+      const filled = selectQualityAwareDiversifiedCandidates(fillPool, needed, {
+        requirePhoto: input.hasPhoto && !selected.some(c => c.template.photoMode === "required" || c.template.visualDirection === "photo"),
+        requiredArchetypes: missingArchetypes.length ? missingArchetypes : undefined
+      });
+      selected.push(...filled);
+
+      if (selected.length < 3) {
+        const usedIds = new Set(selected.map(s => s.template.id));
+        const usedFamilies = new Set(selected.map(s => s.template.familyId));
+        for (const item of rankedSeen) {
+          if (!usedIds.has(item.template.id) && !usedFamilies.has(item.template.familyId)) {
+            selected.push(item);
+            usedIds.add(item.template.id);
+            usedFamilies.add(item.template.familyId);
+            if (selected.length === 3) break;
+          }
+        }
+        if (selected.length < 3) {
+          for (const item of rankedSeen) {
+            if (!usedIds.has(item.template.id)) {
+              selected.push(item);
+              usedIds.add(item.template.id);
+              if (selected.length === 3) break;
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      candidates: selected,
+      unseenCount: unseenEligible.length,
+      exhaustionState: "partial",
+      exhausted: true
+    };
+  }
+
+  // Case 3: 0 unseen templates (Total exhaustion)
+  const rankedSeen = rankTemplates(eligible, input);
+  let trio = selectQualityAwareDiversifiedCandidates(rankedSeen, 3, {
+    requirePhoto: input.hasPhoto,
+    requiredArchetypes
+  });
+  if (trio.length < 3) {
+    const usedIds = new Set(trio.map(item => item.template.id));
+    const usedFamilies = new Set(trio.map(item => item.template.familyId));
+    for (const item of rankedSeen) {
+      if (!usedIds.has(item.template.id) && !usedFamilies.has(item.template.familyId)) {
+        trio.push(item);
+        usedIds.add(item.template.id);
+        usedFamilies.add(item.template.familyId);
+        if (trio.length === 3) break;
+      }
+    }
+    if (trio.length < 3) {
+      for (const item of rankedSeen) {
+        if (!usedIds.has(item.template.id)) {
+          trio.push(item);
+          usedIds.add(item.template.id);
+          if (trio.length === 3) break;
+        }
+      }
+    }
+  }
+  return {
+    candidates: trio,
+    unseenCount: 0,
+    exhaustionState: "total",
+    exhausted: true
+  };
+}
+
+export function selectGenerationTemplates(templates:TemplateMeta[],input:TemplateRankInput):RankedTemplate[]{
+  const outcome = selectNovelGenerationTemplates(templates, input);
+  return outcome.candidates;
 }
 
 const F="portrait-5x7,folded-5x7,square-5x5,landscape-7x5,postcard-6x4".split(",");
