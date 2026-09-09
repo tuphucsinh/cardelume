@@ -26,6 +26,10 @@ export type GenerationFailureCode=
   |"generation_job_missing"
   |"generation_status_failed"
   |"generation_provider_failed"
+  |"generation_provider_timeout"
+  |"generation_provider_bad_request"
+  |"generation_queue_expired"
+  |"generation_safe_failure"
   |"generation_network_failed"
   |"generation_timeout";
 
@@ -35,7 +39,7 @@ export class GenerationError extends Error{
 }
 
 const REQUEST_TIMEOUT_MS=8_000;
-const LIVE_GENERATION_DEADLINE_MS=24_000;
+const LIVE_GENERATION_DEADLINE_MS=22_000;
 
 function sleep(ms:number,signal?:AbortSignal){
   return new Promise<void>((resolve,reject)=>{
@@ -75,10 +79,18 @@ async function fetchBounded(url:string,init:RequestInit,callerSignal?:AbortSigna
   }
 }
 
-function remainingDeadline(started:number){
-  const remaining=LIVE_GENERATION_DEADLINE_MS-(performance.now()-started);
+function remainingDeadline(deadlineAt:number){
+  const remaining=deadlineAt-performance.now();
   if(remaining<=0)throw new GenerationError("generation_timeout");
   return Math.min(REQUEST_TIMEOUT_MS,remaining);
+}
+
+function statusFailureCode(error:string|undefined):GenerationFailureCode{
+  if(error==="generation_expired"||error==="generation_deadline_exceeded"||error==="ai_budget_exhausted")return "generation_queue_expired";
+  if(error==="ai_provider_timeout")return "generation_provider_timeout";
+  if(error==="ai_provider_http_400"||error==="generation_provider_bad_request")return "generation_provider_bad_request";
+  if(error==="ai_generation_safe_failure")return "generation_safe_failure";
+  return "generation_provider_failed";
 }
 
 export async function runGeneration(input:{
@@ -89,6 +101,7 @@ export async function runGeneration(input:{
   sessionCapability:string;
 }):Promise<GenerationResult|null>{
   const started=performance.now();
+  let deadlineAt=started+LIVE_GENERATION_DEADLINE_MS;
 
   if(input.mode==="mock"){
     const stages:[number,GenerationStatus][]=[
@@ -108,27 +121,51 @@ export async function runGeneration(input:{
     return null;
   }
 
-  const start=await fetchBounded("/api/generate",{
-    method:"POST",
-    headers:{"content-type":"application/json","idempotency-key":crypto.randomUUID()},
-    body:JSON.stringify({...input.brief,priceQuote:input.sessionCapability})
-  },input.signal,remainingDeadline(started));
-  if(!start.ok)throw new GenerationError("generation_start_failed");
-  const created=await start.json().catch(()=>({})) as {jobId?:string;statusToken?:string};
-  if(!created.jobId||!created.statusToken)throw new GenerationError("generation_job_missing");
+  let created:{jobId:string;statusToken:string;deadlineAt?:number}|undefined;
+  const idempotencyKey=crypto.randomUUID();
+  const cancelCreatedJob=()=>{
+    void (async()=>{
+      for(const delay of [0,250,1000,2000]){
+        if(delay>0)await new Promise(resolve=>setTimeout(resolve,delay));
+        try{
+          const response=await fetch("/api/generate",{method:"DELETE",keepalive:true,headers:{"idempotency-key":idempotencyKey}});
+          const body=await response.json().catch(()=>null) as {state?:string}|null;
+          if(body?.state==="failed")break;
+        }catch{}
+      }
+    })();
+  };
+  input.signal?.addEventListener("abort",cancelCreatedJob,{once:true});
+  try{
+    const start=await fetchBounded("/api/generate",{
+      method:"POST",
+      headers:{"content-type":"application/json","idempotency-key":idempotencyKey},
+      body:JSON.stringify({...input.brief,priceQuote:input.sessionCapability})
+    },input.signal,remainingDeadline(deadlineAt));
+    if(!start.ok)throw new GenerationError("generation_start_failed");
+    const parsed=await start.json().catch(()=>({})) as {jobId?:string;statusToken?:string;deadlineAt?:number};
+    if(!parsed.jobId||!parsed.statusToken)throw new GenerationError("generation_job_missing");
+    created={jobId:parsed.jobId,statusToken:parsed.statusToken,deadlineAt:parsed.deadlineAt};
+    if(typeof parsed.deadlineAt==="number"&&Number.isFinite(parsed.deadlineAt))deadlineAt=performance.now()+Math.max(0,parsed.deadlineAt-Date.now());
 
-  while(true){
-    if(input.signal?.aborted)throw aborted();
-    const elapsed=performance.now()-started;
-    const response=await fetchBounded(`/api/generate/${encodeURIComponent(created.jobId)}`,{cache:"no-store",headers:{"x-generation-token":created.statusToken}},input.signal,remainingDeadline(started));
-    if(!response.ok)throw new GenerationError("generation_status_failed");
-    const status=await response.json().catch(()=>null) as GenerationStatus|null;
-    if(!status||!status.state)throw new GenerationError("generation_status_failed");
-    input.onStatus(status,elapsed);
-    if(status.state==="ready")return status.result??null;
-    if(status.state==="failed")throw new GenerationError("generation_provider_failed");
-    const base=pollDelay(elapsed);
-    const jitter=Math.round(base*(Math.random()*.18-.09));
-    await sleep(base+jitter,input.signal);
+    while(true){
+      if(input.signal?.aborted)throw aborted();
+      const elapsed=performance.now()-started;
+      const response=await fetchBounded(`/api/generate/${encodeURIComponent(created.jobId)}`,{cache:"no-store",headers:{"x-generation-token":created.statusToken}},input.signal,remainingDeadline(deadlineAt));
+      if(!response.ok)throw new GenerationError("generation_status_failed");
+      const status=await response.json().catch(()=>null) as GenerationStatus|null;
+      if(!status||!status.state)throw new GenerationError("generation_status_failed");
+      input.onStatus(status,elapsed);
+      if(status.state==="ready")return status.result??null;
+      if(status.state==="failed")throw new GenerationError(statusFailureCode(status.error));
+      const base=pollDelay(elapsed);
+      const jitter=Math.round(base*(Math.random()*.18-.09));
+      await sleep(base+jitter,input.signal);
+    }
+  }catch(error){
+    cancelCreatedJob();
+    throw error;
+  }finally{
+    input.signal?.removeEventListener("abort",cancelCreatedJob);
   }
 }

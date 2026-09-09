@@ -1,15 +1,19 @@
+import { randomUUID } from "node:crypto";
 import { GenerationResultSchema, cardCopyMetrics, type GeneratedDirection, type GenerationBrief, type GenerationResult } from "@cardelume/card-schema";
 import { templateCreativeRecipe, templateArchetype, templatePairKey, type RankedTemplate, type RecentStyleFingerprint, type SignatureMove, type CreativeAccentMode, type TemplateArchetype, type VisualDirection, type TemplatePhotoMode, type TemplateMaterialWorld, type TemplateEnergy, type TemplateColorWorld, type TemplateMeta, type TemplateRankInput } from "@cardelume/templates";
 
 export type AIProviderUsage={inputTokens?:number;outputTokens?:number};
-export type AIProviderResponse={data:unknown;provider:string;model:string;usage?:AIProviderUsage;latencyMs:number};
+export type AIProviderProtocol="chat_completions"|"responses";
+export type AIProviderResponse={data:unknown;provider:string;model:string;protocol?:AIProviderProtocol;usage?:AIProviderUsage;latencyMs:number};
 export interface AIProvider{
   readonly providerName:string;
   readonly modelName:string;
+  readonly protocol?:AIProviderProtocol;
   generateJson(input:{system:string;prompt:string;timeoutMs?:number}):Promise<AIProviderResponse>;
 }
 
-export type AICallTelemetry={phase:"creative_director"|"expanded_director"|"critic_repair";provider:string;model:string;inputTokens?:number;outputTokens?:number;latencyMs:number;success:boolean;errorCode?:string};
+export type ProviderFailureClass="request_contract"|"http_client"|"http_server"|"timeout"|"network"|"response_contract"|"budget"|"unknown";
+export type AICallTelemetry={phase:"creative_director"|"expanded_director"|"critic_repair";provider:string;model:string;protocol?:AIProviderProtocol;inputTokens?:number;outputTokens?:number;latencyMs:number;success:boolean;errorCode?:string;failureClass?:ProviderFailureClass};
 export type CreativeDirectorResult={kind:"ready";result:GenerationResult;telemetry:AICallTelemetry};
 export type CreativeExpansionRequest={kind:"expand_pool";reasonCode:string;desiredTraits:string[];telemetry:AICallTelemetry};
 export type CreativeDirectorOutcome=CreativeDirectorResult|CreativeExpansionRequest;
@@ -55,6 +59,7 @@ export function defaultFallbackReserveMs(): number {
 export interface GenerationBudgetOptions {
   totalTimeoutMs?: number;
   fallbackReserveMs?: number;
+  startedAt?: number;
   now?: () => number;
 }
 
@@ -68,7 +73,7 @@ export class GenerationBudget {
 
   constructor(options: GenerationBudgetOptions = {}) {
     this.nowFn = options.now ?? Date.now;
-    this.startedAt = this.nowFn();
+    this.startedAt = Number.isFinite(options.startedAt) ? Math.floor(options.startedAt!) : this.nowFn();
     this.totalTimeoutMs = options.totalTimeoutMs ?? defaultGenerationDeadlineMs();
     this.fallbackReserveMs = options.fallbackReserveMs ?? defaultFallbackReserveMs();
     this.deadlineAt = this.startedAt + this.totalTimeoutMs;
@@ -113,31 +118,100 @@ export function createGenerationBudget(options?: GenerationBudgetOptions | Gener
   return new GenerationBudget(options);
 }
 
+const RESPONSES_MODEL_IDS=new Set(["gpt-5.6-luna"]);
+
+export function providerProtocolFor(model:string,baseUrl:string):AIProviderProtocol{
+  const normalizedModel=model.trim().toLowerCase();
+  const normalizedBase=baseUrl.replace(/\/$/,"").toLowerCase();
+  return RESPONSES_MODEL_IDS.has(normalizedModel)&&normalizedBase.includes("opencode.ai/zen/")?"responses":"chat_completions";
+}
+
+function needsOpenCodeSessionHeader(baseUrl:string){return /opencode\.ai\/zen\/go\//i.test(baseUrl);}
+function responsesInstructions(system:string){return system.includes("json")?system:`${system}\nReturn a json object.`;}
+function responsesPrompt(prompt:string){return prompt.includes("json")?prompt:`${prompt}\nReturn json only.`;}
+
+function providerHttpError(status:number){
+  return Number.isInteger(status)&&status>=100&&status<=599?`ai_provider_http_${status}`:"ai_provider_http_error";
+}
+
+function responseText(envelope:Record<string,unknown>,protocol:AIProviderProtocol){
+  if(protocol==="chat_completions"){
+    const choices=envelope.choices;
+    if(!Array.isArray(choices)||!choices[0]||typeof choices[0]!=="object")return undefined;
+    const message=(choices[0] as Record<string,unknown>).message;
+    if(!message||typeof message!=="object")return undefined;
+    const content=(message as Record<string,unknown>).content;
+    if(typeof content==="string")return content;
+    if(Array.isArray(content))return content.map(part=>part&&typeof part==="object"&&typeof (part as Record<string,unknown>).text==="string"?(part as Record<string,string>).text:"").join("");
+    return undefined;
+  }
+  if(typeof envelope.output_text==="string")return envelope.output_text;
+  if(!Array.isArray(envelope.output))return undefined;
+  return envelope.output.flatMap(item=>{
+    if(!item||typeof item!=="object")return [];
+    const content=(item as Record<string,unknown>).content;
+    if(!Array.isArray(content))return [];
+    return content.flatMap(part=>part&&typeof part==="object"&&typeof (part as Record<string,unknown>).text==="string"?[(part as Record<string,string>).text]:[]);
+  }).join("")||undefined;
+}
+
+export function classifyProviderError(error:unknown):ProviderFailureClass{
+  const message=error instanceof Error?error.message:"unknown";
+  if(message==="ai_budget_exhausted")return "budget";
+  if(message==="ai_provider_timeout")return "timeout";
+  if(message==="ai_provider_request_contract")return "request_contract";
+  if(/^ai_provider_http_4\d{2}$/.test(message))return "http_client";
+  if(/^ai_provider_http_5\d{2}$/.test(message))return "http_server";
+  if(message==="ai_provider_network")return "network";
+  if(message.startsWith("ai_provider_invalid")||message==="ai_provider_empty_content"||message==="ai_provider_response_too_large"||message==="ai_provider_malformed_response")return "response_contract";
+  if(error instanceof TypeError)return "network";
+  return "unknown";
+}
+
+export function safeProviderErrorCode(error:unknown):string{
+  const message=error instanceof Error?error.message:"";
+  if(/^ai_provider_http_\d{3}$/.test(message)||[
+    "ai_provider_timeout","ai_provider_network","ai_provider_request_contract",
+    "ai_provider_invalid_response","ai_provider_invalid_json","ai_provider_empty_content",
+    "ai_provider_response_too_large","ai_provider_malformed_response"
+  ].includes(message))return message;
+  const failure=classifyProviderError(error);
+  return failure==="timeout"?"ai_provider_timeout":failure==="budget"?"ai_budget_exhausted":failure==="network"?"ai_provider_network":"ai_provider_failed";
+}
+
+function usageNumber(value:unknown){return typeof value==="number"&&Number.isFinite(value)&&value>=0?value:undefined;}
+
 export class OpenAICompatibleProvider implements AIProvider{
   readonly providerName="openai-compatible";
+  readonly protocol:AIProviderProtocol;
+  private readonly sessionId:string;
   get modelName(){return this.config.model;}
-  constructor(private readonly config:{apiKey:string;model:string;baseUrl:string},private readonly fetchImpl:FetchLike=fetch){}
+  constructor(private readonly config:{apiKey:string;model:string;baseUrl:string;sessionId?:string},private readonly fetchImpl:FetchLike=fetch){this.protocol=providerProtocolFor(config.model,config.baseUrl);this.sessionId=config.sessionId?.trim()||randomUUID();}
   async generateJson(input:{system:string;prompt:string;timeoutMs?:number}){
     const started=Date.now();const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),input.timeoutMs??timeoutMs());
+    const base=this.config.baseUrl.replace(/\/$/,"");
+    const body=this.protocol==="responses"
+      ? {model:this.config.model,instructions:responsesInstructions(input.system),input:responsesPrompt(input.prompt),text:{format:{type:"json_object"}}}
+      : {model:this.config.model,temperature:.78,response_format:{type:"json_object"},messages:[{role:"system",content:input.system},{role:"user",content:input.prompt}]};
     try{
-      const responsesModel=this.config.model==="gpt-5.6-luna";
-      const response=await this.fetchImpl(`${this.config.baseUrl.replace(/\/$/,"")}/${responsesModel?"responses":"chat/completions"}`,{
-        method:"POST",signal:controller.signal,headers:{authorization:`Bearer ${this.config.apiKey}`,"content-type":"application/json",accept:"application/json","user-agent":"CardeLume-P21-Staging/0.4.3"},
-        body:JSON.stringify(responsesModel?{model:this.config.model,input:[{role:"system",content:[{type:"input_text",text:input.system}]},{role:"user",content:[{type:"input_text",text:input.prompt}]}],max_output_tokens:8000}:{model:this.config.model,temperature:.78,response_format:{type:"json_object"},messages:[{role:"system",content:input.system},{role:"user",content:input.prompt}]})
+
+      const response=await this.fetchImpl(`${base}/${this.protocol==="responses"?"responses":"chat/completions"}`,{
+        method:"POST",signal:controller.signal,headers:{authorization:`Bearer ${this.config.apiKey}`,"content-type":"application/json",accept:"application/json","user-agent":"CardeLume-P21-Staging/0.4.3",...(needsOpenCodeSessionHeader(this.config.baseUrl)?{"x-opencode-session":this.sessionId}:{})},body:JSON.stringify(body)
       });
-      if(!response.ok)throw new Error(`ai_provider_http_${response.status}`);
+      if(!response.ok)throw new Error(providerHttpError(response.status));
       const maxBytes=maxResponseBytes();const declared=Number(response.headers.get("content-length")||0);
       if(declared>maxBytes)throw new Error("ai_provider_response_too_large");
       const rawEnvelope=await response.text();if(new TextEncoder().encode(rawEnvelope).byteLength>maxBytes)throw new Error("ai_provider_response_too_large");
       let envelope:unknown;try{envelope=JSON.parse(rawEnvelope);}catch{throw new Error("ai_provider_invalid_response");}
       if(!envelope||typeof envelope!=="object")throw new Error("ai_provider_invalid_response");
-      const e=envelope as {choices?:unknown;output_text?:unknown;output?:unknown;usage?:Record<string,unknown>;model?:unknown};let text:string|undefined;
-      if(responsesModel){if(typeof e.output_text==="string")text=e.output_text;if(!text)text=responsesOutputText(e.output)||undefined;}
-      else{if(!Array.isArray(e.choices)||!e.choices[0]||typeof e.choices[0]!=="object")throw new Error("ai_provider_invalid_response");const message=(e.choices[0] as {message?:unknown}).message;if(!message||typeof message!=="object")throw new Error("ai_provider_invalid_response");const content=(message as {content?:unknown}).content;if(typeof content==="string")text=content;else if(Array.isArray(content))text=content.map(part=>part&&typeof part==="object"&&typeof (part as {text?:unknown}).text==="string"?(part as {text:string}).text:"").join("");}
-      if(!text)throw new Error("ai_provider_empty_content");let data:unknown;try{data=JSON.parse(text);}catch{throw new Error("ai_provider_invalid_json");}
-      const inputTokens=typeof e.usage?.prompt_tokens==="number"?e.usage.prompt_tokens:typeof e.usage?.input_tokens==="number"?e.usage.input_tokens:undefined;const outputTokens=typeof e.usage?.completion_tokens==="number"?e.usage.completion_tokens:typeof e.usage?.output_tokens==="number"?e.usage.output_tokens:undefined;
-      return{data,provider:this.providerName,model:typeof e.model==="string"?e.model:this.config.model,usage:{inputTokens,outputTokens},latencyMs:Date.now()-started};
-    }catch(error){if(error instanceof DOMException&&error.name==="AbortError")throw new Error("ai_provider_timeout");throw error;}finally{clearTimeout(timer);}
+
+      const e=envelope as Record<string,unknown>;const text=responseText(e,this.protocol);
+      if(!text)throw new Error("ai_provider_empty_content");
+      let data:unknown;try{data=JSON.parse(text);}catch{throw new Error("ai_provider_invalid_json");}
+      const usage=e.usage&&typeof e.usage==="object"?e.usage as Record<string,unknown>:undefined;
+      const inputTokens=usageNumber(usage?.input_tokens??usage?.prompt_tokens);const outputTokens=usageNumber(usage?.output_tokens??usage?.completion_tokens);
+      return{data,provider:this.providerName,model:typeof e.model==="string"?e.model:this.config.model,protocol:this.protocol,usage:{inputTokens,outputTokens},latencyMs:Date.now()-started};
+    }catch(error){if(error instanceof DOMException&&error.name==="AbortError")throw new Error("ai_provider_timeout");if(error instanceof TypeError)throw new Error("ai_provider_network");throw error;}finally{clearTimeout(timer);}
   }
 }
 
@@ -171,7 +245,7 @@ function safeCustomerRationale(value:unknown){
   return forbidden.test(text)?undefined:text;
 }
 function arr(value:unknown){return Array.isArray(value)?value:[];}
-function telemetry(phase:AICallTelemetry["phase"],response:AIProviderResponse):AICallTelemetry{return{phase,provider:response.provider,model:response.model,inputTokens:response.usage?.inputTokens,outputTokens:response.usage?.outputTokens,latencyMs:response.latencyMs,success:true};}
+function telemetry(phase:AICallTelemetry["phase"],response:AIProviderResponse):AICallTelemetry{return{phase,provider:response.provider,model:response.model,protocol:response.protocol,inputTokens:response.usage?.inputTokens,outputTokens:response.usage?.outputTokens,latencyMs:response.latencyMs,success:true};}
 function candidateContext(candidates:RankedTemplate[]){return candidates.map((item,index)=>({rank:index+1,id:item.template.id,versionId:item.template.versionId,familyId:item.template.familyId,name:item.template.name,visualDirection:item.template.visualDirection,photoMode:item.template.photoMode,materialWorld:item.template.materialWorld,materialCues:item.template.materialCues,energy:item.template.energy,colorWorld:item.template.colorWorld,motionProfile:item.template.motionProfile,score:Number(item.score.toFixed(4)),scoreComponents:Object.fromEntries(Object.entries(item.components).map(([k,v])=>[k,Number(Number(v).toFixed(3))])),reasons:item.reasons,recipe:templateCreativeRecipe(item.template)}));}
 function compactRecentStyles(recent:RecentStyleFingerprint[]|undefined){return (recent??[]).slice(0,5).map(s=>({familyId:s.familyId,visualDirection:s.visualDirection,accentMode:s.accentMode??"unknown"}));}
 function seenTemplateKeys(brief:GenerationBrief){return new Set((brief.refreshContext?.seenTemplateIdentities??[]).map(templatePairKey));}

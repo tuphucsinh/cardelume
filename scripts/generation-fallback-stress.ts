@@ -12,9 +12,10 @@ must(studio.includes("setUsedCuratedFallback(true)"),"fallback state is not set"
 must(studio.includes('setPhase("results")'),"fallback does not reach results");
 must(!studio.includes('window.setTimeout(()=>setPhase("brief"),1800)'),"legacy failure reset still present");
 must(studio.includes("generationFallbackNotice"),"fallback notice missing from results");
-must(client.includes("LIVE_GENERATION_DEADLINE_MS=24_000"),"overall live deadline missing");
+must(client.includes("LIVE_GENERATION_DEADLINE_MS=22_000"),"overall live deadline missing");
+must(client.includes("deadlineAt"),"server absolute deadline is not consumed");
 must(client.includes("REQUEST_TIMEOUT_MS=8_000"),"request timeout missing");
-must(client.includes('throw new GenerationError("generation_provider_failed")'),"provider failure is not normalized");
+must(client.includes('return "generation_provider_failed";'),"provider failure is not normalized");
 must(client.includes('callerSignal?.removeEventListener("abort",onAbort)'),"abort listener cleanup missing");
 for(const locale of ["en","ja","ko","es","fr","de","pt","it","zh","vi"]){
   must(copy.includes(`${locale}:{`),`locale ${locale} missing`);
@@ -55,6 +56,21 @@ try{
   }catch(error){providerFailure=error instanceof GenerationError?error.code:"unexpected";}
   must(providerFailure==="generation_provider_failed","provider failure was not normalized");
   must(providerFailure!=="provider_internal_detail","provider internal error leaked through client contract");
+
+  let cancelCalls=0;
+  globalThis.fetch=(async(_url,init)=>{
+    if(init?.method==="DELETE"){
+      cancelCalls++;
+      must(new Headers(init.headers).has("idempotency-key"),"lost-start cancellation must use idempotency key");
+      return new Response(JSON.stringify({state:"failed",error:"generation_cancelled"}),{status:200,headers:{"content-type":"application/json"}});
+    }
+    return new Response(JSON.stringify({}),{status:200,headers:{"content-type":"application/json"}});
+  }) as typeof fetch;
+  let lostStart="";
+  try{await runGeneration({mode:"live",brief:{occasion:"Birthday",relationship:"Friend",feeling:"Elegant",format:"Portrait · 5 × 7 in",locale:"en",hasPhoto:false},onStatus:()=>{},sessionCapability:"fixture"});}
+  catch(error){lostStart=error instanceof GenerationError?error.code:"unexpected";}
+  must(lostStart==="generation_job_missing","lost POST response was not normalized");
+  must(cancelCalls===1,"lost POST response did not trigger bounded idempotency cancellation");
 
   const controller=new AbortController();
   controller.abort();

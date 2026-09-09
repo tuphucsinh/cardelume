@@ -667,6 +667,10 @@ async function main() {
   // ── 8. NO_UNBOUNDED_RETRY_AND_STATIC_GUARDS ────────────────────────────────
   const workerSrc = readFileSync("apps/worker/src/index.ts", "utf8");
   const aiSrc = readFileSync("packages/ai/src/index.ts", "utf8");
+  const generationClientSrc = readFileSync("apps/web/lib/generation-client.ts", "utf8");
+  const generationStartRouteSrc = readFileSync("apps/web/app/api/generate/route.ts", "utf8");
+  const generationRouteSrc = readFileSync("apps/web/app/api/generate/[jobId]/route.ts", "utf8");
+  const generationDbSrc = readFileSync("packages/db/src/generation.ts", "utf8");
 
   // Assert NO duplicate orchestration helper remains
   need(!workerSrc.includes("executeGenerationPipeline"), "worker must not reference executeGenerationPipeline");
@@ -675,31 +679,39 @@ async function main() {
   need(!aiSrc.includes("GenerationPipelineResult"), "ai package must not export GenerationPipelineResult");
 
   // Assert worker creates budget ONCE before director and passes it down
-  const workerBudgetPos = workerSrc.indexOf("const budget=createGenerationBudget();");
-  need(workerBudgetPos !== -1, "worker must create budget once before AI phases");
+  const workerBudgetPos = workerSrc.indexOf("generationBudget=createGenerationBudget({startedAt:");
+  need(workerBudgetPos !== -1, "worker must create budget once from queue creation before AI phases");
 
   // Assert worker passes budget to director
   const workerDirectorPos = workerSrc.indexOf("generateCreativeDirectorDirections", workerBudgetPos);
   need(workerDirectorPos !== -1, "director must come after budget creation");
   const initialDirectorCall = workerSrc.slice(workerDirectorPos, workerSrc.indexOf(";", workerDirectorPos) + 1);
-  need(/generateCreativeDirectorDirections\(provider,brief,[^,]+,recentStyles,\"creative_director\",undefined,budget\)/.test(initialDirectorCall), "worker must pass budget to director");
+  need(/generateCreativeDirectorDirections\(provider,brief,[^,]+,recentStyles,\"creative_director\",undefined,generationBudget\)/.test(initialDirectorCall), "worker must pass budget to director");
 
   // Assert worker checks budget and passes to expanded director
-  const workerExpandBudgetPos = workerSrc.indexOf("budget.ensureAiBudget();", workerDirectorPos);
+  const workerExpandBudgetPos = workerSrc.indexOf("generationBudget.ensureAiBudget();", workerDirectorPos);
   need(workerExpandBudgetPos !== -1, "worker must check budget before expanded director");
-  const workerExpandPos = workerSrc.indexOf("generateCreativeDirectorDirections(provider,brief,candidatePool,recentStyles,\"expanded_director\",priorCritique,budget)", workerExpandBudgetPos);
+  const workerExpandPos = workerSrc.indexOf("generateCreativeDirectorDirections(provider,brief,candidatePool,recentStyles,\"expanded_director\",priorCritique,generationBudget)", workerExpandBudgetPos);
   need(workerExpandPos !== -1, "worker must pass budget to expanded director");
 
   // Assert worker checks budget and passes to critic
-  const workerCriticBudgetPos = workerSrc.indexOf("budget.ensureAiBudget();", workerExpandPos);
+  const workerCriticBudgetPos = workerSrc.indexOf("generationBudget.ensureAiBudget();", workerExpandPos);
   need(workerCriticBudgetPos !== -1, "worker must check budget before critic");
-  const workerCriticPos = workerSrc.indexOf("criticRepairDirections(provider,brief,result,candidatePool,risks,budget)", workerCriticBudgetPos);
+  const workerCriticPos = workerSrc.indexOf("criticRepairDirections(provider,brief,result,candidatePool,risks,generationBudget)", workerCriticBudgetPos);
   need(workerCriticPos !== -1, "worker must pass budget to critic");
 
   // Worker fallback logging and execution
   need(workerSrc.includes("ai_plan_recovery_started"), "worker must log ai_plan_recovery_started");
   need(workerSrc.includes("ai_plan_fallback_used"), "worker must log ai_plan_fallback_used");
   need(workerSrc.includes("buildDeterministicCreativeFallback"), "worker must call buildDeterministicCreativeFallback");
+
+  // Browser abandonment must cancel the durable job and stop later AI phases.
+  need(generationClientSrc.includes('method:"DELETE"')&&generationClientSrc.includes("idempotency-key"), "client must cancel by durable idempotency key");
+  need(generationStartRouteSrc.includes("export async function DELETE")&&generationStartRouteSrc.includes("cancelGenerationJobByIdempotencyKey"), "start route must cancel a job when POST response is lost");
+  need(generationRouteSrc.includes("export async function DELETE")&&generationRouteSrc.includes("cancelGenerationJob"), "status route must expose authenticated cancellation");
+  need(generationDbSrc.includes("generation_cancelled")&&generationDbSrc.includes("generationJobIsActive"), "db must persist and expose cancellation state");
+  need(workerSrc.includes("generationJobIsActive")&&workerSrc.includes("generation_cancelled"), "worker must stop cancelled jobs");
+  passMarkers.push("CANCELLATION_BOUNDARY=PASS");
 
   // Static bounds and guards
   need(aiSrc.includes("DEFAULT_GENERATION_DEADLINE_MS"), "ai must export DEFAULT_GENERATION_DEADLINE_MS");
