@@ -6,7 +6,7 @@ import {
   type CardDocument,
   type CheckoutCardSnapshot
 } from "@cardelume/card-schema";
-import { resolveCanonicalPresentation, type CanonicalPresentation } from "@cardelume/templates";
+import { resolveManagedTemplatePresentation, type CanonicalPresentation } from "@cardelume/templates";
 
 const ACCENT_PALETTE: Partial<Record<CheckoutCardSnapshot["accentMode"], string>> = {
   navy: "midnight-navy",
@@ -30,10 +30,23 @@ export function buildCheckoutCardDocument(input: {
   versionId: string;
   snapshot: unknown;
   managedTemplate?: {
+    templateId?: string;
     rendererTemplateKey: string;
     version: number;
     templateVersionId: string;
     photoMode: "none" | "optional" | "required";
+    name?: string;
+    material?: string;
+    visualDirection?: import("@cardelume/templates").VisualDirection;
+    familyId?: string;
+    supportedFormats?: string[];
+    scriptSupport?: import("@cardelume/templates").TemplateScript[];
+    headlineCapacity?: import("@cardelume/templates").TextCapacity;
+    bodyCapacity?: import("@cardelume/templates").TextCapacity;
+    materialWorld?: import("@cardelume/templates").TemplateMaterialWorld;
+    colorWorld?: import("@cardelume/templates").TemplateColorWorld;
+    motionProfile?: import("@cardelume/templates").TemplateMotionProfile;
+    energy?: import("@cardelume/templates").TemplateEnergy;
     presentation?: CanonicalPresentation;
   };
 }): CardDocument {
@@ -46,6 +59,9 @@ export function buildCheckoutCardDocument(input: {
     templateVersionId: snapshot.templateVersionId,
     visualDirection: (snapshot as { visualDirection?: string }).visualDirection
   });
+  if (input.managedTemplate.templateId && input.managedTemplate.templateId !== snapshot.templateId) {
+    throw new Error("template_identity_mismatch: snapshot.templateId does not match managedTemplate.templateId");
+  }
   if (snapshot.templateVersionId !== input.managedTemplate.templateVersionId) {
     throw new Error("template_version_mismatch: snapshot.templateVersionId does not match managedTemplate.templateVersionId");
   }
@@ -61,19 +77,44 @@ export function buildCheckoutCardDocument(input: {
   const paletteId = ACCENT_PALETTE[snapshot.accentMode]
     ?? defaultPaletteForTemplate(rendererTemplateKey);
 
-  let presentation = snapshot.presentation ?? input.managedTemplate.presentation;
-  if (!presentation && snapshot.templateId && input.managedTemplate.templateVersionId) {
-    try {
-      presentation = resolveCanonicalPresentation({
-        templateId: snapshot.templateId,
-        templateVersionId: input.managedTemplate.templateVersionId,
-        hasPhoto: Boolean(snapshot.photoAssetId),
-        locale: snapshot.locale,
-        format: snapshot.format
-      });
-    } catch {
-      presentation = undefined;
-    }
+  const resolvedPresentation = resolveManagedTemplatePresentation({
+    templateId: snapshot.templateId!,
+    templateVersionId: input.managedTemplate.templateVersionId,
+    rendererTemplateKey: input.managedTemplate.rendererTemplateKey,
+    version: input.managedTemplate.version,
+    photoMode: input.managedTemplate.photoMode,
+    name: input.managedTemplate.name,
+    material: input.managedTemplate.material,
+    visualDirection: input.managedTemplate.visualDirection,
+    familyId: input.managedTemplate.familyId,
+    supportedFormats: input.managedTemplate.supportedFormats,
+    scriptSupport: input.managedTemplate.scriptSupport,
+    headlineCapacity: input.managedTemplate.headlineCapacity,
+    bodyCapacity: input.managedTemplate.bodyCapacity,
+    materialWorld: input.managedTemplate.materialWorld,
+    colorWorld: input.managedTemplate.colorWorld,
+    motionProfile: input.managedTemplate.motionProfile,
+    energy: input.managedTemplate.energy,
+    hasPhoto: Boolean(snapshot.photoAssetId),
+    locale: snapshot.locale,
+    format: snapshot.format
+  });
+  if (input.managedTemplate.presentation && JSON.stringify(input.managedTemplate.presentation) !== JSON.stringify(resolvedPresentation)) {
+    throw new Error("managed_presentation_authority_mismatch: supplied managed presentation is not the exact pair resolution");
+  }
+  const presentation = resolvedPresentation;
+
+  if (presentation.templateId !== snapshot.templateId || presentation.templateVersionId !== input.managedTemplate.templateVersionId) {
+    throw new Error("presentation_authority_mismatch: managed presentation identity does not match exact checkout pair");
+  }
+  if (presentation.rendererTemplateKey !== input.managedTemplate.rendererTemplateKey) {
+    throw new Error("managed_renderer_mismatch: managed presentation renderer does not match managed template");
+  }
+  if (presentation.version !== input.managedTemplate.version || presentation.photoMode !== input.managedTemplate.photoMode) {
+    throw new Error("managed_presentation_metadata_mismatch: managed presentation metadata does not match managed template");
+  }
+  if (snapshot.presentation && JSON.stringify(snapshot.presentation) !== JSON.stringify(presentation)) {
+    throw new Error("presentation_authority_mismatch: client presentation cannot redefine server-owned presentation");
   }
 
   return CardDocumentSchema.parse({

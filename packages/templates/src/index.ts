@@ -719,6 +719,44 @@ const layoutProfiles: Record<string, Partial<TemplateLayoutProfile>> = {
   "soft-fold": { anchor: "start", xPct: 0.14, kickerYPct: 0.19, headlineYPct: 0.45, bodyYPct: 0.58, signatureYPct: 0.82, headlineWidthPct: 70, bodyWidthPct: 70, headlineScale: 0.96, bodyScale: 0.9, showBorder: false, showSignatureMark: false }
 };
 
+type ManagedRendererContract = {
+  visualDirection: VisualDirection;
+  photoMode: TemplatePhotoMode;
+  headlineCapacity: TextCapacity;
+  bodyCapacity: TextCapacity;
+};
+
+const approvedManagedRendererContracts: Record<string, ManagedRendererContract> = {
+  "luxury-editorial": { visualDirection: "editorial", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "midnight-lume": { visualDirection: "midnight", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "botanical-poise": { visualDirection: "botanical", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "washi-elegance": { visualDirection: "washi", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "soft-seoul": { visualDirection: "seoul", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "art-deco-noir": { visualDirection: "deco", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "photo-story": { visualDirection: "photo", photoMode: "required", headlineCapacity: "medium", bodyCapacity: "short" },
+  "quiet-minimal": { visualDirection: "minimal", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "watercolor-bloom": { visualDirection: "watercolor", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "golden-hour": { visualDirection: "golden", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "quiet-noir": { visualDirection: "quietnoir", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "bold-pop": { visualDirection: "boldpop", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "kawaii-joy": { visualDirection: "kawaii", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "classic-letterpress": { visualDirection: "letterpress", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "long" },
+  "celestial-night": { visualDirection: "celestial", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "little-wonders": { visualDirection: "gouache", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "whispered-type": { visualDirection: "whispered", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "museum-note": { visualDirection: "museum", photoMode: "optional", headlineCapacity: "medium", bodyCapacity: "long" },
+  "monogram-orbit": { visualDirection: "orbit", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "ribbon-line": { visualDirection: "ribbon", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "memory-window": { visualDirection: "memory", photoMode: "optional", headlineCapacity: "medium", bodyCapacity: "short" },
+  "type-celebration": { visualDirection: "typecelebration", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "quiet-seal": { visualDirection: "seal", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "long" },
+  "pressed-shadow": { visualDirection: "pressed", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "ink-pause": { visualDirection: "ink", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "petal-geometry": { visualDirection: "petal", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "night-ledger": { visualDirection: "ledger", photoMode: "none", headlineCapacity: "medium", bodyCapacity: "medium" },
+  "soft-fold": { visualDirection: "softfold", photoMode: "optional", headlineCapacity: "medium", bodyCapacity: "long" }
+};
+
 export function templateLayoutProfile(templateIdOrKey: string): TemplateLayoutProfile {
   return { ...centeredLayoutProfile, ...(layoutProfiles[templateIdOrKey] ?? {}) };
 }
@@ -861,6 +899,111 @@ export function resolveCanonicalPresentation(
     locale: input.locale,
     format: input.format
   });
+}
+
+export type ManagedTemplatePresentationInput = {
+  templateId: string;
+  templateVersionId: string;
+  rendererTemplateKey: string;
+  version: number;
+  photoMode: TemplatePhotoMode;
+  name?: string;
+  material?: string;
+  visualDirection?: VisualDirection;
+  familyId?: string;
+  supportedFormats?: string[];
+  scriptSupport?: TemplateScript[];
+  headlineCapacity?: TextCapacity;
+  bodyCapacity?: TextCapacity;
+  materialWorld?: TemplateMaterialWorld;
+  colorWorld?: TemplateColorWorld;
+  motionProfile?: TemplateMotionProfile;
+  energy?: TemplateEnergy;
+  hasPhoto?: boolean;
+  locale?: string;
+  format?: string;
+};
+
+/**
+ * Resolve the presentation for a server-validated managed template pair.
+ *
+ * The pair is the authority; slot names, visualDirection values, and client
+ * presentation objects are not lookup inputs. Bootstrap data is used only as
+ * an explicit allowlisted renderer registry. A missing renderer or a
+ * renderer/version/photo contract mismatch is an explicit failure rather than
+ * a fallback to another visual identity.
+ */
+export function resolveManagedTemplatePresentation(
+  input: ManagedTemplatePresentationInput
+): CanonicalPresentation {
+  const identity = assertCanonicalTemplateIdentity(input);
+  const rendererContract = approvedManagedRendererContracts[input.rendererTemplateKey];
+  if (!rendererContract) {
+    throw new Error(`managed_renderer_not_registered: renderer '${input.rendererTemplateKey}' is not allowlisted`);
+  }
+  const renderer = portfolioV2AllTemplates.find(
+    template => template.rendererTemplateKey === input.rendererTemplateKey
+  );
+  if (!renderer) {
+    throw new Error(`managed_renderer_registry_incomplete: renderer '${input.rendererTemplateKey}' has no metadata`);
+  }
+  if (rendererContract.visualDirection !== renderer.visualDirection || rendererContract.photoMode !== renderer.photoMode) {
+    throw new Error(`managed_renderer_contract_mismatch: renderer '${input.rendererTemplateKey}' registry contract disagrees with bootstrap metadata`);
+  }
+  if (!Number.isInteger(input.version) || input.version < 1) {
+    throw new Error(`managed_version_invalid: managed version '${input.version}' is invalid`);
+  }
+  if (input.visualDirection && input.visualDirection !== rendererContract.visualDirection) {
+    throw new Error(`managed_visual_direction_mismatch: renderer '${input.rendererTemplateKey}' requires '${rendererContract.visualDirection}'`);
+  }
+  if (input.photoMode !== rendererContract.photoMode) {
+    throw new Error(`managed_photo_mode_mismatch: renderer '${input.rendererTemplateKey}' requires '${rendererContract.photoMode}'`);
+  }
+  if (input.headlineCapacity && input.headlineCapacity !== rendererContract.headlineCapacity) {
+    throw new Error(`managed_headline_capacity_mismatch: renderer '${input.rendererTemplateKey}' requires '${rendererContract.headlineCapacity}'`);
+  }
+  if (input.bodyCapacity && input.bodyCapacity !== rendererContract.bodyCapacity) {
+    throw new Error(`managed_body_capacity_mismatch: renderer '${input.rendererTemplateKey}' requires '${rendererContract.bodyCapacity}'`);
+  }
+  if (input.hasPhoto === false && input.photoMode === "required") {
+    throw new Error("template_photo_required");
+  }
+  if (input.hasPhoto === true && input.photoMode === "none") {
+    throw new Error("template_photo_not_supported");
+  }
+
+  const scriptSupport = input.scriptSupport ?? renderer.scriptSupport;
+  if (input.format && input.supportedFormats && !input.supportedFormats.includes(input.format)) {
+    throw new Error(`template_format_not_supported: managed template does not support format '${input.format}'`);
+  }
+  if (input.locale && !scriptSupport.includes(scriptForLocale(input.locale))) {
+    throw new Error(`template_script_not_supported: managed template does not support locale '${input.locale}'`);
+  }
+  const visualDirection = rendererContract.visualDirection;
+  const archetype = templateArchetype({ visualDirection, photoMode: input.photoMode });
+  return {
+    templateId: identity.templateId,
+    templateVersionId: identity.templateVersionId,
+    rendererTemplateKey: input.rendererTemplateKey,
+    name: input.name ?? renderer.name,
+    material: input.material ?? renderer.material,
+    visualDirection,
+    archetype,
+    layout: templateLayoutProfile(input.rendererTemplateKey),
+    typographyId: "editorial-serif",
+    headlineCapacity: rendererContract.headlineCapacity,
+    bodyCapacity: rendererContract.bodyCapacity,
+    scriptSupport: [...scriptSupport],
+    photoMode: input.photoMode,
+    photoSupported: input.photoMode !== "none",
+    photoRequired: input.photoMode === "required",
+    familyId: input.familyId ?? renderer.familyId,
+    version: input.version,
+    materialWorld: input.materialWorld ?? renderer.materialWorld,
+    colorWorld: input.colorWorld ?? renderer.colorWorld,
+    motionProfile: input.motionProfile ?? renderer.motionProfile,
+    energy: input.energy ?? renderer.energy
+  };
 }
 
 export const curatedFallbackPresentations: Record<TemplateArchetype, CanonicalPresentation> = {
