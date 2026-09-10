@@ -8,7 +8,7 @@
     "start": "next start --hostname 0.0.0.0 --port 3000",
     "lint": "eslint --config ../../eslint.config.mjs .",
     "typecheck": "tsc --noEmit",
-    "test": "cd ../.. && tsx scripts/payment-boundary-source-stress.ts && tsx scripts/photo-upload-boundary-stress.ts && node --experimental-strip-types scripts/generation-fallback-stress.ts"
+    "test": "cd ../.. && tsx scripts/corrective-resilience.ts && tsx scripts/payment-boundary-source-stress.ts && tsx scripts/photo-upload-boundary-stress.ts && node --experimental-strip-types scripts/generation-fallback-stress.ts"
   },
   "dependencies": {
     "@cardelume/card-schema": "workspace:*",

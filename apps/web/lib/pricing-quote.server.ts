@@ -62,7 +62,7 @@ export function verifyPricingQuote(token:string,input:{anon:string;kind:Purchase
   }
   if(payload.v!==1||payload.kind!==input.kind)throw new Error("price_quote_kind_invalid");
   if(payload.anon!==input.anon)throw new Error("price_quote_owner_invalid");
-  if(payload.exp<Math.floor(Date.now()/1000))throw new Error("price_quote_expired");
+  if(payload.exp<=Math.floor(Date.now()/1000))throw new Error("price_quote_expired");
   if(!payload.currency||!Number.isInteger(payload.amountMinor)||payload.amountMinor<=0)throw new Error("price_quote_amount_invalid");
   return payload;
 }

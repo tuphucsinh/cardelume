@@ -109,7 +109,14 @@ export async function POST(req:Request){
       "partial_template_identity_rejected",
       "invalid_presentation_identity",
       "invalid_template_identity",
-      "template_identity_incomplete"
+      "template_identity_incomplete",
+      "price_quote_expired",
+      "price_quote_invalid",
+      "price_quote_signature_invalid",
+      "price_quote_owner_invalid",
+      "price_quote_kind_invalid",
+      "price_quote_payload_invalid",
+      "price_quote_amount_invalid"
     ]);
     const isClient=clientCode.has(rawCode)||
       rawCode.startsWith("missing_template_identity")||

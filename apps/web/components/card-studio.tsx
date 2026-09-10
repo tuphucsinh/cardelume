@@ -53,6 +53,139 @@ type SelectedDirection=Direction & {
 };
 type TemplateOption={id:string;versionId:string;name:string;material:string;visualDirection:VisualDirection;photoMode:"none"|"optional"|"required";source:"ai_direction"|"recommended"|"market_pick"|"show_more";position:number;archetype:string;eventToken:string};
 
+const DOWNLOAD_TIMEOUT_MS=12_000;
+const DOWNLOAD_MAX_ATTEMPTS=2;
+const DOWNLOAD_RETRY_DELAY_MS=450;
+const QUOTE_RECOVERY_STORAGE_KEY="cardelume:quote-recovery:v1";
+
+type DownloadErrorCode="quote_expired"|"retry_exhausted"|"unavailable";
+type GenerationRecoveryMode="retryable"|"exhausted";
+
+class BetaDownloadError extends Error{
+  readonly code:DownloadErrorCode;
+  constructor(code:DownloadErrorCode){super(code);this.name="BetaDownloadError";this.code=code;}
+}
+
+type QuoteRecoveryDraft={
+  selected:SelectedDirection;
+  message:string;
+  occasion:(typeof occasions)[number];
+  customOccasion:string;
+  recipient:string;
+  relation:""|(typeof relations)[number];
+  customRelation:string;
+  feeling:(typeof feelings)[number];
+  detail:string;
+  format:string;
+  accentMode:AccentMode;
+  photoAssetId:string|null;
+  photoPalette:PhotoPalette|null;
+  photoProfile:{orientation:"portrait"|"landscape"|"square";temperature:"warm"|"cool"|"balanced";luminance:number;paletteConfidence:number;softened:boolean}|null;
+  photoPreviewDataUrl:string|null;
+};
+
+async function readObjectUrlAsDataUrl(url:string){
+  try{
+    const response=await fetch(url);if(!response.ok)return null;
+    const blob=await response.blob();
+    if(!blob.type.startsWith("image/")||blob.size>1_500_000)return null;
+    return await new Promise<string|null>(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(typeof reader.result==="string"?reader.result:null);reader.onerror=()=>resolve(null);reader.readAsDataURL(blob);});
+  }catch{return null;}
+}
+
+function objectUrlFromDataUrl(value:unknown){
+  if(typeof value!=="string"||!value.startsWith("data:image/")||value.length>2_000_000)return null;
+  try{
+    const [header,encoded]=value.split(",",2);if(!header||!encoded)return null;
+    const binary=atob(encoded);const bytes=Uint8Array.from(binary,char=>char.charCodeAt(0));
+    return URL.createObjectURL(new Blob([bytes],{type:header.slice(5,header.indexOf(";"))||"image/webp"}));
+  }catch{return null;}
+}
+
+async function saveQuoteRecoveryDraft(draft:QuoteRecoveryDraft,previewUrl:string|null){
+  const photoPreviewDataUrl=previewUrl?await readObjectUrlAsDataUrl(previewUrl):null;
+  if(draft.photoAssetId&&!photoPreviewDataUrl)return false;
+  try{window.sessionStorage.setItem(QUOTE_RECOVERY_STORAGE_KEY,JSON.stringify({...draft,photoPreviewDataUrl}));return true;}catch{return false;}
+}
+
+export function generationRecoveryMode(error:unknown):GenerationRecoveryMode{
+  const code=error instanceof Error?error.message:"";
+  return /queue_expired|safe_failure|budget_exhausted/.test(code)?"exhausted":"retryable";
+}
+
+const generationRecoveryCopy:Record<string,Record<GenerationRecoveryMode,string>>={
+  en:{retryable:"The design service needs another moment. Your brief is unchanged; try again.",exhausted:"This attempt could not finish safely. Your brief is unchanged; review it and try again."},
+  vi:{retryable:"Dịch vụ thiết kế cần thêm một chút thời gian. Brief của anh vẫn nguyên vẹn; hãy thử lại.",exhausted:"Lần này chưa thể hoàn tất an toàn. Brief của anh vẫn nguyên vẹn; hãy xem lại và thử lại."}
+};
+
+function generationRecoveryMessage(locale:LocaleCode,mode:GenerationRecoveryMode){
+  return (generationRecoveryCopy[locale]??generationRecoveryCopy.en)[mode];
+}
+
+function isPhotoMode(value:unknown):value is "none"|"optional"|"required"{
+  return value==="none"||value==="optional"||value==="required";
+}
+
+function isSelectedDirection(value:unknown):value is SelectedDirection{
+  if(!value||typeof value!=="object")return false;
+  const item=value as Partial<SelectedDirection>;
+  return typeof item.id==="string"&&typeof item.templateId==="string"&&typeof item.templateVersionId==="string"&&
+    typeof item.kicker==="string"&&typeof item.headline==="string"&&typeof item.body==="string"&&
+    (item.photoMode===undefined||isPhotoMode(item.photoMode))&&
+    Boolean(item.presentation&&typeof item.presentation==="object");
+}
+
+function isAccentMode(value:unknown):value is AccentMode{
+  return value==="original"||value==="photo"||value==="navy"||value==="sage"||value==="rose";
+}
+
+function isChoice<T extends readonly string[]>(choices:T,value:unknown):value is T[number]{
+  return typeof value==="string"&&choices.includes(value as T[number]);
+}
+
+function isPhotoPalette(value:unknown):value is PhotoPalette{
+  if(!value||typeof value!=="object")return false;
+  const item=value as Partial<PhotoPalette>;
+  return typeof item.primary==="string"&&typeof item.secondary==="string"&&typeof item.accent==="string"&&
+    (item.temperature==="warm"||item.temperature==="cool"||item.temperature==="balanced")&&
+    typeof item.luminance==="number"&&Number.isFinite(item.luminance)&&typeof item.note==="string"&&
+    typeof item.confidence==="number"&&Number.isFinite(item.confidence)&&typeof item.softened==="boolean";
+}
+
+function isPhotoProfile(value:unknown):value is NonNullable<QuoteRecoveryDraft["photoProfile"]>{
+  if(!value||typeof value!=="object")return false;
+  const item=value as Partial<NonNullable<QuoteRecoveryDraft["photoProfile"]>>;
+  return (item.orientation==="portrait"||item.orientation==="landscape"||item.orientation==="square")&&
+    (item.temperature==="warm"||item.temperature==="cool"||item.temperature==="balanced")&&
+    typeof item.luminance==="number"&&Number.isFinite(item.luminance)&&
+    typeof item.paletteConfidence==="number"&&Number.isFinite(item.paletteConfidence)&&typeof item.softened==="boolean";
+}
+
+async function waitBeforeDownloadRetry(){
+  await new Promise<void>(resolve=>window.setTimeout(resolve,DOWNLOAD_RETRY_DELAY_MS));
+}
+
+export async function downloadBetaBlob(input:{card:unknown;assetKind:"jpg"|"pdf";priceQuote:string}):Promise<Blob>{
+  let lastFailure:unknown;
+  for(let attempt=1;attempt<=DOWNLOAD_MAX_ATTEMPTS;attempt++){
+    const controller=new AbortController();
+    const timer=window.setTimeout(()=>controller.abort(),DOWNLOAD_TIMEOUT_MS);
+    try{
+      const response=await fetch("/api/beta/export",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({assetKind:input.assetKind,card:input.card,priceQuote:input.priceQuote}),signal:controller.signal});
+      if(response.ok)return await response.blob();
+      const payload=await response.clone().json().catch(()=>null) as {error?:string}|null;
+      if(response.status===409&&payload?.error==="price_quote_expired")throw new BetaDownloadError("quote_expired");
+      if(response.status!==429&&response.status<500)throw new BetaDownloadError("unavailable");
+      lastFailure=new BetaDownloadError("retry_exhausted");
+    }catch(error){
+      if(error instanceof BetaDownloadError&&error.code!=="retry_exhausted")throw error;
+      lastFailure=error;
+    }finally{window.clearTimeout(timer);}
+    if(attempt<DOWNLOAD_MAX_ATTEMPTS)await waitBeforeDownloadRetry();
+  }
+  throw lastFailure instanceof BetaDownloadError?lastFailure:new BetaDownloadError("retry_exhausted");
+}
+
 function semanticRationaleFallback(locale:LocaleCode,occasion:string,feeling:string,relationship:string):string{
   const occasionLabel=occasion.trim()||"your occasion";
   const feelingLabel=feeling.trim().toLocaleLowerCase()||"warm";
@@ -187,6 +320,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   const [betaNote,setBetaNote]=useState("");
   const [betaBusy,setBetaBusy]=useState<"jpg"|"pdf"|null>(null);
   const [generationMessage,setGenerationMessage]=useState(m.revealing);
+  const [generationFailure,setGenerationFailure]=useState<GenerationRecoveryMode|null>(null);
   const [usedCuratedFallback,setUsedCuratedFallback]=useState(false);
   const [generatedResult,setGeneratedResult]=useState<GenerationResult|null>(null);
   const [exhaustionState,setExhaustionState]=useState<"none"|"partial"|"total">("none");
@@ -212,6 +346,51 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   useEffect(()=>()=>{if(photoUrl)URL.revokeObjectURL(photoUrl);},[photoUrl]);
   useEffect(()=>()=>{generationRequestId.current+=1;generationAbort.current?.abort();},[]);
   useEffect(()=>{trackFunnelEvent("studio_started",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single"});},[locale,price.currency,price.source]);
+  useEffect(()=>{
+    let cancelled=false;
+    const restore=async()=>{
+      let raw:string|null=null;
+      try{raw=window.sessionStorage.getItem(QUOTE_RECOVERY_STORAGE_KEY);}catch{}
+      if(!raw)return;
+      try{
+        const draft=JSON.parse(raw) as Partial<QuoteRecoveryDraft>;
+        if(!isSelectedDirection(draft.selected)||typeof draft.message!=="string"||!isAccentMode(draft.accentMode)||
+          !isChoice(occasions,draft.occasion)||typeof draft.customOccasion!=="string"||typeof draft.recipient!=="string"||
+          !(draft.relation===""||isChoice(relations,draft.relation))||typeof draft.customRelation!=="string"||
+          !isChoice(feelings,draft.feeling)||typeof draft.detail!=="string"||!isChoice(formatValues,draft.format)||
+          (draft.photoPalette!==null&&draft.photoPalette!==undefined&&!isPhotoPalette(draft.photoPalette))||
+          (draft.photoProfile!==null&&draft.photoProfile!==undefined&&!isPhotoProfile(draft.photoProfile)))return;
+        const assetId=typeof draft.photoAssetId==="string"&&draft.photoAssetId.trim()?draft.photoAssetId:null;
+        const restoredPhotoUrl=assetId?objectUrlFromDataUrl(draft.photoPreviewDataUrl):null;
+        const selectedUsesPhoto=draft.selected.photoMode==="required"||(draft.selected.photoMode==="optional"&&draft.accentMode==="photo");
+        const recoveryPhotoInvalid=(selectedUsesPhoto!==Boolean(assetId&&restoredPhotoUrl))||(Boolean(assetId)&&!selectedUsesPhoto);
+        if(recoveryPhotoInvalid){if(restoredPhotoUrl)URL.revokeObjectURL(restoredPhotoUrl);setSelected(initialSelected);setMessage("");setAccentMode("original");setPhotoAssetId(null);setPhotoPalette(null);setPhotoProfile(null);setPhotoState("idle");setPhase("brief");return;}
+        if(cancelled){if(restoredPhotoUrl)URL.revokeObjectURL(restoredPhotoUrl);return;}
+        selectionEpoch.current+=1;
+        setSelected(draft.selected);
+        setMessage(draft.message);
+        if(draft.message!==draft.selected.body)messageEdits.current.set(directionKey(draft.selected),draft.message);
+        setOccasion(draft.occasion);
+        setCustomOccasion(draft.customOccasion);
+        setRecipient(draft.recipient);
+        setRelation(draft.relation);
+        setCustomRelation(draft.customRelation);
+        setFeeling(draft.feeling);
+        setDetail(draft.detail);
+        setFormat(draft.format);
+        setAccentMode(draft.accentMode);
+        setPhotoUrl(restoredPhotoUrl);
+        setPhotoAssetId(restoredPhotoUrl?assetId:null);
+        setPhotoPalette(restoredPhotoUrl?(draft.photoPalette??null):null);
+        setPhotoProfile(restoredPhotoUrl?(draft.photoProfile??null):null);
+        setPhotoState(restoredPhotoUrl?"ready":"idle");
+        setPhase("checkout");
+      }catch{}
+      finally{try{window.sessionStorage.removeItem(QUOTE_RECOVERY_STORAGE_KEY);}catch{}}
+    };
+    void restore();
+    return()=>{cancelled=true;};
+  },[]);
   useEffect(()=>{if(!["results","finish","checkout"].includes(phase))return;const frame=requestAnimationFrame(()=>studioShellRef.current?.querySelector<HTMLElement>("[data-phase-focus]")?.focus({preventScroll:false}));return()=>cancelAnimationFrame(frame);},[phase]);
 
   const resultDirections=useMemo<Direction[]>(()=>photoUrl&&photoState==="ready"?[editorial,midnight,photo]:[editorial,midnight,quiet],[photoUrl,photoState]);
@@ -306,6 +485,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
     const previousResult=generatedResult;
     const previousExhaustionState=exhaustionState;
     const previousUsedCuratedFallback=usedCuratedFallback;
+    setGenerationFailure(null);
     trackFunnelEvent("generation_requested",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",photoUsed:Boolean(photoUrl&&photoState==="ready")});
     if(!regenerating)seenTemplateIdentities.current=[];
     setRefreshUnavailable(false);
@@ -373,6 +553,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
     }catch(error){
       if(error instanceof DOMException&&error.name==="AbortError")return;
       if(!isCurrentGenerationRequest(requestId,generationRequestId.current,controller.signal))return;
+      setGenerationFailure(generationRecoveryMode(error));
       if(regenerating){
         setGeneratedResult(previousResult);
         setExhaustionState(previousExhaustionState);
@@ -554,16 +735,22 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       setBetaNote(beta.unavailable);
       return;
     }
+    const card=buildCardSnapshot();
     setBetaBusy(assetKind);setBetaNote("");
     try{
-      const res=await fetch("/api/beta/export",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({assetKind,card:buildCardSnapshot(),priceQuote})});
-      if(!res.ok){setBetaNote(beta.unavailable);return;}
-      const blob=await res.blob();
+      const blob=await downloadBetaBlob({assetKind,card,priceQuote});
       const url=URL.createObjectURL(blob);
       const anchor=document.createElement("a");anchor.href=url;anchor.download=`cardelume-beta.${assetKind}`;document.body.appendChild(anchor);anchor.click();anchor.remove();
       window.setTimeout(()=>URL.revokeObjectURL(url),0);
       trackFunnelEvent(assetKind==="jpg"?"download_jpg":"download_pdf",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",direction:selected.visual,photoUsed:Boolean(photoUrl&&photoState==="ready"),templateId:selected.templateId,templateVersionId:selected.templateVersionId});
-    }catch{setBetaNote(beta.unavailable);}
+    }catch(error){
+      if(error instanceof BetaDownloadError&&error.code==="quote_expired"){
+        void saveQuoteRecoveryDraft({selected,message,occasion,customOccasion,recipient,relation,customRelation,feeling,detail,format,accentMode,photoAssetId,photoPalette,photoProfile,photoPreviewDataUrl:null},photoUrl).then(()=>{
+          setBetaNote(beta.unavailable);
+          window.setTimeout(()=>window.location.reload(),350);
+        });
+      }else setBetaNote(beta.unavailable);
+    }
     finally{setBetaBusy(null);}
   }
 
@@ -690,6 +877,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
             </details>
 
             <button className="button button-primary studio-submit" type="submit" disabled={phase==="revealing"}><WandSparkles size={17}/>{m.generate}</button>
+            {generationFailure?<p className="checkout-note" data-generation-recovery={generationFailure} role="status">{generationRecoveryMessage(locale,generationFailure)}</p>:null}
             <p className="form-assurance">{m.assurance}</p>
           </form>
 
@@ -796,6 +984,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
           </div>
           <div className="direction-refresh">
             <span>{launch.noneFeelRight}</span>
+            {generationFailure?<p className="checkout-note" data-generation-recovery={generationFailure} role="status">{generationRecoveryMessage(locale,generationFailure)}</p>:null}
             <button className="text-action" type="button" disabled={exhaustionState==="total"||refreshUnavailable} data-exhaustion-state={refreshUnavailable?"unavailable":exhaustionState} onClick={()=>void generate(true)}><RefreshCw size={15}/>{m.more}</button>
           </div>
         </div>
