@@ -1,12 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
-import { CardDocumentSchema, GenerationBriefSchema } from "@cardelume/card-schema";
+import { CardDocumentSchema, GenerationBriefSchema, withNormalizedBriefContext } from "@cardelume/card-schema";
 import { classifyProviderError, createAIProviderFromEnv, createGenerationBudget, generateCreativeDirectorDirections, creativeQualityRisks, criticRepairDirections, buildDeterministicCreativeFallback, safeProviderErrorCode, type AICallTelemetry, type CreativeDirectorOutcome } from "@cardelume/ai";
 import { claimGenerationJob, generationJobIsActive, listManagedTemplates, listRecentStyleFingerprints, recordGenerationAIUsage, recordFunnelEventForOrder, recordTemplateEvent, rollupTemplateMetricsDaily, cleanupTemplateEvents, cleanupFunnelEvents, cleanupStyleFingerprints, cleanupGenerationAIUsage, cleanupCompletedGenerationJobs, cleanupRateLimitBuckets, cleanupStaleWorkerHeartbeats, completeGenerationJob, failGenerationJob, failStaleGenerationJobs, hasCompleteFinalEntitlements, listPhotoAssetCleanupCandidates, loadPaidCardRenderContext, loadTrustedAssetsForVersion, markPhotoAssetDeleted, persistFinalEntitlements, removeWorkerHeartbeat, updateGenerationStage, upsertWorkerHeartbeat } from "@cardelume/db";
 import { createBoss, ensureCardeLumeQueues, QUEUES } from "@cardelume/queue";
 import { assertRendererFontsReady, CURRENT_RENDERER_VERSION, renderProductionFinal } from "@cardelume/renderer";
 import { R2ObjectStorage } from "@cardelume/storage";
 import { z } from "zod";
-import { buildCreativeCandidatePack, expandedCreativeCandidatePool, selectNovelGenerationTemplates, selectQualityAwareDiversifiedCandidates, type TemplateArchetype, type TemplateRankInput, type RecentStyleFingerprint, type TemplateIdentity } from "@cardelume/templates";
+import { buildCreativeCandidatePack, expandedCreativeCandidatePool, selectNovelGenerationTemplates, selectQualityAwareDiversifiedCandidates, type TemplateRankInput, type RecentStyleFingerprint, type TemplateIdentity } from "@cardelume/templates";
 import { assertEnvironmentIsolation } from "@cardelume/core";
 
 assertEnvironmentIsolation(process.env);
@@ -80,7 +80,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
   let provider:ReturnType<typeof createAIProviderFromEnv>|undefined;
   generationBudget=createGenerationBudget({startedAt:Number.isFinite(createdAtMs)?createdAtMs:Date.now()});
   try{
-    brief=GenerationBriefSchema.parse(claim.job.brief);
+    brief=withNormalizedBriefContext(GenerationBriefSchema.parse(claim.job.brief));
     await updateGenerationStage({jobId:payload.data.jobId,status:"composing",stage:2});
     catalog=await listManagedTemplates();
     const persistedRecent=await listRecentStyleFingerprints({userId:claim.job.user_id,limit:5}).catch(()=>[]);
@@ -94,13 +94,16 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       return template?[{familyId:template.familyId,templateId:template.id,visualDirection:template.visualDirection,createdAt:new Date().toISOString()}]:[];
     });
     const recentStyles:RecentStyleFingerprint[]=[...refreshRecent,...persistedRecent.map(r=>({familyId:r.familyId,templateId:r.templateId??undefined,visualDirection:r.visualDirection,accentMode:r.accentMode??undefined,createdAt:r.createdAt??undefined}))].slice(0,8);
-    const narrowedRankInput:TemplateRankInput={market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.feeling,occasion:brief.occasion,hasPhoto:brief.hasPhoto,recentStyles,seenTemplateIdentities};
-    const requiredArchetypes:TemplateArchetype[]=brief.hasPhoto?["editorial","midnight","photo"]:["editorial","midnight","quiet"];
+    const narrowedRankInput:TemplateRankInput={market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.selectionContext?.normalizedFeeling??brief.feeling,occasion:brief.selectionContext?.normalizedOccasion??brief.occasion,hasPhoto:brief.hasPhoto,recentStyles,seenTemplateIdentities};
     rankInput=narrowedRankInput;
     const noveltySelection=selectNovelGenerationTemplates(catalog,narrowedRankInput);
     if(noveltySelection.candidates.length<3)throw new Error("ai_template_candidates_insufficient");
     const pack=buildCreativeCandidatePack(catalog,narrowedRankInput);
-    let candidatePool=noveltySelection.exhaustionState==="none"?selectQualityAwareDiversifiedCandidates(pack.all,3,{requirePhoto:brief.hasPhoto,requiredArchetypes}):noveltySelection.candidates;
+    const finalDiversityGuard=selectQualityAwareDiversifiedCandidates(pack.all,3,{requirePhoto:brief.hasPhoto});
+    if(finalDiversityGuard.length<3)throw new Error("ai_template_candidates_insufficient");
+    // A non-exhausted catalog is a bounded meaningful pool; only explicit novelty exhaustion
+    // narrows to the remaining/recycled trio. Final diversity is validated after AI selection.
+    let candidatePool=noveltySelection.exhaustionState==="none"?pack.all:noveltySelection.candidates;
     if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
     await assertGenerationJobActive(payload.data.jobId);
     provider=createAIProviderFromEnv();
@@ -110,7 +113,9 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
     if(outcome.kind==="expand_pool"){
       generationBudget.ensureAiBudget();
       const priorCritique={reasonCode:outcome.reasonCode,desiredTraits:outcome.desiredTraits};
-      candidatePool=noveltySelection.exhaustionState==="none"?selectQualityAwareDiversifiedCandidates(expandedCreativeCandidatePool(catalog,narrowedRankInput,16),3,{requirePhoto:brief.hasPhoto,requiredArchetypes}):noveltySelection.candidates;
+      // Give AI the full expanded pool — relevance-ranked, diversity enforced on output not input.
+      const expandedPool=noveltySelection.exhaustionState==="none"?expandedCreativeCandidatePool(catalog,narrowedRankInput,16):noveltySelection.candidates;
+      candidatePool=expandedPool.length>=3?expandedPool:noveltySelection.candidates;
       if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
       const expandedStarted=Date.now();
       try{outcome=await generateCreativeDirectorDirections(provider,brief,candidatePool,recentStyles,"expanded_director",priorCritique,generationBudget);await persistAiTelemetry(payload.data.jobId,outcome.telemetry);}catch(error){const failure=safeGenerationError(error);await persistAiTelemetry(payload.data.jobId,{phase:"expanded_director",provider:provider.providerName,model:provider.modelName,protocol:provider.protocol,latencyMs:Date.now()-expandedStarted,success:false,errorCode:failure.errorCode,failureClass:failure.failureClass});throw error;}
@@ -121,7 +126,9 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
     const criticTriggers=new Set(["creative_range","copy_risk","low_confidence","low_wow","market_tension","low_novelty"]);
     const premiumCritical=new Set(["creative_range","copy_risk","low_confidence","low_wow"]);
     if(risks.includes("creative_range")&&candidatePool.length<12){
-      candidatePool=noveltySelection.exhaustionState==="none"?selectQualityAwareDiversifiedCandidates(expandedCreativeCandidatePool(catalog,narrowedRankInput,16),3,{requirePhoto:brief.hasPhoto,requiredArchetypes}):noveltySelection.candidates;
+      // critic path: give full expanded pool for template-swap decisions.
+      const criticPool=noveltySelection.exhaustionState==="none"?expandedCreativeCandidatePool(catalog,narrowedRankInput,16):noveltySelection.candidates;
+      candidatePool=criticPool.length>=3?criticPool:candidatePool;
       if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
     }
     if(risks.some(r=>criticTriggers.has(r))){

@@ -217,10 +217,15 @@ export class OpenAICompatibleProvider implements AIProvider{
 
 export class MockAIProvider implements AIProvider{
   readonly providerName="mock";readonly modelName="mock-premium";
-  async generateJson(input:{system:string;prompt:string;timeoutMs?:number}){const started=Date.now();const ctx=JSON.parse(input.prompt) as {task?:string;slots?:string[];candidates?:Array<{id:string;versionId:string;name:string;photoMode:string;recipe?:{preferredAccents?:string[];signatureMoves?:string[]}}>;directions?:Array<Record<string,unknown>>};
+  async generateJson(input:{system:string;prompt:string;timeoutMs?:number}){const started=Date.now();const ctx=JSON.parse(input.prompt) as {task?:string;slots?:string[];brief?:{occasion?:string;feeling?:string;relationship?:string;recipient?:string;detail?:string};candidates?:Array<{id:string;versionId:string;familyId?:string;name:string;photoMode:string;recipe?:{preferredAccents?:string[];signatureMoves?:string[]}}>;directions?:Array<Record<string,unknown>>};
     if(ctx.task==="critic_repair")return{data:{repairs:(ctx.directions??[]).map((d,i)=>({...d,body:`${String(d.body??"")} ${i===0?"With a little more heart.":"Made especially for this moment."}`.trim(),confidence:.91,noveltyScore:.82,wowScore:.86,riskCodes:[]}))},provider:this.providerName,model:this.modelName,usage:{inputTokens:150,outputTokens:90},latencyMs:Date.now()-started};
     const candidates=ctx.candidates??[];const slots=ctx.slots??["editorial","midnight","quiet"];
-    return{data:{action:"select",directions:slots.map((slot,i)=>{const c=candidates[i]??candidates[0];return{id:slot,templateId:c?.id,templateVersionId:c?.versionId,creativeThesis:["A refined expression of this exact moment.","A contrasting, cinematic interpretation with warmth.","A fresh keepsake direction that avoids repetition."][i]??"A premium direction.",customerRationale:["Quiet, personal warmth for this exact moment.","A richer contrast for a moment worth celebrating.","A keepsake direction with a more unexpected point of view."][i]??"A thoughtful fit for this moment.",signatureMove:c?.recipe?.signatureMoves?.[0]??"recipient_anchor",accentMode:c?.photoMode==="required"?"photo":c?.recipe?.preferredAccents?.[0]??"original",kicker:["FOR THIS MOMENT","A LITTLE LIGHT","MADE TO REMEMBER"][i]??"JUST FOR YOU",headline:["Something beautiful, just for you.","Here is to what comes next.","A moment worth keeping."][i]??"With warm wishes.",body:["May this day feel as thoughtful, warm, and entirely yours as it deserves to be.","For everything this moment holds — and all the good still waiting just ahead.","A small keepsake for the details, feelings, and memories that make this day yours."][i]??"With warm wishes.",confidence:.92,noveltyScore:.84,wowScore:.86,riskCodes:[]};})},provider:this.providerName,model:this.modelName,usage:{inputTokens:420,outputTokens:260},latencyMs:Date.now()-started};
+    const brief=ctx.brief??{};const occasion=brief.occasion?.trim()||"this moment";const feeling=brief.feeling?.trim()||"warm";const recipient=brief.recipient?.trim()||"you";const detail=brief.detail?.trim();const detailCue=detail?` For ${detail.slice(0,72)}.`:"";
+    // Select distinct-family candidates from the full pool (may be >3) to satisfy family-uniqueness validation.
+    const usedFamilies=new Set<string>();const picked:typeof candidates=[];
+    for(const c of candidates){if(picked.length>=slots.length)break;const fam=c.familyId??c.id;if(!usedFamilies.has(fam)){usedFamilies.add(fam);picked.push(c);}}
+    while(picked.length<slots.length&&candidates.length){const fallback=candidates.find(c=>!picked.includes(c));if(!fallback)break;picked.push(fallback);}
+    return{data:{action:"select",directions:slots.map((slot,i)=>{const c=picked[i]??picked[0];const subject=i===0?`${occasion} made for ${recipient}.`:i===1?`${feeling} for ${recipient}.`:`A keepsake for ${occasion}.`;return{id:slot,templateId:c?.id,templateVersionId:c?.versionId,creativeThesis:[`A refined expression of ${occasion}.`,`A contrasting, cinematic interpretation with ${feeling}.`,`A fresh keepsake direction for ${recipient}.`][i]??"A premium direction.",customerRationale:[`Quiet warmth for ${occasion}.`,`A richer feeling for ${recipient}.`,`A thoughtful keepsake for this moment.`][i]??"A thoughtful fit for this moment.",signatureMove:c?.recipe?.signatureMoves?.[0]??"recipient_anchor",accentMode:c?.photoMode==="required"?"photo":c?.recipe?.preferredAccents?.[0]??"original",kicker:["FOR THIS MOMENT","A LITTLE LIGHT","MADE TO REMEMBER"][i]??"JUST FOR YOU",headline:subject,body:[`May this ${occasion.toLowerCase()} feel as thoughtful and ${feeling} as it deserves to be.${detailCue}`,`For ${recipient}, and for all the good this ${occasion.toLowerCase()} still holds.${detailCue}`,`A small note for the details that make this ${occasion.toLowerCase()} yours.${detailCue}`][i]??`With warm wishes for ${occasion}.${detailCue}`,confidence:.92,noveltyScore:.84,wowScore:.86,riskCodes:[]};})},provider:this.providerName,model:this.modelName,usage:{inputTokens:420,outputTokens:260},latencyMs:Date.now()-started};
   }
 }
 
@@ -344,6 +349,16 @@ export function validateThreeDirectionDiversity(
 
   if (!candidates || isLegacyCandidateContext(candidates, brief)) {
     if (uniqueVisuals.size !== 3) {
+      throw new Error("ai_visual_direction_duplicate");
+    }
+    if (uniqueArchetypes.size < 2) {
+      throw new Error("ai_direction_diversity_insufficient");
+    }
+  } else if (brief && hasMateriallyDifferentAlternatives(resolved, candidates, brief)) {
+    // The model chooses from the full relevant pool. Validate the final result only
+    // when the pool contains an unused materially different alternative; do not force
+    // a midnight/photo/quiet quota into candidate construction.
+    if (uniqueVisuals.size < 3) {
       throw new Error("ai_visual_direction_duplicate");
     }
     if (uniqueArchetypes.size < 2) {

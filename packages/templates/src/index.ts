@@ -445,16 +445,11 @@ export function selectNovelGenerationTemplates(
   const unseenEligible = eligible.filter(t => !seenKeys.has(templatePairKey(t)));
   const seenEligible = eligible.filter(t => seenKeys.has(templatePairKey(t)));
 
-  const requiredArchetypes: TemplateArchetype[] = input.hasPhoto
-    ? ["editorial", "midnight", "photo"]
-    : ["editorial", "midnight", "quiet"];
-
   // Case 1: >= 3 unseen templates
   if (unseenEligible.length >= 3) {
     const rankedUnseen = rankTemplates(unseenEligible, input);
     let trio = selectQualityAwareDiversifiedCandidates(rankedUnseen, 3, {
-      requirePhoto: input.hasPhoto,
-      requiredArchetypes
+      requirePhoto: input.hasPhoto
     });
     if (trio.length < 3) {
       const usedIds = new Set(trio.map(item => item.template.id));
@@ -497,12 +492,6 @@ export function selectNovelGenerationTemplates(
     // Existing bounded fill for remaining slots
     const needed = 3 - selected.length;
     if (needed > 0 && rankedSeen.length > 0) {
-      const seenArchetypes = new Set<TemplateArchetype>();
-      for (const c of selected) {
-        seenArchetypes.add(templateArchetype(c.template));
-      }
-      const missingArchetypes = requiredArchetypes.filter(a => !seenArchetypes.has(a));
-
       const pool = rankedSeen.filter(
         item => !selected.some(c => c.template.id === item.template.id || c.template.familyId === item.template.familyId)
       );
@@ -511,8 +500,7 @@ export function selectNovelGenerationTemplates(
       );
 
       const filled = selectQualityAwareDiversifiedCandidates(fillPool, needed, {
-        requirePhoto: input.hasPhoto && !selected.some(c => c.template.photoMode === "required" || c.template.visualDirection === "photo"),
-        requiredArchetypes: missingArchetypes.length ? missingArchetypes : undefined
+        requirePhoto: input.hasPhoto && !selected.some(c => c.template.photoMode === "required" || c.template.visualDirection === "photo")
       });
       selected.push(...filled);
 
@@ -550,8 +538,7 @@ export function selectNovelGenerationTemplates(
   // Case 3: 0 unseen templates (Total exhaustion)
   const rankedSeen = rankTemplates(eligible, input);
   let trio = selectQualityAwareDiversifiedCandidates(rankedSeen, 3, {
-    requirePhoto: input.hasPhoto,
-    requiredArchetypes
+    requirePhoto: input.hasPhoto
   });
   if (trio.length < 3) {
     const usedIds = new Set(trio.map(item => item.template.id));

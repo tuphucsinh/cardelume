@@ -213,6 +213,12 @@ export const GenerationBriefSchema=z.object({
     priorTemplateIds:z.array(z.string().uuid()).max(3).optional(),
     seenTemplateIdentities:z.array(CanonicalPresentationIdentitySchema).max(128).optional()
   }).optional(),
+  selectionContext:z.object({
+    rawOccasion:z.string().min(1).max(80),
+    rawFeeling:z.string().min(1).max(80),
+    normalizedOccasion:z.string().min(1).max(80),
+    normalizedFeeling:z.string().min(1).max(80)
+  }).optional(),
   market:z.string().min(2).max(16).default("GLOBAL")
 });
 export const GeneratedDirectionSchema=z.object({
@@ -243,6 +249,25 @@ export const GenerationResultSchema=z.object({
 export type GenerationBrief=z.infer<typeof GenerationBriefSchema>;
 export type GeneratedDirection=z.infer<typeof GeneratedDirectionSchema>;
 export type GenerationResult=z.infer<typeof GenerationResultSchema>;
+
+export type GenerationSelectionContext=z.infer<typeof GenerationBriefSchema>["selectionContext"];
+
+function normalizeBriefSignal(value:string){
+  return value.trim().replace(/\s+/g," ").toLowerCase();
+}
+
+/** Preserve the customer's raw signals while giving ranking a stable normalized view. */
+export function withNormalizedBriefContext(brief:GenerationBrief):GenerationBrief{
+  return{
+    ...brief,
+    selectionContext:{
+      rawOccasion:brief.occasion,
+      rawFeeling:brief.feeling,
+      normalizedOccasion:normalizeBriefSignal(brief.occasion),
+      normalizedFeeling:normalizeBriefSignal(brief.feeling)
+    }
+  };
+}
 
 
 // CardeLume-specific copy-density guard shared by browser and final renderer.
