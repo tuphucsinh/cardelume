@@ -259,7 +259,9 @@ async function main() {
   need(workerSrc.includes("buildDeterministicCreativeFallback"), "worker_missing_deterministic_fallback");
   need(workerSrc.includes("selectNovelGenerationTemplates"), "worker_missing_select_novel_generation_templates");
   need(workerSrc.includes("seenTemplateIdentities:brief.refreshContext?.seenTemplateIdentities??[]"), "worker_recovery_seen_context_missing");
-  need(workerSrc.includes('catalogMode:"production"'), "worker_fallback_not_production_mode");
+  need(!workerSrc.includes('catalogMode:"production"'), "worker_forces_production_mode_during_runtime_recovery");
+  need(workerSrc.includes("allowStagingCandidates:process.env.APP_ENV!==\"production\""), "worker_missing_explicit_staging_fallback_scope");
+  need(workerSrc.includes('ai_template_exhausted'), "worker_missing_truthful_exhaustion_code");
   need(workerSrc.includes("ai_plan_recovery_started"), "worker_missing_recovery_started_log");
   need(workerSrc.includes("ai_plan_fallback_used"), "worker_missing_fallback_used_log");
   need(workerSrc.includes("ai_plan_safe_failure"), "worker_missing_safe_failure_log");
@@ -271,8 +273,10 @@ async function main() {
   need(recoveryIdx !== -1, "worker_recovery_started_not_found");
   const fallbackAttemptIdx = workerSrc.indexOf("buildDeterministicCreativeFallback(brief,");
   need(fallbackAttemptIdx !== -1, "worker_fallback_invocation_not_found");
-  const failInCatch = workerSrc.indexOf("failGenerationJob", recoveryIdx);
-  need(failInCatch > fallbackAttemptIdx, "worker_fails_before_fallback_attempt");
+  const exhaustionBranchIdx = workerSrc.indexOf('errorCode==="ai_template_exhausted"');
+  need(exhaustionBranchIdx !== -1 && exhaustionBranchIdx < fallbackAttemptIdx, "worker_exhaustion_branch_missing_before_fallback");
+  const fallbackFailInCatch = workerSrc.indexOf("failGenerationJob", fallbackAttemptIdx);
+  need(fallbackFailInCatch > fallbackAttemptIdx, "worker_fails_before_fallback_attempt");
   passMarkers.push("NO_UNBOUNDED_RETRY=PASS");
 
   // SAFE_FINAL_FAILURE — stable error codes

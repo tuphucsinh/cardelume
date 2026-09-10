@@ -411,10 +411,10 @@ function semanticCopyForSlot(brief:GenerationBrief,slot:string,index:number){
   const voices=[
     {kicker:`FOR ${semanticUpper(occasionLabel)}`,headline:`${name}, a ${feelingLabel} ${occasionLabel} made for you.`,body:`A ${feelingLabel} note for ${name}, written around ${occasionLabel}.${relationshipCue}${detailCue}`},
     {kicker:`${semanticUpper(feelingLabel)} & ${semanticUpper(occasionLabel)}`,headline:`${occasionLabel} deserves words made for ${name}.`,body:`For ${name}, with a ${feelingLabel} voice that suits ${occasionLabel}.${relationshipCue}${detailCue}`},
-    {kicker:`MADE FOR ${semanticUpper(name)}`,headline:`Keep this ${occasionLabel} close, ${name}.`,body:`A personal ${feelingLabel} keepsake for ${name}, shaped by ${occasionLabel}.${relationshipCue}${detailCue}`}
+    {kicker:`A KEEPSAKE FOR ${semanticUpper(occasionLabel)}`,headline:`${name}, keep this ${occasionLabel} close.`,body:`A personal ${feelingLabel} keepsake for ${name}, shaped by ${occasionLabel}.${relationshipCue}${detailCue}`}
   ];
   const copy=voices[index%voices.length]??voices[0];
-  return{...copy,creativeThesis:`A ${feelingLabel} direction for ${occasionLabel}, anchored in the named recipient and supplied detail.`,customerRationale:`A ${feelingLabel} fit for ${occasionLabel}.`};
+  return{...copy,creativeThesis:`A ${feelingLabel} ${occasionLabel} concept with a distinct ${slot} voice, anchored in the named recipient and supplied detail.`,customerRationale:`A ${feelingLabel} fit for ${occasionLabel}.`};
 }
 
 function semanticCopyFullText(direction:Pick<GeneratedDirection,"kicker"|"headline"|"body">){return `${direction.kicker} ${direction.headline} ${direction.body}`;}
@@ -856,19 +856,21 @@ export function isSupportedOccasion(occasion: unknown): occasion is SupportedOcc
 }
 
 // Bounded deterministic fallback — no AI provider, no retry loop, no invented identity.
-// Requires exactly three pre-approved, pre-ranked RankedTemplate candidates from the
-// production catalog (selectGenerationTemplates path). Every customer-visible field
+// Requires exactly three eligible, pre-ranked RankedTemplate candidates from the
+// runtime catalog. Production callers still require approved candidates; a staging
+// caller may explicitly opt into the already-filtered staging catalog.
+// Every customer-visible field
 // (templateId, templateVersionId, templateName, visualDirection, photoMode) is sourced
 // from the candidate object; static copy and recipe values are the only additions.
 // Slots are matched by templateArchetype — never by array position.
-export function buildDeterministicCreativeFallback(brief:GenerationBrief,candidates:RankedTemplate[],metadata?:{exhaustionState?:"none"|"partial"|"total"}):GenerationResult{
+export function buildDeterministicCreativeFallback(brief:GenerationBrief,candidates:RankedTemplate[],metadata?:{exhaustionState?:"none"|"partial"|"total";allowStagingCandidates?:boolean}):GenerationResult{
   if(!brief||!compactSemanticText(brief.occasion,80))throw new Error("ai_fallback_unavailable");
   if(candidates.length!==3)throw new Error("ai_fallback_unavailable");
   const slots=[...expectedDirectionIds(brief)];
   const isBirthday=comparableCopy(brief.occasion)==="birthday";
   for(const candidate of candidates){
     const t=candidate.template;
-    if(t.status!=="active"||t.health!=="healthy"||t.launchStatus!=="approved")throw new Error("ai_fallback_template_not_eligible");
+    if(t.status!=="active"||t.health!=="healthy"||t.launchStatus==="hold"||t.launchStatus==="retired"||(!metadata?.allowStagingCandidates&&t.launchStatus!=="approved"))throw new Error("ai_fallback_template_not_eligible");
     if(!t.id||!t.versionId||!t.name||!t.visualDirection)throw new Error("ai_fallback_template_not_eligible");
     if(!isBirthday&&/\bbirthday\b/i.test(`${t.name} ${t.slug??""}`))throw new Error("ai_fallback_template_not_eligible");
   }
@@ -910,6 +912,7 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
       signatureMove,
       accentMode,
       ...semanticCopyForSlot(brief,slot,i),
+      creativeThesis:`${t.name} brings ${t.materialWorld} material, ${t.energy} energy and a ${slot} composition to this ${brief.occasion.toLowerCase()} direction.`,
       confidence:.80,
       noveltyScore:.70,
       wowScore:.75,

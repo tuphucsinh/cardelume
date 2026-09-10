@@ -59,7 +59,7 @@ const DOWNLOAD_RETRY_DELAY_MS=450;
 const QUOTE_RECOVERY_STORAGE_KEY="cardelume:quote-recovery:v1";
 
 type DownloadErrorCode="quote_expired"|"retry_exhausted"|"unavailable";
-type GenerationRecoveryMode="retryable"|"exhausted";
+type GenerationRecoveryMode="retryable"|"exhausted"|"novelty_exhausted";
 
 class BetaDownloadError extends Error{
   readonly code:DownloadErrorCode;
@@ -111,12 +111,13 @@ async function saveQuoteRecoveryDraft(draft:QuoteRecoveryDraft,previewUrl:string
 
 export function generationRecoveryMode(error:unknown):GenerationRecoveryMode{
   const code=error instanceof Error?error.message:"";
+  if(/generation_exhausted/.test(code))return "novelty_exhausted";
   return /queue_expired|safe_failure|budget_exhausted/.test(code)?"exhausted":"retryable";
 }
 
 const generationRecoveryCopy:Record<string,Record<GenerationRecoveryMode,string>>={
-  en:{retryable:"The design service needs another moment. Your brief is unchanged; try again.",exhausted:"This attempt could not finish safely. Your brief is unchanged; review it and try again."},
-  vi:{retryable:"Dịch vụ thiết kế cần thêm một chút thời gian. Brief của anh vẫn nguyên vẹn; hãy thử lại.",exhausted:"Lần này chưa thể hoàn tất an toàn. Brief của anh vẫn nguyên vẹn; hãy xem lại và thử lại."}
+  en:{retryable:"The design service needs another moment. Your brief is unchanged; try again.",exhausted:"This attempt could not finish safely. Your brief is unchanged; review it and try again.",novelty_exhausted:"There are no more unseen directions for this brief. Your current designs are kept."},
+  vi:{retryable:"Dịch vụ thiết kế cần thêm một chút thời gian. Brief của anh vẫn nguyên vẹn; hãy thử lại.",exhausted:"Lần này chưa thể hoàn tất an toàn. Brief của anh vẫn nguyên vẹn; hãy xem lại và thử lại.",novelty_exhausted:"Brief này không còn hướng thiết kế mới chưa xuất hiện. Các thiết kế hiện tại vẫn được giữ nguyên."}
 };
 
 function generationRecoveryMessage(locale:LocaleCode,mode:GenerationRecoveryMode){

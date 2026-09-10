@@ -77,6 +77,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
   let brief:ReturnType<typeof GenerationBriefSchema.parse>|undefined;
   let catalog:Awaited<ReturnType<typeof listManagedTemplates>>|undefined;
   let rankInput:TemplateRankInput|undefined;
+  let noveltySelection:ReturnType<typeof selectNovelGenerationTemplates>|undefined;
   let generationBudget:ReturnType<typeof createGenerationBudget>|undefined;
   let provider:ReturnType<typeof createAIProviderFromEnv>|undefined;
   generationBudget=createGenerationBudget({startedAt:Number.isFinite(createdAtMs)?createdAtMs:Date.now()});
@@ -97,8 +98,10 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
     const recentStyles:RecentStyleFingerprint[]=[...refreshRecent,...persistedRecent.map(r=>({familyId:r.familyId,templateId:r.templateId??undefined,visualDirection:r.visualDirection,accentMode:r.accentMode??undefined,createdAt:r.createdAt??undefined}))].slice(0,8);
     const narrowedRankInput:TemplateRankInput={market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.selectionContext?.normalizedFeeling??brief.feeling,occasion:brief.selectionContext?.normalizedOccasion??brief.occasion,hasPhoto:brief.hasPhoto,recentStyles,seenTemplateIdentities};
     rankInput=narrowedRankInput;
-    const noveltySelection=selectNovelGenerationTemplates(catalog,narrowedRankInput);
+    noveltySelection=selectNovelGenerationTemplates(catalog,narrowedRankInput);
     if(noveltySelection.candidates.length<3)throw new Error("ai_template_candidates_insufficient");
+    const isRefresh=Boolean(brief.refreshContext?.seenTemplateIdentities?.length||brief.refreshContext?.priorTemplateIds?.length);
+    if(isRefresh&&noveltySelection.unseenCount<3)throw new Error("ai_template_exhausted");
     const pack=buildCreativeCandidatePack(catalog,narrowedRankInput);
     const finalDiversityGuard=selectQualityAwareDiversifiedCandidates(pack.all,3,{requirePhoto:brief.hasPhoto});
     if(finalDiversityGuard.length<3)throw new Error("ai_template_candidates_insufficient");
@@ -146,6 +149,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
         if(risks.some(r=>premiumCritical.has(r))||failure.failureClass==="budget"||failure.failureClass==="timeout")throw error;
       }
       const remaining=creativeQualityRisks(result,brief,recentStyles,candidatePool);
+      log("ai_quality_gate_evaluated",{jobId:payload.data.jobId,phase:"post_critic",seenCount:brief.refreshContext?.seenTemplateIdentities?.length??0,unseenEligibleCount:noveltySelection?.unseenCount??0,candidatePoolCount:candidatePool.length,candidatePoolTemplateIds:candidatePool.map(item=>item.template.id),selectedDirections:result.directions.map(direction=>({id:direction.id,templateId:direction.templateId,templateVersionId:direction.templateVersionId,confidence:direction.confidence,noveltyScore:direction.noveltyScore,wowScore:direction.wowScore,riskCodes:direction.riskCodes??[]})),initialRisks:risks,remainingRisks:remaining,premiumCriticalRemaining:remaining.filter(r=>premiumCritical.has(r))});
       if(remaining.some(r=>premiumCritical.has(r)))throw new Error("ai_premium_quality_not_met");
     }
     assertCreativeDirectionDiversity(result,candidatePool,brief!);
@@ -163,17 +167,28 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       if(!brief||!catalog||!rankInput)throw new Error("ai_generation_safe_failure");
       if(!await generationJobIsActive({jobId:payload.data.jobId})){log("ai_plan_cancelled",{jobId:payload.data.jobId,reason:"generation_cancelled",queueWaitMs});return;}
       if(generationBudget&&generationBudget.remainingTotalMs<=0)throw new Error("ai_budget_exhausted");
-      const fallbackSelection=selectNovelGenerationTemplates(catalog,{...(rankInput??{market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.selectionContext?.normalizedFeeling??brief.feeling,occasion:brief.selectionContext?.normalizedOccasion??brief.occasion,hasPhoto:brief.hasPhoto,seenTemplateIdentities:brief.refreshContext?.seenTemplateIdentities??[]}),catalogMode:"production"});
+      if(failure.errorCode==="ai_template_exhausted"){
+        await failGenerationJob({jobId:payload.data.jobId,errorCode:"ai_template_exhausted"});
+        log("ai_plan_exhausted",{jobId:payload.data.jobId,reason:"unseen_template_pool_below_three",seenCount:brief.refreshContext?.seenTemplateIdentities?.length??0,unseenEligibleCount:noveltySelection?.unseenCount??0});
+        return;
+      }
+      const fallbackSelection=selectNovelGenerationTemplates(catalog,{...(rankInput??{market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.selectionContext?.normalizedFeeling??brief.feeling,occasion:brief.selectionContext?.normalizedOccasion??brief.occasion,hasPhoto:brief.hasPhoto,seenTemplateIdentities:brief.refreshContext?.seenTemplateIdentities??[]})});
+      const isRefresh=Boolean(brief.refreshContext?.seenTemplateIdentities?.length||brief.refreshContext?.priorTemplateIds?.length);
+      if(isRefresh&&fallbackSelection.unseenCount<3)throw new Error("ai_template_exhausted");
       if(fallbackSelection.candidates.length<3)throw new Error("ai_generation_safe_failure");
-      const fallbackResult=buildDeterministicCreativeFallback(brief,fallbackSelection.candidates,{exhaustionState:fallbackSelection.exhaustionState});
+      const fallbackResult=buildDeterministicCreativeFallback(brief,fallbackSelection.candidates,{exhaustionState:fallbackSelection.exhaustionState,allowStagingCandidates:process.env.APP_ENV!=="production"});
+      const fallbackRisks=creativeQualityRisks(fallbackResult,brief,rankInput.recentStyles,fallbackSelection.candidates);
+      log("ai_recovery_quality_evaluated",{jobId:payload.data.jobId,unseenEligibleCount:fallbackSelection.unseenCount,candidateTemplateIds:fallbackSelection.candidates.map(item=>item.template.id),remainingRisks:fallbackRisks,premiumCriticalRemaining:fallbackRisks.filter(r=>["creative_range","copy_risk","low_confidence","low_wow"].includes(r))});
+      if(fallbackRisks.some(r=>["creative_range","copy_risk","low_confidence","low_wow"].includes(r)))throw new Error("ai_premium_quality_not_met");
       if(generationBudget&&generationBudget.remainingTotalMs<=0)throw new Error("ai_budget_exhausted");
       await completeGenerationJob({jobId:payload.data.jobId,result:fallbackResult});
-      log("ai_plan_fallback_used",{jobId:payload.data.jobId,directionCount:fallbackResult.directions.length,errorCode:failure.errorCode,failureClass:failure.failureClass,queueWaitMs});
-    }catch{
+      log("ai_plan_fallback_used",{jobId:payload.data.jobId,directionCount:fallbackResult.directions.length,errorCode:failure.errorCode,failureClass:failure.failureClass,queueWaitMs,catalogMode:"runtime",unseenEligibleCount:fallbackSelection.unseenCount,candidateTemplateIds:fallbackSelection.candidates.map(item=>item.template.id)});
+    }catch(recoveryError){
       if(!await generationJobIsActive({jobId:payload.data.jobId})){log("ai_plan_cancelled",{jobId:payload.data.jobId,reason:"generation_cancelled",queueWaitMs});return;}
-      const terminalCode=generationBudget&&generationBudget.remainingTotalMs<=0?"generation_deadline_exceeded":"ai_generation_safe_failure";
+      const recoveryFailure=safeGenerationError(recoveryError);
+      const terminalCode=generationBudget&&generationBudget.remainingTotalMs<=0?"generation_deadline_exceeded":recoveryFailure.errorCode==="ai_template_exhausted"?"ai_template_exhausted":"ai_generation_safe_failure";
       await failGenerationJob({jobId:payload.data.jobId,errorCode:terminalCode});
-      log("ai_plan_safe_failure",{jobId:payload.data.jobId,errorCode:terminalCode,failureClass:terminalCode==="generation_deadline_exceeded"?"budget":"unknown",queueWaitMs});
+      log(terminalCode==="ai_template_exhausted"?"ai_plan_exhausted":"ai_plan_safe_failure",{jobId:payload.data.jobId,errorCode:terminalCode,failureClass:terminalCode==="generation_deadline_exceeded"?"budget":"unknown",recoveryErrorCode:recoveryFailure.errorCode,queueWaitMs});
     }
   }
 }));

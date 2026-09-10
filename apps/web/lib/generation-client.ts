@@ -53,6 +53,7 @@ export type GenerationFailureCode=
   |"generation_provider_timeout"
   |"generation_provider_bad_request"
   |"generation_queue_expired"
+  |"generation_exhausted"
   |"generation_safe_failure"
   |"generation_network_failed"
   |"generation_timeout";
@@ -111,6 +112,7 @@ function remainingDeadline(deadlineAt:number){
 
 function statusFailureCode(error:string|undefined):GenerationFailureCode{
   if(error==="generation_expired"||error==="generation_deadline_exceeded"||error==="ai_budget_exhausted")return "generation_queue_expired";
+  if(error==="generation_exhausted")return "generation_exhausted";
   if(error==="ai_provider_timeout")return "generation_provider_timeout";
   if(error==="ai_provider_http_400"||error==="generation_provider_bad_request")return "generation_provider_bad_request";
   if(error==="ai_generation_safe_failure")return "generation_safe_failure";

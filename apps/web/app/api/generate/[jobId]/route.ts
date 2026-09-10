@@ -8,6 +8,7 @@ import { verifyGenerationStatusToken } from "../../../../lib/generation.server";
 import { issueTemplateEventToken } from "../../../../lib/template-event-token.server";
 export const runtime="nodejs";export const dynamic="force-dynamic";
 function publicFailureCode(code:string|null){
+  if(code==="ai_template_exhausted")return "generation_exhausted";
   if(code==="generation_expired"||code==="ai_budget_exhausted")return "generation_queue_expired";
   if(code==="ai_provider_timeout")return "ai_provider_timeout";
   if(/^ai_provider_http_4\d{2}$/.test(code??""))return "generation_provider_bad_request";
@@ -49,7 +50,7 @@ export async function GET(req:Request,{params}:{params:Promise<{jobId:string}>})
     if(!resultError)signedResult={directions};
   }
   if(state==="ready"&&resultError)return NextResponse.json({state:"failed",stage:3,error:resultError},{headers:{"cache-control":"no-store"}});
-  return NextResponse.json({state,stage:Math.max(0,Math.min(3,row.stage)),...(signedResult?{result:signedResult}:{}),...(state==="failed"?{error:"generation_failed"}:{})},{headers:{"cache-control":"no-store"}});
+  return NextResponse.json({state,stage:Math.max(0,Math.min(3,row.stage)),...(signedResult?{result:signedResult}:{}),...(state==="failed"?{error:publicFailureCode(row.error_code)}:{})},{headers:{"cache-control":"no-store"}});
 }
 export async function DELETE(req:Request,{params}:{params:Promise<{jobId:string}>}){
   const {jobId}=await params;const id=z.string().uuid().safeParse(jobId);if(!id.success)return NextResponse.json({error:"job_id_invalid"},{status:400});
