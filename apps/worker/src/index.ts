@@ -6,7 +6,7 @@ import { createBoss, ensureCardeLumeQueues, QUEUES } from "@cardelume/queue";
 import { assertRendererFontsReady, CURRENT_RENDERER_VERSION, renderProductionFinal } from "@cardelume/renderer";
 import { R2ObjectStorage } from "@cardelume/storage";
 import { z } from "zod";
-import { buildCreativeCandidatePack, expandedCreativeCandidatePool, selectNovelGenerationTemplates, selectQualityAwareDiversifiedCandidates, type TemplateRankInput, type RecentStyleFingerprint, type TemplateIdentity } from "@cardelume/templates";
+import { buildCreativeCandidatePack, expandedCreativeCandidatePool, selectNovelGenerationTemplates, selectQualityAwareDiversifiedCandidates, templateArchetype, type RankedTemplate, type TemplateRankInput, type RecentStyleFingerprint, type TemplateIdentity } from "@cardelume/templates";
 import { assertCreativeDirectionDiversity } from "@cardelume/ai";
 import { assertEnvironmentIsolation } from "@cardelume/core";
 
@@ -14,6 +14,20 @@ assertEnvironmentIsolation(process.env);
 const boss=createBoss();
 let storage:R2ObjectStorage|undefined;
 function privateStorage(){return storage??=(new R2ObjectStorage());}
+function diversifiedRecoveryCandidates(pool:RankedTemplate[]):RankedTemplate[]{
+  const selected:RankedTemplate[]=[];const archetypes=[...new Set(pool.map(item=>templateArchetype(item.template)))];
+  for(const archetype of archetypes){
+    const item=pool.find(candidate=>templateArchetype(candidate.template)===archetype&&!selected.some(chosen=>chosen.template.familyId===candidate.template.familyId));
+    if(item)selected.push(item);
+    if(selected.length===2)break;
+  }
+  for(const item of pool){
+    if(selected.length===3)break;
+    if(!selected.some(chosen=>chosen.template.id===item.template.id)&&!selected.some(chosen=>chosen.template.familyId===item.template.familyId))selected.push(item);
+  }
+  if(selected.length<3)for(const item of pool){if(selected.length===3)break;if(!selected.some(chosen=>chosen.template.id===item.template.id))selected.push(item);}
+  return selected.slice(0,3);
+}
 const nodeId=process.env.NODE_ID||`node-${process.pid}`;
 const workerVersion=process.env.APP_VERSION||"0.4.3-step.17i";
 let activeJobs=0;
@@ -180,9 +194,13 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
         log("ai_plan_exhausted",{jobId:payload.data.jobId,reason:"unseen_template_pool_below_three",seenCount:brief.refreshContext?.seenTemplateIdentities?.length??0,unseenEligibleCount:noveltySelection?.unseenCount??0});
         return;
       }
-      const fallbackSelection=selectNovelGenerationTemplates(catalog,{...(rankInput??{market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.selectionContext?.normalizedFeeling??brief.feeling,occasion:brief.selectionContext?.normalizedOccasion??brief.occasion,hasPhoto:brief.hasPhoto,seenTemplateIdentities:brief.refreshContext?.seenTemplateIdentities??[]})});
+      let fallbackSelection=selectNovelGenerationTemplates(catalog,{...(rankInput??{market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.selectionContext?.normalizedFeeling??brief.feeling,occasion:brief.selectionContext?.normalizedOccasion??brief.occasion,hasPhoto:brief.hasPhoto,seenTemplateIdentities:brief.refreshContext?.seenTemplateIdentities??[]})});
       const isRefresh=Boolean(brief.refreshContext?.seenTemplateIdentities?.length||brief.refreshContext?.priorTemplateIds?.length);
       if(isRefresh&&fallbackSelection.unseenCount<3)throw new Error("ai_template_exhausted");
+      if(fallbackSelection.exhaustionState==="none"){
+        const expandedRecoveryPool=expandedCreativeCandidatePool(catalog,rankInput,16);const diversified=diversifiedRecoveryCandidates(expandedRecoveryPool);
+        if(diversified.length===3)fallbackSelection={...fallbackSelection,candidates:diversified};
+      }
       log("ai_recovery_selection_evaluated",{jobId:payload.data.jobId,unseenEligibleCount:fallbackSelection.unseenCount,exhaustionState:fallbackSelection.exhaustionState,candidateCount:fallbackSelection.candidates.length,candidateEligibility:fallbackSelection.candidates.map(item=>({templateId:item.template.id,status:item.template.status,launchStatus:item.template.launchStatus,health:item.template.health,photoMode:item.template.photoMode}))});
       if(fallbackSelection.candidates.length<3)throw new Error("ai_generation_safe_failure");
       const fallbackResult=buildDeterministicCreativeFallback(brief,fallbackSelection.candidates,{exhaustionState:fallbackSelection.exhaustionState,allowStagingCandidates:process.env.APP_ENV!=="production"});

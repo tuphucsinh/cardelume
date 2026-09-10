@@ -921,6 +921,7 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
     const signatureMove:SignatureMove=recipe.signatureMoves[0];
     let accentMode:CreativeAccentMode=recipe.preferredAccents[0]??"original";
     if(accentMode==="photo"&&(!brief.hasPhoto||t.photoMode==="none"))accentMode="original";
+    const thesisLead=slot==="photo"?"Photo-led framing":slot==="midnight"?"Low-light contrast":slot==="quiet"?"Quiet paper restraint":"Editorial framing";
     return{
       id:slot,
       templateId:t.id,
@@ -932,7 +933,7 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
       signatureMove,
       accentMode,
       ...semanticCopyForSlot(brief,slot,i),
-      creativeThesis:`${t.name} brings ${t.materialWorld} material, ${t.energy} energy and a ${slot} composition to this ${brief.occasion.toLowerCase()} direction.`,
+      creativeThesis:`${thesisLead} uses ${t.name}, ${t.materialWorld} material and ${t.energy} energy for this ${brief.occasion.toLowerCase()} direction.`,
       confidence:.80,
       noveltyScore:.70,
       wowScore:.75,
