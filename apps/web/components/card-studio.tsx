@@ -451,10 +451,18 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   }
 
   function removePhoto(){
+    const invalidatesGeneratedPhoto=generatedResult?.directions.some(direction=>direction.photoMode==="required"||direction.presentation?.photoMode==="required")??false;
+    const invalidatesSelectedPhoto=selected.photoMode==="required";
+    generationAbort.current?.abort();
+    generationRequestId.current+=1;
     if(photoUrl)URL.revokeObjectURL(photoUrl);
     setPhotoUrl(null);setPhotoPalette(null);setPhotoProfile(null);setPhotoAssetId(null);setPhotoState("idle");preparedPhotoFile.current=null;
     if(accentMode==="photo")setAccentMode("original");
     if(fileInput.current)fileInput.current.value="";
+    if(invalidatesGeneratedPhoto||invalidatesSelectedPhoto){
+      selectionEpoch.current+=1;
+      setGeneratedResult(null);setSelected(initialSelected);setMessage("");setMessageUndo(null);setUsedCuratedFallback(false);setPhase("brief");
+    }
   }
 
   async function onPhoto(file?:File){

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { GenerationBriefSchema, GenerationResultSchema } from "@cardelume/card-schema";
-import { resolveCanonicalPresentation, curatedFallbackPresentations } from "@cardelume/templates";
+import { resolveCanonicalPresentation } from "@cardelume/templates";
 import { cancelGenerationJob, generationStatusForOwner } from "@cardelume/db";
 import { anonymousIdFromCookieHeader } from "../../../../lib/pricing-quote.server";
 import { verifyGenerationStatusToken } from "../../../../lib/generation.server";
@@ -25,54 +25,30 @@ export async function GET(req:Request,{params}:{params:Promise<{jobId:string}>})
   if(state==="ready"&&!result?.success)return NextResponse.json({state:"failed",stage:3,error:"generation_result_invalid"},{headers:{"cache-control":"no-store"}});
   const brief=result?.success?GenerationBriefSchema.safeParse(row.brief):null;
   if(result?.success&&!brief?.success)return NextResponse.json({state:"failed",stage:3,error:"generation_brief_invalid"},{headers:{"cache-control":"no-store"}});
-  const signedResult=result?.success&&brief?.success?{directions:result.data.directions.map((direction,index)=>{
-    let templateId=direction.templateId;
-    let templateVersionId=direction.templateVersionId;
-    let presentation=direction.presentation;
-    if(templateId&&templateVersionId&&!presentation){
+  let resultError:string|undefined;
+  let signedResult:{directions:Array<ReturnType<typeof GenerationResultSchema.parse>["directions"][number]>}|undefined;
+  if(result?.success&&brief?.success){
+    const readyResult=result.data;
+    const readyBrief=brief.data;
+    const directions:typeof readyResult.directions=[];
+    for(const [index,direction] of readyResult.directions.entries()){
+      const templateId=direction.templateId;
+      const templateVersionId=direction.templateVersionId;
+      if(!templateId||!templateVersionId){resultError="generation_result_invalid";break;}
       try{
-        presentation=resolveCanonicalPresentation({
-          templateId,
-          templateVersionId,
-          hasPhoto:brief.data.hasPhoto,
-          locale:brief.data.locale,
-          format:brief.data.format
-        });
-      }catch{
-        presentation=undefined;
-      }
-    }else if(!templateId||!templateVersionId){
-      const fallback=curatedFallbackPresentations[direction.id];
-      if(fallback){
-        templateId=fallback.templateId;
-        templateVersionId=fallback.templateVersionId;
-        presentation=fallback;
-      }
+        const presentation=resolveCanonicalPresentation({templateId,templateVersionId,hasPhoto:readyBrief.hasPhoto,locale:readyBrief.locale,format:readyBrief.format});
+        if(direction.presentation&&(
+          direction.presentation.templateId!==presentation.templateId||
+          direction.presentation.templateVersionId!==presentation.templateVersionId||
+          direction.presentation.rendererTemplateKey!==presentation.rendererTemplateKey||
+          direction.presentation.photoMode!==presentation.photoMode
+        )){resultError="generation_presentation_invalid";break;}
+        directions.push({...direction,templateId,templateVersionId,presentation,templateName:presentation.name,visualDirection:presentation.visualDirection,photoMode:presentation.photoMode,templateEventToken:issueTemplateEventToken({templateId,templateVersionId,source:"ai_direction",rankPosition:index+1,market:readyBrief.market,locale:readyBrief.locale,anonymousId:anon.data})});
+      }catch{resultError="generation_presentation_invalid";break;}
     }
-    const enriched={
-      ...direction,
-      ...(templateId?{templateId}:{}),
-      ...(templateVersionId?{templateVersionId}:{}),
-      ...(presentation?{
-        presentation,
-        templateName:presentation.name,
-        visualDirection:presentation.visualDirection,
-        photoMode:presentation.photoMode
-      }:{})
-    };
-    return enriched.templateId&&enriched.templateVersionId?{
-      ...enriched,
-      templateEventToken:issueTemplateEventToken({
-        templateId:enriched.templateId,
-        templateVersionId:enriched.templateVersionId,
-        source:"ai_direction",
-        rankPosition:index+1,
-        market:brief.data.market,
-        locale:brief.data.locale,
-        anonymousId:anon.data
-      })
-    }:enriched;
-  })}:undefined;
+    if(!resultError)signedResult={directions};
+  }
+  if(state==="ready"&&resultError)return NextResponse.json({state:"failed",stage:3,error:resultError},{headers:{"cache-control":"no-store"}});
   return NextResponse.json({state,stage:Math.max(0,Math.min(3,row.stage)),...(signedResult?{result:signedResult}:{}),...(state==="failed"?{error:"generation_failed"}:{})},{headers:{"cache-control":"no-store"}});
 }
 export async function DELETE(req:Request,{params}:{params:Promise<{jobId:string}>}){
