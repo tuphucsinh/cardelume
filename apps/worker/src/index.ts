@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { CardDocumentSchema, GenerationBriefSchema, withNormalizedBriefContext } from "@cardelume/card-schema";
-import { classifyProviderError, createAIProviderFromEnv, createGenerationBudget, generateCreativeDirectorDirections, creativeQualityRisks, criticRepairDirections, buildDeterministicCreativeFallback, safeProviderErrorCode, type AICallTelemetry, type CreativeDirectorOutcome } from "@cardelume/ai";
+import { classifyProviderError, createAIProviderFromEnv, createGenerationBudget, generateCreativeDirectorDirections, creativeQualityRisks, criticRepairDirections, repairSemanticCopyContract, semanticCopyContractViolations, buildDeterministicCreativeFallback, safeProviderErrorCode, type AICallTelemetry, type CreativeDirectorOutcome } from "@cardelume/ai";
 import { claimGenerationJob, generationJobIsActive, listManagedTemplates, listRecentStyleFingerprints, recordGenerationAIUsage, recordFunnelEventForOrder, recordTemplateEvent, rollupTemplateMetricsDaily, cleanupTemplateEvents, cleanupFunnelEvents, cleanupStyleFingerprints, cleanupGenerationAIUsage, cleanupCompletedGenerationJobs, cleanupRateLimitBuckets, cleanupStaleWorkerHeartbeats, completeGenerationJob, failGenerationJob, failStaleGenerationJobs, hasCompleteFinalEntitlements, listPhotoAssetCleanupCandidates, loadPaidCardRenderContext, loadTrustedAssetsForVersion, markPhotoAssetDeleted, persistFinalEntitlements, removeWorkerHeartbeat, updateGenerationStage, upsertWorkerHeartbeat } from "@cardelume/db";
 import { createBoss, ensureCardeLumeQueues, QUEUES } from "@cardelume/queue";
 import { assertRendererFontsReady, CURRENT_RENDERER_VERSION, renderProductionFinal } from "@cardelume/renderer";
@@ -126,7 +126,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       if(outcome.kind!=="ready")throw new Error("ai_creative_range_insufficient");
     }
     if(outcome.kind!=="ready")throw new Error("ai_creative_range_insufficient");
-    let result=outcome.result;const risks=creativeQualityRisks(result,brief,recentStyles,candidatePool);
+    let result=outcome.result;const risks=creativeQualityRisks(result,brief,recentStyles,candidatePool);const copyViolationsBefore=semanticCopyContractViolations(result,brief);
     const criticTriggers=new Set(["creative_range","copy_risk","low_confidence","low_wow","market_tension","low_novelty"]);
     const premiumCritical=new Set(["creative_range","copy_risk","low_confidence","low_wow"]);
     if(risks.includes("creative_range")&&candidatePool.length<12){
@@ -146,10 +146,18 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       }catch(error){
         const failure=safeGenerationError(error);
         await persistAiTelemetry(payload.data.jobId,{phase:"critic_repair",provider:provider.providerName,model:provider.modelName,protocol:provider.protocol,latencyMs:Date.now()-criticStarted,success:false,errorCode:failure.errorCode,failureClass:failure.failureClass});
-        if(risks.some(r=>premiumCritical.has(r))||failure.failureClass==="budget"||failure.failureClass==="timeout")throw error;
+        if(risks.some(r=>premiumCritical.has(r))||failure.failureClass==="budget"||failure.failureClass==="timeout"){
+          if(failure.errorCode!=="ai_critic_invalid_response"||!risks.includes("copy_risk"))throw error;
+          result=repairSemanticCopyContract(result,brief);
+        }
       }
-      const remaining=creativeQualityRisks(result,brief,recentStyles,candidatePool);
-      log("ai_quality_gate_evaluated",{jobId:payload.data.jobId,phase:"post_critic",seenCount:brief.refreshContext?.seenTemplateIdentities?.length??0,unseenEligibleCount:noveltySelection?.unseenCount??0,candidatePoolCount:candidatePool.length,candidatePoolTemplateIds:candidatePool.map(item=>item.template.id),selectedDirections:result.directions.map(direction=>({id:direction.id,templateId:direction.templateId,templateVersionId:direction.templateVersionId,confidence:direction.confidence,noveltyScore:direction.noveltyScore,wowScore:direction.wowScore,riskCodes:direction.riskCodes??[]})),initialRisks:risks,remainingRisks:remaining,premiumCriticalRemaining:remaining.filter(r=>premiumCritical.has(r))});
+      let remaining=creativeQualityRisks(result,brief,recentStyles,candidatePool);let copyRepairApplied=false;
+      if(remaining.includes("copy_risk")){
+        result=repairSemanticCopyContract(result,brief);
+        copyRepairApplied=true;
+        remaining=creativeQualityRisks(result,brief,recentStyles,candidatePool);
+      }
+      log("ai_quality_gate_evaluated",{jobId:payload.data.jobId,phase:"post_critic",seenCount:brief.refreshContext?.seenTemplateIdentities?.length??0,unseenEligibleCount:noveltySelection?.unseenCount??0,candidatePoolCount:candidatePool.length,candidatePoolTemplateIds:candidatePool.map(item=>item.template.id),selectedDirections:result.directions.map(direction=>({id:direction.id,templateId:direction.templateId,templateVersionId:direction.templateVersionId,confidence:direction.confidence,noveltyScore:direction.noveltyScore,wowScore:direction.wowScore,riskCodes:direction.riskCodes??[]})),initialRisks:risks,copyViolationsBefore,copyRepairApplied,copyViolationsAfter:semanticCopyContractViolations(result,brief),remainingRisks:remaining,premiumCriticalRemaining:remaining.filter(r=>premiumCritical.has(r))});
       if(remaining.some(r=>premiumCritical.has(r)))throw new Error("ai_premium_quality_not_met");
     }
     assertCreativeDirectionDiversity(result,candidatePool,brief!);
@@ -188,7 +196,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       const recoveryFailure=safeGenerationError(recoveryError);
       const terminalCode=generationBudget&&generationBudget.remainingTotalMs<=0?"generation_deadline_exceeded":recoveryFailure.errorCode==="ai_template_exhausted"?"ai_template_exhausted":"ai_generation_safe_failure";
       await failGenerationJob({jobId:payload.data.jobId,errorCode:terminalCode});
-      log(terminalCode==="ai_template_exhausted"?"ai_plan_exhausted":"ai_plan_safe_failure",{jobId:payload.data.jobId,errorCode:terminalCode,failureClass:terminalCode==="generation_deadline_exceeded"?"budget":"unknown",recoveryErrorCode:recoveryFailure.errorCode,queueWaitMs});
+      log(terminalCode==="ai_template_exhausted"?"ai_plan_exhausted":"ai_plan_safe_failure",{jobId:payload.data.jobId,errorCode:terminalCode,failureClass:terminalCode==="generation_deadline_exceeded"?"budget":recoveryFailure.failureClass,recoveryErrorCode:recoveryFailure.errorCode,initialErrorCode:failure.errorCode,initialFailureClass:failure.failureClass,provider:provider?.providerName,model:provider?.modelName,recoveryScope:"deterministic_catalog_fallback",queueWaitMs});
     }
   }
 }));

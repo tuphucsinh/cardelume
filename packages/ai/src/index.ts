@@ -185,6 +185,17 @@ function normalizeProviderJson(value:unknown):unknown{
   };
 }
 
+function parseProviderJsonText(text:string):unknown{
+  const trimmed=text.trim();
+  const candidates:string[]=[trimmed];
+  const fenced=trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)?.[1]?.trim();
+  if(fenced)candidates.push(fenced);
+  for(const candidate of candidates){
+    try{return normalizeProviderJson(JSON.parse(candidate));}catch{/* try the next bounded representation */}
+  }
+  throw new Error("ai_provider_invalid_json");
+}
+
 export function classifyProviderError(error:unknown):ProviderFailureClass{
   const message=error instanceof Error?error.message:"unknown";
   if(message==="ai_budget_exhausted")return "budget";
@@ -237,7 +248,7 @@ export class OpenAICompatibleProvider implements AIProvider{
 
       const e=envelope as Record<string,unknown>;const text=responseText(e,this.protocol);
       if(!text)throw new Error("ai_provider_empty_content");
-      let data:unknown;try{data=normalizeProviderJson(JSON.parse(text));}catch{throw new Error("ai_provider_invalid_json");}
+      const data=parseProviderJsonText(text);
       const usage=e.usage&&typeof e.usage==="object"?e.usage as Record<string,unknown>:undefined;
       const inputTokens=usageNumber(usage?.input_tokens??usage?.prompt_tokens);const outputTokens=usageNumber(usage?.output_tokens??usage?.completion_tokens);
       return{data,provider:this.providerName,model:typeof e.model==="string"?e.model:this.config.model,protocol:this.protocol,usage:{inputTokens,outputTokens},latencyMs:Date.now()-started};
@@ -444,6 +455,15 @@ export function semanticCopyContractViolations(result:GenerationResult,brief:Gen
 export function assertSemanticCopyContract(result:GenerationResult,brief:GenerationBrief){
   const violations=semanticCopyContractViolations(result,brief);
   if(violations.length)throw new Error(`ai_semantic_copy_contract_${violations[0]}`);
+}
+
+export function repairSemanticCopyContract(result:GenerationResult,brief:GenerationBrief):GenerationResult{
+  const repaired=GenerationResultSchema.parse({
+    ...result,
+    directions:result.directions.map((direction,index)=>({...direction,...semanticCopyForSlot(brief,direction.id,index)})),
+  });
+  assertSemanticCopyContract(repaired,brief);
+  return repaired;
 }
 
 function arr(value:unknown){return Array.isArray(value)?value:[];}
@@ -803,7 +823,7 @@ export async function criticRepairDirections(provider:AIProvider,brief:Generatio
   if(budget)budget.ensureAiBudget();
   const phaseTimeout=budget?budget.clampTimeoutMs(timeoutMs()):timeoutMs();
   const response=await provider.generateJson({system,prompt,timeoutMs:phaseTimeout});
-  const raw=response.data;if(!raw||typeof raw!=="object"||!Array.isArray((raw as {repairs?:unknown}).repairs))throw new Error("ai_critic_invalid_response");const repairs=(raw as {repairs:unknown[]}).repairs;
+  const raw=response.data;const repairPayload=raw&&typeof raw==="object"?raw as {repairs?:unknown;directions?:unknown}:undefined;const repairsValue=repairPayload?.repairs??repairPayload?.directions;if(!Array.isArray(repairsValue))throw new Error("ai_critic_invalid_response");const repairs=repairsValue;
   const merged=result.directions.map((original,repairIndex)=>{const r=repairs.find(v=>v&&typeof v==="object"&&(v as {id?:unknown}).id===original.id) as Record<string,unknown>|undefined;if(!r)return original;
     let templateId=original.templateId,templateVersionId=original.templateVersionId;if(allowTemplateSwap){const requestedId=str(r.templateId,80),requestedVersion=str(r.templateVersionId,80);if(requestedId||requestedVersion){if(!requestedId||!requestedVersion)throw new Error("ai_critic_template_pair_invalid");templateId=requestedId;templateVersionId=requestedVersion;}}
     const candidate=candidates.find(c=>c.template.id===templateId&&c.template.versionId===templateVersionId);if(!candidate)throw new Error("ai_critic_candidate_missing");const recipe=templateCreativeRecipe(candidate.template);let signatureMove=str(r.signatureMove,60) as SignatureMove;if(!recipe.signatureMoves.includes(signatureMove))signatureMove=original.signatureMove&&recipe.signatureMoves.includes(original.signatureMove)?original.signatureMove:recipe.signatureMoves[0];let accentMode=str(r.accentMode,20) as CreativeAccentMode;if(!recipe.preferredAccents.includes(accentMode))accentMode=original.accentMode&&recipe.preferredAccents.includes(original.accentMode)?original.accentMode:recipe.preferredAccents[0];if(accentMode==="photo"&&(!brief.hasPhoto||candidate.template.photoMode==="none"))accentMode="original";const thesis=str(r.creativeThesis,360)||original.creativeThesis;if(!thesis||thesis.length<24)throw new Error("ai_critic_thesis_too_weak");const customerRationale=safeCustomerRationale(r.customerRationale)||original.customerRationale||semanticCustomerRationale(brief,repairIndex);const next={...original,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,presentation:resolveCanonicalPresentationFromTemplate(candidate.template,{locale:brief.locale,format:brief.format}),visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis:thesis,customerRationale,signatureMove,accentMode,kicker:str(r.kicker,100)||original.kicker,headline:str(r.headline,180)||original.headline,body:str(r.body,360)||original.body,confidence:num(r.confidence,original.confidence??.8),noveltyScore:num(r.noveltyScore,original.noveltyScore??.8),wowScore:num(r.wowScore,original.wowScore??.8),riskCodes:[]};validateDirectionCopy(next,brief);return next;});
