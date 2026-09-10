@@ -331,19 +331,23 @@ async function main() {
   GenerationResultSchema.parse(otherConstrained);
   passMarkers.push("CONSTRAINED_POOL_SAFE_FALLBACK=PASS");
 
-  // ── 7. UNSUPPORTED_OCCASION_FAILS_CLOSED ───────────────────────────────────
-  for (const badOcc of ["Halloween", "Graduation", "", "   ", "random_unsupported"]) {
-    let badOccRejected = false;
-    try {
-      const badBrief: GenerationBrief = { ...babyBriefNoPhoto, occasion: badOcc };
-      buildDeterministicCreativeFallback(badBrief, approvedTripleNoPhoto);
-    } catch (err) {
-      badOccRejected = true;
-      need((err as Error).message === "ai_fallback_unavailable", `bad_occ_wrong_code: ${(err as Error).message}`);
-    }
-    need(badOccRejected, `unsupported_occasion_did_not_reject: '${badOcc}'`);
+  // ── 7. CUSTOM_OCCASION_ACCEPTED_AND_EMPTY_FAILS_CLOSED ───────────────────────
+  // Custom occasions are first-class semantic input; only an empty occasion is unavailable.
+  for (const customOcc of ["Halloween", "Graduation", "Get Well", "random_unsupported"]) {
+    const customBrief: GenerationBrief = { ...babyBriefNoPhoto, occasion: customOcc, locale: "en-US", feeling: "Elegant", detail: `A specific ${customOcc} detail.` };
+    const customFallback = buildDeterministicCreativeFallback(customBrief, approvedTripleNoPhoto);
+    need(customFallback.directions.length === 3, `custom_occasion_not_three: '${customOcc}'`);
+    GenerationResultSchema.parse(customFallback);
+    const copy = customFallback.directions.map(d => `${d.kicker} ${d.headline} ${d.body}`).join(" ");
+    need(copy.toLowerCase().includes(customOcc.toLowerCase()), `custom_occasion_not_in_copy: '${customOcc}'`);
   }
-  passMarkers.push("UNSUPPORTED_OCCASION_FAILS_CLOSED=PASS");
+  for (const emptyOcc of ["", "   "]) {
+    let emptyRejected = false;
+    try { buildDeterministicCreativeFallback({ ...babyBriefNoPhoto, occasion: emptyOcc }, approvedTripleNoPhoto); }
+    catch (err) { emptyRejected = true; need((err as Error).message === "ai_fallback_unavailable", `empty_occ_wrong_code: ${(err as Error).message}`); }
+    need(emptyRejected, `empty_occasion_did_not_fail_closed: '${emptyOcc}'`);
+  }
+  passMarkers.push("CUSTOM_OCCASION_ACCEPTED_EMPTY_FAILS_CLOSED=PASS");
 
   // ── 8. MISSING_IDENTITY_FAILS_CLOSED ───────────────────────────────────────
   // Ineligible/missing candidate identity guards preserved per P21R3T02:

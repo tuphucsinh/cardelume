@@ -659,16 +659,19 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
           <div className="result-grid">
             {resultDirections.map((d,i)=>{
               const generated=generatedResult?.directions.find(item=>item.id===d.id);
-              const resultHeadline=generated?.headline??(d.id==="midnight"?m.copy.midnightHeadline:d.id==="photo"?m.copy.photoHeadline:d.id==="quiet"?launch.quiet.headline:previewCopy.headline);
-              const resultBody=generated?.body??(detail||(d.id==="midnight"?m.copy.midnightBody:d.id==="photo"?m.copy.photoBody:d.id==="quiet"?launch.quiet.body:previewCopy.body));
-              const resultKicker=generated?.kicker??(d.id==="quiet"?launch.quiet.kicker:previewCopy.kicker);
-              const presentation=generated?.presentation??d.presentation;
-              const visual=(presentation?.visualDirection as VisualDirection|undefined)??(generated?.visualDirection as VisualDirection|undefined)??d.visual;
-              const templateId=presentation?.templateId??generated?.templateId??d.templateId;
-              const templateVersionId=presentation?.templateVersionId??generated?.templateVersionId??d.templateVersionId;
-              const templateName=presentation?.name??generated?.presentation?.name??generated?.templateName??d.templateName;
-              const templateMaterial=presentation?.material??generated?.presentation?.material??d.templateMaterial;
-              const photoMode=presentation?.photoMode??generated?.photoMode??d.photoMode;
+              // Result cards are authoritative server output. Static directions are only
+              // pre-generation/reveal placeholders and must never supply result copy or identity.
+              if(!generated?.presentation)return null;
+              const resultHeadline=generated.headline;
+              const resultBody=generated.body;
+              const resultKicker=generated.kicker;
+              const presentation=generated.presentation;
+              const visual=presentation.visualDirection as VisualDirection;
+              const templateId=presentation.templateId;
+              const templateVersionId=presentation.templateVersionId;
+              const templateName=presentation.name;
+              const templateMaterial=presentation.material;
+              const photoMode=presentation.photoMode;
               const direction:Direction={
                 ...d,
                 visual,

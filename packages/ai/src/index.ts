@@ -217,15 +217,15 @@ export class OpenAICompatibleProvider implements AIProvider{
 
 export class MockAIProvider implements AIProvider{
   readonly providerName="mock";readonly modelName="mock-premium";
-  async generateJson(input:{system:string;prompt:string;timeoutMs?:number}){const started=Date.now();const ctx=JSON.parse(input.prompt) as {task?:string;slots?:string[];brief?:{occasion?:string;feeling?:string;relationship?:string;recipient?:string;detail?:string};candidates?:Array<{id:string;versionId:string;familyId?:string;name:string;photoMode:string;recipe?:{preferredAccents?:string[];signatureMoves?:string[]}}>;directions?:Array<Record<string,unknown>>};
-    if(ctx.task==="critic_repair")return{data:{repairs:(ctx.directions??[]).map((d,i)=>({...d,body:`${String(d.body??"")} ${i===0?"With a little more heart.":"Made especially for this moment."}`.trim(),confidence:.91,noveltyScore:.82,wowScore:.86,riskCodes:[]}))},provider:this.providerName,model:this.modelName,usage:{inputTokens:150,outputTokens:90},latencyMs:Date.now()-started};
+  async generateJson(input:{system:string;prompt:string;timeoutMs?:number}){const started=Date.now();const ctx=JSON.parse(input.prompt) as {task?:string;slots?:string[];brief?:Partial<GenerationBrief>;candidates?:Array<{id:string;versionId:string;familyId?:string;name:string;photoMode:string;recipe?:{preferredAccents?:string[];signatureMoves?:string[]}}>;directions?:Array<Record<string,unknown>>};
+    const brief=semanticBriefFromPrompt(ctx.brief);
+    if(ctx.task==="critic_repair")return{data:{repairs:(ctx.directions??[]).map((d,i)=>({...d,...semanticCopyForSlot(brief,String(d.id??ctx.slots?.[i]??"editorial"),i),confidence:.91,noveltyScore:.82,wowScore:.86,riskCodes:[]}))},provider:this.providerName,model:this.modelName,usage:{inputTokens:180,outputTokens:140},latencyMs:Date.now()-started};
     const candidates=ctx.candidates??[];const slots=ctx.slots??["editorial","midnight","quiet"];
-    const brief=ctx.brief??{};const occasion=brief.occasion?.trim()||"this moment";const feeling=brief.feeling?.trim()||"warm";const recipient=brief.recipient?.trim()||"you";const detail=brief.detail?.trim();const detailCue=detail?` For ${detail.slice(0,72)}.`:"";
     // Select distinct-family candidates from the full pool (may be >3) to satisfy family-uniqueness validation.
     const usedFamilies=new Set<string>();const picked:typeof candidates=[];
     for(const c of candidates){if(picked.length>=slots.length)break;const fam=c.familyId??c.id;if(!usedFamilies.has(fam)){usedFamilies.add(fam);picked.push(c);}}
     while(picked.length<slots.length&&candidates.length){const fallback=candidates.find(c=>!picked.includes(c));if(!fallback)break;picked.push(fallback);}
-    return{data:{action:"select",directions:slots.map((slot,i)=>{const c=picked[i]??picked[0];const subject=i===0?`${occasion} made for ${recipient}.`:i===1?`${feeling} for ${recipient}.`:`A keepsake for ${occasion}.`;return{id:slot,templateId:c?.id,templateVersionId:c?.versionId,creativeThesis:[`A refined expression of ${occasion}.`,`A contrasting, cinematic interpretation with ${feeling}.`,`A fresh keepsake direction for ${recipient}.`][i]??"A premium direction.",customerRationale:[`Quiet warmth for ${occasion}.`,`A richer feeling for ${recipient}.`,`A thoughtful keepsake for this moment.`][i]??"A thoughtful fit for this moment.",signatureMove:c?.recipe?.signatureMoves?.[0]??"recipient_anchor",accentMode:c?.photoMode==="required"?"photo":c?.recipe?.preferredAccents?.[0]??"original",kicker:["FOR THIS MOMENT","A LITTLE LIGHT","MADE TO REMEMBER"][i]??"JUST FOR YOU",headline:subject,body:[`May this ${occasion.toLowerCase()} feel as thoughtful and ${feeling} as it deserves to be.${detailCue}`,`For ${recipient}, and for all the good this ${occasion.toLowerCase()} still holds.${detailCue}`,`A small note for the details that make this ${occasion.toLowerCase()} yours.${detailCue}`][i]??`With warm wishes for ${occasion}.${detailCue}`,confidence:.92,noveltyScore:.84,wowScore:.86,riskCodes:[]};})},provider:this.providerName,model:this.modelName,usage:{inputTokens:420,outputTokens:260},latencyMs:Date.now()-started};
+    return{data:{action:"select",directions:slots.map((slot,i)=>{const c=picked[i]??picked[0];return{id:slot,templateId:c?.id,templateVersionId:c?.versionId,...semanticCopyForSlot(brief,slot,i),signatureMove:c?.recipe?.signatureMoves?.[0]??"recipient_anchor",accentMode:c?.photoMode==="required"?"photo":c?.recipe?.preferredAccents?.[0]??"original",confidence:.92,noveltyScore:.84,wowScore:.86,riskCodes:[]};})},provider:this.providerName,model:this.modelName,usage:{inputTokens:560,outputTokens:360},latencyMs:Date.now()-started};
   }
 }
 
@@ -249,6 +249,144 @@ function safeCustomerRationale(value:unknown){
   const forbidden=/\b(?:ai|model|prompt|system|rank(?:ing)?|score|candidate|template|algorithm|reasoning|chain[- ]of[- ]thought)\b|https?:\/\/|<[^>]*>|\b[0-9a-f]{8}-[0-9a-f-]{27,}\b|\b\d+(?:\.\d+)?%/i;
   return forbidden.test(text)?undefined:text;
 }
+
+export type SemanticCopyLanguage="en"|"vi";
+export interface SemanticCopyContract{
+  language:SemanticCopyLanguage;
+  locale:string;
+  occasion:string;
+  occasionLabel:string;
+  occasionAnchors:string[];
+  feeling:string;
+  feelingLabel:string;
+  feelingAnchors:string[];
+  relationship:string;
+  recipient:string;
+  detail:string;
+}
+
+function compactSemanticText(value:unknown,max=120){
+  return typeof value==="string"?value.replace(/[\u0000-\u001f\u007f]/g," ").replace(/\s+/g," ").trim().slice(0,max):"";
+}
+function semanticLanguage(locale:string):SemanticCopyLanguage{return locale.toLowerCase().startsWith("vi")?"vi":"en";}
+function comparableCopy(value:string){return value.toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/[^\p{L}\p{N}]+/gu," ").trim();}
+function hasCopyAnchor(text:string,anchors:string[]){const hay=comparableCopy(text);return anchors.some(anchor=>{const needle=comparableCopy(anchor);return Boolean(needle)&&hay.includes(needle);});}
+function semanticOccasion(language:SemanticCopyLanguage,occasion:string){
+  const key=comparableCopy(occasion);
+  const en:Record<string,string>={birthday:"birthday",anniversary:"anniversary",thank:"thank-you note",congratulations:"achievement",congratulation:"achievement","new baby":"new baby",other:"your own occasion",general:"your own occasion"};
+  const vi:Record<string,string>={birthday:"sinh nhật",anniversary:"kỷ niệm","thank you":"lời cảm ơn",thank:"lời cảm ơn",congratulations:"thành tựu",congratulation:"thành tựu","new baby":"em bé mới",other:"dịp riêng",general:"dịp riêng"};
+  return (language==="vi"?vi:en)[key]??occasion;
+}
+function semanticOccasionAnchors(language:SemanticCopyLanguage,occasion:string,label:string){
+  const key=comparableCopy(occasion);
+  const known:Record<string,string[]>={
+    birthday:["birthday","sinh nhật"],anniversary:["anniversary","kỷ niệm"],"thank you":["thank","gratitude","cảm ơn","tri ân"],congratulations:["congrat","achievement","chúc mừng","thành tựu"],"new baby":["new baby","baby","em bé","chào bé"],other:["your own occasion","dịp riêng"],general:["your own occasion","dịp riêng"]
+  };
+  return [...new Set([...(known[key]??[]),label,occasion,semanticDisplay(occasion,48),language==="vi"?"dịp":"occasion"])];
+}
+function semanticFeeling(language:SemanticCopyLanguage,feeling:string){
+  const key=comparableCopy(feeling);
+  const en:Record<string,string>={elegant:"refined",warm:"warm",romantic:"intimate",fun:"playful","surprise me":"unexpected"};
+  const vi:Record<string,string>={elegant:"thanh lịch",warm:"ấm áp",romantic:"lãng mạn",fun:"tươi vui","surprise me":"bất ngờ"};
+  return (language==="vi"?vi:en)[key]??feeling;
+}
+function semanticFeelingAnchors(language:SemanticCopyLanguage,feeling:string,label:string){
+  const key=comparableCopy(feeling);
+  const known:Record<string,string[]>={elegant:["elegant","refined","thanh lịch"],warm:["warm","tender","ấm áp"],romantic:["romantic","intimate","lãng mạn"],fun:["fun","playful","tươi vui"],"surprise me":["surprise","unexpected","bất ngờ"]};
+  return [...new Set([...(known[key]??[]),label,feeling,semanticDisplay(feeling,28),language==="vi"?"cảm giác":"feeling"])];
+}
+function semanticBriefFromPrompt(input?:Partial<GenerationBrief>):GenerationBrief{
+  const brief=input??{};
+  return{
+    occasion:compactSemanticText(brief.occasion,80)||"your occasion",
+    recipient:compactSemanticText(brief.recipient,120),
+    relationship:compactSemanticText(brief.relationship,80)||"someone special",
+    feeling:compactSemanticText(brief.feeling,80)||"Warm",
+    detail:compactSemanticText(brief.detail,180),
+    format:brief.format??"portrait-5x7",
+    locale:compactSemanticText(brief.locale,20)||"en-US",
+    hasPhoto:Boolean(brief.hasPhoto),
+    photoProfile:brief.photoProfile,
+    refreshContext:brief.refreshContext,
+    selectionContext:brief.selectionContext,
+    market:compactSemanticText(brief.market,16)||"GLOBAL"
+  };
+}
+
+export function semanticCopyContract(brief:GenerationBrief):SemanticCopyContract{
+  const language=semanticLanguage(brief.locale);
+  const occasion=compactSemanticText(brief.occasion,80)||"your occasion";
+  const feeling=compactSemanticText(brief.feeling,80)||"Warm";
+  const occasionLabel=semanticOccasion(language,occasion);
+  const feelingLabel=semanticFeeling(language,feeling);
+  return{
+    language,locale:brief.locale,occasion,occasionLabel,
+    occasionAnchors:semanticOccasionAnchors(language,occasion,occasionLabel),
+    feeling,feelingLabel,feelingAnchors:semanticFeelingAnchors(language,feeling,feelingLabel),
+    relationship:compactSemanticText(brief.relationship,80)||"someone special",
+    recipient:compactSemanticText(brief.recipient,120),
+    detail:compactSemanticText(brief.detail,180)
+  };
+}
+
+function semanticDisplay(value:string,max:number){return value.length<=max?value:`${value.slice(0,Math.max(1,max-1)).trim()}…`;}
+function semanticUpper(value:string){return value.toLocaleUpperCase().slice(0,48);}
+function semanticCopyForSlot(brief:GenerationBrief,slot:string,index:number){
+  const contract=semanticCopyContract(brief);
+  const name=semanticDisplay(contract.recipient|| (contract.language==="vi"?"người bạn thương":"someone special"),42);
+  const occasionLabel=semanticDisplay(contract.occasionLabel,48);
+  const feelingLabel=semanticDisplay(contract.feelingLabel,28);
+  const relationship=semanticDisplay(contract.relationship.toLowerCase(),32);
+  const detail=semanticDisplay(contract.detail,96);
+  const relationshipCue=relationship!=="someone special"&&relationship!=="someone else"?(contract.language==="vi"?` Người nhận là ${relationship}.`:` This is for your ${relationship}.`):"";
+  const detailCue=detail?(contract.language==="vi"?` Chi tiết bạn gửi: ${detail}.`:` Detail to carry through: ${detail}.`):"";
+  if(contract.language==="vi"){
+    const voices=[
+      {kicker:`DÀNH CHO ${semanticUpper(name)}`,headline:`${name}, một lời ${feelingLabel} cho ${occasionLabel}.`,body:`Một tấm thiệp ${feelingLabel} dành cho ${name}, viết riêng cho ${occasionLabel}.${relationshipCue}${detailCue}`},
+      {kicker:`${semanticUpper(feelingLabel)} & ${semanticUpper(occasionLabel)}`,headline:`${occasionLabel} này xứng đáng có lời nhắn dành riêng cho ${name}.`,body:`Gửi ${name} một lời nhắn ${feelingLabel}, để ${occasionLabel} giữ đúng câu chuyện của bạn.${relationshipCue}${detailCue}`},
+      {kicker:`MỘT LỜI NHẮN RIÊNG`,headline:`Giữ lại ${occasionLabel} này bên ${name}, thật ${feelingLabel}.`,body:`Ba điều làm nên tấm thiệp này: ${name}, ${occasionLabel} và sắc thái ${feelingLabel}.${relationshipCue}${detailCue}`}
+    ];
+    const copy=voices[index%voices.length]??voices[0];
+    return{...copy,creativeThesis:`Một hướng ${feelingLabel} dành cho ${occasionLabel}, có tên người nhận và chi tiết riêng.`,customerRationale:`Hợp với ${occasionLabel} và sắc thái ${feelingLabel}.`};
+  }
+  const voices=[
+    {kicker:`FOR ${semanticUpper(occasionLabel)}`,headline:`${name}, a ${feelingLabel} ${occasionLabel} made for you.`,body:`A ${feelingLabel} note for ${name}, written around ${occasionLabel}.${relationshipCue}${detailCue}`},
+    {kicker:`${semanticUpper(feelingLabel)} & ${semanticUpper(occasionLabel)}`,headline:`${occasionLabel} deserves words made for ${name}.`,body:`For ${name}, with a ${feelingLabel} voice that suits ${occasionLabel}.${relationshipCue}${detailCue}`},
+    {kicker:`MADE FOR ${semanticUpper(name)}`,headline:`Keep this ${occasionLabel} close, ${name}.`,body:`A personal ${feelingLabel} keepsake for ${name}, shaped by ${occasionLabel}.${relationshipCue}${detailCue}`}
+  ];
+  const copy=voices[index%voices.length]??voices[0];
+  return{...copy,creativeThesis:`A ${feelingLabel} direction for ${occasionLabel}, anchored in the named recipient and supplied detail.`,customerRationale:`A ${feelingLabel} fit for ${occasionLabel}.`};
+}
+
+function semanticCopyFullText(direction:Pick<GeneratedDirection,"kicker"|"headline"|"body">){return `${direction.kicker} ${direction.headline} ${direction.body}`;}
+function escapeSemanticPattern(value:string){return value.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+function semanticDetectorText(text:string,brief:GenerationBrief){
+  const userInputs=[brief.detail,brief.recipient,brief.occasion,brief.relationship,brief.feeling].map(value=>compactSemanticText(value??"",180)).filter(value=>value.length>1).sort((a,b)=>b.length-a.length);
+  return userInputs.reduce((current,input)=>current.replace(new RegExp(escapeSemanticPattern(input),"giu")," "),text);
+}
+const GENERIC_COPY_COLLAPSE_PATTERNS=[/\bbeautiful\s+(?:year|moment)\b/iu,/\bmoment\b/iu,/\bglow\b/iu,/\bkhoảnh\s+khắc\b/iu];
+
+export function semanticCopyContractViolations(result:GenerationResult,brief:GenerationBrief):string[]{
+  const contract=semanticCopyContract(brief);const violations:string[]=[];
+  const texts=result.directions.map(semanticCopyFullText);
+  if(texts.map(text=>semanticDetectorText(text,brief)).some((text:string)=>GENERIC_COPY_COLLAPSE_PATTERNS.some(pattern=>pattern.test(text))))violations.push("generic_collapse");
+  if(texts.some((text:string)=>!hasCopyAnchor(text,contract.occasionAnchors)))violations.push("occasion_missing");
+  if(texts.some((text:string)=>!hasCopyAnchor(text,contract.feelingAnchors)))violations.push("feeling_missing");
+  if(contract.recipient&&!texts.every((text:string)=>hasCopyAnchor(text,[contract.recipient,semanticDisplay(contract.recipient,42)])))violations.push("recipient_missing");
+  if(contract.detail){
+    const detailTokens=[...contract.detail.split(/\s+/).filter(token=>token.length>2).slice(0,3),semanticDisplay(contract.detail,96)];
+    if(detailTokens.length&&!texts.some((text:string)=>hasCopyAnchor(text,detailTokens)))violations.push("detail_missing");
+  }
+  if(contract.language==="vi"&&!texts.every((text:string)=>/[à-ỹ]/iu.test(text)||/\b(?:dành|gửi|chúc|mừng|lời|thiệp|cho|với)\b/iu.test(text)))violations.push("locale_missing");
+  if(new Set(texts.map(comparableCopy)).size<Math.min(3,texts.length))violations.push("direction_copy_duplicate");
+  return [...new Set(violations)];
+}
+
+export function assertSemanticCopyContract(result:GenerationResult,brief:GenerationBrief){
+  const violations=semanticCopyContractViolations(result,brief);
+  if(violations.length)throw new Error(`ai_semantic_copy_contract_${violations[0]}`);
+}
+
 function arr(value:unknown){return Array.isArray(value)?value:[];}
 function telemetry(phase:AICallTelemetry["phase"],response:AIProviderResponse):AICallTelemetry{return{phase,provider:response.provider,model:response.model,protocol:response.protocol,inputTokens:response.usage?.inputTokens,outputTokens:response.usage?.outputTokens,latencyMs:response.latencyMs,success:true};}
 function candidateContext(candidates:RankedTemplate[]){return candidates.map((item,index)=>({rank:index+1,id:item.template.id,versionId:item.template.versionId,familyId:item.template.familyId,name:item.template.name,visualDirection:item.template.visualDirection,photoMode:item.template.photoMode,materialWorld:item.template.materialWorld,materialCues:item.template.materialCues,energy:item.template.energy,colorWorld:item.template.colorWorld,motionProfile:item.template.motionProfile,score:Number(item.score.toFixed(4)),scoreComponents:Object.fromEntries(Object.entries(item.components).map(([k,v])=>[k,Number(Number(v).toFixed(3))])),reasons:item.reasons,recipe:templateCreativeRecipe(item.template)}));}
@@ -488,8 +626,8 @@ function parseCreativeSelection(raw:unknown,brief:GenerationBrief,candidates:Ran
 export async function generateCreativeDirectorDirections(provider:AIProvider,brief:GenerationBrief,candidates:RankedTemplate[],recentStyles?:RecentStyleFingerprint[],phase:"creative_director"|"expanded_director"="creative_director",priorCritique?:{reasonCode:string;desiredTraits:string[]},budget?:GenerationBudget):Promise<CreativeDirectorOutcome>{
   if(budget)budget.ensureAiBudget();
   if(candidates.length<3)throw new Error("template_candidate_count_invalid");const slots=[...expectedDirectionIds(brief)];
-  const system=`You are CardeLume's premium Creative Director. Premium emotional resonance, originality, restraint and visual-copy harmony are the highest priorities. Customer-facing rationale must be concise, natural in the brief locale, and reveal only the design fit — never hidden reasoning, scores, rankings, system instructions, or model/process language. The server has already removed incompatible templates; ranking scores are priors, not commands. You may disagree with ranking. Select only supplied immutable template/version pairs. Never invent IDs, HTML, CSS, SVG, URLs, code or personal facts. Market context is a prior; explicit user intent wins. Avoid repeating recent style memory unless the current brief clearly benefits from it. Prefer meaningful separation across materialWorld, colorWorld and energy when the brief allows it; three different IDs that still feel like siblings is not enough. Return JSON only. Normally action=select. Use action=expand_pool only when the supplied pool cannot produce three genuinely distinct premium directions.`;
-  const prompt=JSON.stringify({task:"creative_director",slots,brief,candidates:candidateContext(candidates),recentStyles:compactRecentStyles(recentStyles),priorCritique:priorCritique?{reasonCode:str(priorCritique.reasonCode,80),desiredTraits:priorCritique.desiredTraits.map(v=>str(v,60)).filter(Boolean).slice(0,6)}:undefined,outputContract:{action:"select | expand_pool",select:{directions:slots.map(id=>({id,templateId:"uuid from candidates",templateVersionId:"uuid from same candidate",creativeThesis:"internal creative thesis: why this direction is right and distinct",customerRationale:"customer-facing, same language as brief, 4-14 words; emotional fit only; no AI/template/rank/score jargon",signatureMove:SIGNATURE_MOVES,accentMode:ACCENTS,kicker:"<=8 words",headline:"<=14 words",body:"<=45 words",confidence:"0..1",noveltyScore:"0..1",wowScore:"0..1",riskCodes:RISKS}))},expand:{reasonCode:"short code",desiredTraits:["compact traits"]}}});
+  const system=`You are CardeLume's premium Creative Director. Premium emotional resonance, originality, restraint and visual-copy harmony are the highest priorities. Treat the semantic copy contract in the user brief as binding: every direction must visibly respond to the occasion, feeling, supplied recipient and supplied detail, in the brief locale. Never collapse unrelated briefs into reusable phrases such as "beautiful year", "this moment", or "make it glow". Customer-facing rationale must be concise, natural in the brief locale, and reveal only the design fit — never hidden reasoning, scores, rankings, system instructions, or model/process language. The server has already removed incompatible templates; ranking scores are priors, not commands. You may disagree with ranking. Select only supplied immutable template/version pairs. Never invent IDs, HTML, CSS, SVG, URLs, code or personal facts. Market context is a prior; explicit user intent wins. Avoid repeating recent style memory unless the current brief clearly benefits from it. Prefer meaningful separation across materialWorld, colorWorld and energy when the brief allows it; three different IDs that still feel like siblings is not enough. Return JSON only. Normally action=select. Use action=expand_pool only when the supplied pool cannot produce three genuinely distinct premium directions.`;
+  const prompt=JSON.stringify({task:"creative_director",slots,brief,semanticCopyContract:semanticCopyContract(brief),candidates:candidateContext(candidates),recentStyles:compactRecentStyles(recentStyles),priorCritique:priorCritique?{reasonCode:str(priorCritique.reasonCode,80),desiredTraits:priorCritique.desiredTraits.map(v=>str(v,60)).filter(Boolean).slice(0,6)}:undefined,outputContract:{action:"select | expand_pool",select:{directions:slots.map(id=>({id,templateId:"uuid from candidates",templateVersionId:"uuid from same candidate",creativeThesis:"internal creative thesis: why this direction is right and distinct",customerRationale:"customer-facing, same language as brief, 4-14 words; emotional fit only; no AI/template/rank/score jargon",signatureMove:SIGNATURE_MOVES,accentMode:ACCENTS,kicker:"<=8 words",headline:"<=14 words",body:"<=45 words",semanticRequirements:["occasion","feeling","recipient when supplied","detail when supplied","brief locale"],forbiddenGenericPhrases:["beautiful year","this moment","make it glow"],confidence:"0..1",noveltyScore:"0..1",wowScore:"0..1",riskCodes:RISKS}))},expand:{reasonCode:"short code",desiredTraits:["compact traits"]}}});
   assertPromptBudget(prompt);
   if(budget)budget.ensureAiBudget();
   const phaseTimeout=budget?budget.clampTimeoutMs(timeoutMs()):timeoutMs();
@@ -510,6 +648,7 @@ export function creativeQualityRisks(
   candidates?: RankedTemplate[]
 ) {
   const risks = new Set<string>();
+  if (semanticCopyContractViolations(result, brief).length) risks.add("copy_risk");
   for (const d of result.directions) {
     validateDirectionCopy(d, brief);
     const full = `${d.kicker} ${d.headline} ${d.body}`;
@@ -596,11 +735,11 @@ export async function criticRepairDirections(provider:AIProvider,brief:Generatio
     validateThreeDirectionDiversity(resolvedInitial, candidates, brief);
   }
   const allowTemplateSwap=risks.includes("creative_range");
-  const riskyIds=new Set(result.directions.filter(d=>(d.riskCodes??[]).length||(d.confidence??1)<confidenceRepairThreshold()||(d.wowScore??1)<wowRepairThreshold()||((d.noveltyScore??1)<noveltyRepairThreshold())).map(d=>d.id));if(allowTemplateSwap||risks.includes("copy_risk"))for(const d of result.directions)riskyIds.add(d.id);
+  const riskyIds=new Set(result.directions.filter((d:GeneratedDirection)=>(d.riskCodes??[]).length||(d.confidence??1)<confidenceRepairThreshold()||(d.wowScore??1)<wowRepairThreshold()||((d.noveltyScore??1)<noveltyRepairThreshold())).map((d:GeneratedDirection)=>d.id));if(allowTemplateSwap||risks.includes("copy_risk"))for(const d of result.directions)riskyIds.add(d.id);
   if(!riskyIds.size)return{result,telemetry:{phase:"critic_repair",provider:provider.providerName,model:provider.modelName,latencyMs:0,success:true}};
-  const targets=result.directions.filter(d=>riskyIds.has(d.id));const system=`You are CardeLume's premium creative critic. Repair only the supplied risky directions. ${allowTemplateSwap?"Because creative range is weak, you MAY replace a risky direction with another supplied immutable template/version pair when that creates a materially stronger, more distinct premium concept.":"Keep every template ID/version fixed."} Increase emotional specificity, premium restraint, creative separation and memorability. Never add facts not present in the brief. Never invent template IDs or controls. Return JSON only.`;
+  const targets=result.directions.filter(d=>riskyIds.has(d.id));const system=`You are CardeLume's premium creative critic. Repair only the supplied risky directions. ${allowTemplateSwap?"Because creative range is weak, you MAY replace a risky direction with another supplied immutable template/version pair when that creates a materially stronger, more distinct premium concept.":"Keep every template ID/version fixed."} Increase emotional specificity, premium restraint, creative separation and memorability. Preserve the semantic copy contract: use the actual occasion, feeling, recipient and detail in the brief locale, and remove generic collapsed phrases such as "beautiful year", "this moment", or "make it glow". Never add facts not present in the brief. Never invent template IDs or controls. Return JSON only.`;
   const relevantCandidates=allowTemplateSwap?candidates:candidates.filter(c=>targets.some(d=>d.templateId===c.template.id&&d.templateVersionId===c.template.versionId));
-  const prompt=JSON.stringify({task:"critic_repair",allowTemplateSwap,brief,risks,candidates:candidateContext(relevantCandidates),directions:targets,outputContract:{repairs:targets.map(d=>({id:d.id,templateId:allowTemplateSwap?"candidate uuid; omit to keep":"must remain fixed",templateVersionId:allowTemplateSwap?"matching candidate version uuid; omit to keep":"must remain fixed",creativeThesis:"stronger distinct thesis",customerRationale:"customer-facing, same language as brief, 4-14 words; emotional fit only",signatureMove:SIGNATURE_MOVES,accentMode:ACCENTS,kicker:"<=8 words",headline:"<=14 words",body:"<=45 words",confidence:"0..1",noveltyScore:"0..1",wowScore:"0..1"}))}});
+  const prompt=JSON.stringify({task:"critic_repair",allowTemplateSwap,brief,semanticCopyContract:semanticCopyContract(brief),risks,candidates:candidateContext(relevantCandidates),directions:targets,outputContract:{repairs:targets.map((d:GeneratedDirection)=>({id:d.id,templateId:allowTemplateSwap?"candidate uuid; omit to keep":"must remain fixed",templateVersionId:allowTemplateSwap?"matching candidate version uuid; omit to keep":"must remain fixed",creativeThesis:"stronger distinct thesis",customerRationale:"customer-facing, same language as brief, 4-14 words; emotional fit only",signatureMove:SIGNATURE_MOVES,accentMode:ACCENTS,kicker:"<=8 words",headline:"<=14 words",body:"<=45 words",semanticRequirements:["occasion","feeling","recipient when supplied","detail when supplied","brief locale"],confidence:"0..1",noveltyScore:"0..1",wowScore:"0..1"}))}});
   assertPromptBudget(prompt);
   if(budget)budget.ensureAiBudget();
   const phaseTimeout=budget?budget.clampTimeoutMs(timeoutMs()):timeoutMs();
@@ -637,7 +776,7 @@ export async function criticRepairDirections(provider:AIProvider,brief:Generatio
 
 // Backward-compatible Step 12 entry point retained for tests/curated integration.
 export async function generateCardeLumeDirections(provider:AIProvider,brief:GenerationBrief,candidates?:Array<Pick<RankedTemplate["template"],"id"|"versionId"|"name"|"visualDirection"|"photoMode"|"familyId"|"editorialScore">>):Promise<GenerationResult>{
-  if(!candidates||candidates.length<3){const slots=[...expectedDirectionIds(brief)];const legacy=slots.map((id,index)=>({id,kicker:["A MOMENT FOR YOU","UNDER THE SAME STARS","JUST FOR YOU"][index]??"JUST FOR YOU",headline:["A beautiful moment, made yours.","Here is to what comes next.","With warm wishes."][index]??"With warm wishes.",body:["May this day hold more of what makes you feel most like yourself.","For this moment, and for all the good still waiting ahead.","A simple note for a day worth remembering."][index]??"With warm wishes."}));return GenerationResultSchema.parse({directions:legacy});}
+  if(!candidates||candidates.length<3){const slots=[...expectedDirectionIds(brief)];const legacy=slots.map((id,index)=>({id,...semanticCopyForSlot(brief,id,index)}));const parsed=GenerationResultSchema.parse({directions:legacy});assertSemanticCopyContract(parsed,brief);return parsed;}
   const ranked:RankedTemplate[]=candidates.map((template,index):RankedTemplate=>({template:{...template,version:1,slug:template.name,material:"",rendererTemplateKey:template.visualDirection,status:"active",launchStatus:"candidate",health:"healthy",photoMode:template.photoMode,editorialScore:template.editorialScore??90,maturity:"proven",supportedFormats:[brief.format],scriptSupport:[brief.locale.startsWith("ko")?"hangul":brief.locale.startsWith("ja")||brief.locale.startsWith("zh")?"cjk":"latin"],headlineCapacity:"medium",bodyCapacity:"medium",feelings:[],occasions:[],markets:[],excludedMarkets:[],materialWorld:"editorial_luxury",materialCues:["paper grain"],energy:"warm",colorWorld:"ivory",motionProfile:"static_paper",localeStrengths:[brief.locale],printFormatStrength:[brief.format]},score:1-index*.01,baseScore:1-index*.01,marketScore:.7,reasons:[],components:{relevance:.8,market:.7,editorial:.9,performance:.8,textFit:1,freshness:.7,photoFit:1,noveltyPenalty:0}}));const outcome=await generateCreativeDirectorDirections(provider,brief,ranked);if(outcome.kind!=="ready")throw new Error("ai_unexpected_expansion");return outcome.result;
 }
 export const SUPPORTED_OCCASIONS = [
@@ -664,10 +803,10 @@ export function isSupportedOccasion(occasion: unknown): occasion is SupportedOcc
 // from the candidate object; static copy and recipe values are the only additions.
 // Slots are matched by templateArchetype — never by array position.
 export function buildDeterministicCreativeFallback(brief:GenerationBrief,candidates:RankedTemplate[],metadata?:{exhaustionState?:"none"|"partial"|"total"}):GenerationResult{
-  if(!brief||!isSupportedOccasion(brief.occasion))throw new Error("ai_fallback_unavailable");
+  if(!brief||!compactSemanticText(brief.occasion,80))throw new Error("ai_fallback_unavailable");
   if(candidates.length!==3)throw new Error("ai_fallback_unavailable");
   const slots=[...expectedDirectionIds(brief)];
-  const isBirthday=brief.occasion.trim().toLowerCase()==="birthday";
+  const isBirthday=comparableCopy(brief.occasion)==="birthday";
   for(const candidate of candidates){
     const t=candidate.template;
     if(t.status!=="active"||t.health!=="healthy"||t.launchStatus!=="approved")throw new Error("ai_fallback_template_not_eligible");
@@ -685,17 +824,6 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
     if(familyIds.has(candidate.template.familyId))throw new Error("ai_fallback_template_not_eligible");
     familyIds.add(candidate.template.familyId);
   }
-  const staticKickers=["A MOMENT FOR YOU","UNDER THE SAME STARS","MADE TO KEEP"] as const;
-  const staticHeadlines=[
-    "A beautiful moment, made entirely yours.",
-    "Here is to what comes next.",
-    "A quiet keepsake for this day.",
-  ] as const;
-  const staticBodies=[
-    "May this day feel as thoughtful, warm, and entirely yours as it deserves to be.",
-    "For this moment, and for all the good still waiting just ahead.",
-    "A small note for the details, feelings, and memories that make this day yours.",
-  ] as const;
   const usedCandidates = new Set<string>();
   if(new Set(candidates.map(c=>templateArchetype(c.template))).size<2&&metadata?.exhaustionState!=="total")throw new Error("ai_fallback_unavailable");
   const directions=slots.map((slot,i)=>{
@@ -722,17 +850,17 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
       presentation:resolveCanonicalPresentationFromTemplate(t,{locale:brief.locale,format:brief.format}),
       signatureMove,
       accentMode,
-      kicker:staticKickers[i]??"A MOMENT FOR YOU",
-      headline:staticHeadlines[i]??"A beautiful moment, made yours.",
-      body:staticBodies[i]??"May this day feel as thoughtful and warm as it deserves.",
+      ...semanticCopyForSlot(brief,slot,i),
       confidence:.80,
       noveltyScore:.70,
       wowScore:.75,
       riskCodes:[] as string[],
     };
   });
-  return GenerationResultSchema.parse({
+  const parsed=GenerationResultSchema.parse({
     directions,
     exhaustionState: metadata?.exhaustionState && metadata.exhaustionState !== "none" ? metadata.exhaustionState : undefined
   });
+  assertSemanticCopyContract(parsed,brief);
+  return parsed;
 }
