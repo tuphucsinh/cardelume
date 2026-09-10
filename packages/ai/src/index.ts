@@ -155,6 +155,36 @@ function responseText(envelope:Record<string,unknown>,protocol:AIProviderProtoco
   }).join("")||undefined;
 }
 
+function isRecord(value:unknown):value is Record<string,unknown>{return Boolean(value)&&typeof value==="object"&&!Array.isArray(value);}
+function normalizeCanonicalEnum(value:unknown,allowed:readonly string[]){
+  if(!Array.isArray(value))return value;
+  return value.find(item=>typeof item==="string"&&allowed.includes(item))??value;
+}
+
+/**
+ * Normalize provider-shaped JSON into the one shape consumed by CardeLume's
+ * strict generation parser. Provider quirks stay at this boundary; counts,
+ * IDs, copy and eligibility remain validated by the generation pipeline.
+ */
+function normalizeProviderJson(value:unknown):unknown{
+  let source=value;
+  if(isRecord(value)&&value.action==="select"&&isRecord(value.select)&&Array.isArray(value.select.directions)){
+    const metadata=Object.fromEntries(Object.entries(value).filter(([key])=>key!=="select"));
+    source={...metadata,...value.select,action:value.action};
+  }
+  if(!isRecord(source)||!Array.isArray(source.directions))return source;
+  return{
+    ...source,
+    directions:source.directions.map(direction=>{
+      if(!isRecord(direction))return direction;
+      const normalized={...direction};
+      if("signatureMove" in direction)normalized.signatureMove=normalizeCanonicalEnum(direction.signatureMove,SIGNATURE_MOVES);
+      if("accentMode" in direction)normalized.accentMode=normalizeCanonicalEnum(direction.accentMode,ACCENTS);
+      return normalized;
+    }),
+  };
+}
+
 export function classifyProviderError(error:unknown):ProviderFailureClass{
   const message=error instanceof Error?error.message:"unknown";
   if(message==="ai_budget_exhausted")return "budget";
@@ -207,7 +237,7 @@ export class OpenAICompatibleProvider implements AIProvider{
 
       const e=envelope as Record<string,unknown>;const text=responseText(e,this.protocol);
       if(!text)throw new Error("ai_provider_empty_content");
-      let data:unknown;try{data=JSON.parse(text);}catch{throw new Error("ai_provider_invalid_json");}
+      let data:unknown;try{data=normalizeProviderJson(JSON.parse(text));}catch{throw new Error("ai_provider_invalid_json");}
       const usage=e.usage&&typeof e.usage==="object"?e.usage as Record<string,unknown>:undefined;
       const inputTokens=usageNumber(usage?.input_tokens??usage?.prompt_tokens);const outputTokens=usageNumber(usage?.output_tokens??usage?.completion_tokens);
       return{data,provider:this.providerName,model:typeof e.model==="string"?e.model:this.config.model,protocol:this.protocol,usage:{inputTokens,outputTokens},latencyMs:Date.now()-started};
