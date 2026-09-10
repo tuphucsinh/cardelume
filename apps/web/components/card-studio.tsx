@@ -38,6 +38,18 @@ type Direction={
   templateEventToken?:string;
   photoMode?:"none"|"optional"|"required";
   suggestedAccentMode?:AccentMode;
+  kicker?:string;
+  headline?:string;
+  body?:string;
+  customerRationale?:string;
+};
+type SelectedDirection=Direction & {
+  presentation:CanonicalPresentation;
+  templateId:string;
+  templateVersionId:string;
+  kicker:string;
+  headline:string;
+  body:string;
 };
 type TemplateOption={id:string;versionId:string;name:string;material:string;visualDirection:VisualDirection;photoMode:"none"|"optional"|"required";source:"ai_direction"|"recommended"|"market_pick"|"show_more";position:number;archetype:string;eventToken:string};
 
@@ -80,6 +92,15 @@ const quiet:Direction={
   templateMaterial:curatedFallbackPresentations.quiet.material,
   presentation:curatedFallbackPresentations.quiet,
   photoMode:curatedFallbackPresentations.quiet.photoMode
+};
+const initialSelected:SelectedDirection={
+  ...editorial,
+  templateId:editorial.templateId!,
+  templateVersionId:editorial.templateVersionId!,
+  presentation:editorial.presentation!,
+  kicker:"",
+  headline:"",
+  body:""
 };
 
 function formatClass(value:string){
@@ -144,8 +165,8 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   const [feeling,setFeeling]=useState<(typeof feelings)[number]>("Elegant");
   const [detail,setDetail]=useState("");
   const [format,setFormat]=useState("Portrait · 5 × 7 in");
-  const [selected,setSelected]=useState<Direction>(editorial);
-  const [message,setMessage]=useState(m.copy.editorialBody);
+  const [selected,setSelected]=useState<SelectedDirection>(initialSelected);
+  const [message,setMessage]=useState("");
   const [photoUrl,setPhotoUrl]=useState<string|null>(null);
   const [photoPalette,setPhotoPalette]=useState<PhotoPalette|null>(null);
   const [photoProfile,setPhotoProfile]=useState<{orientation:"portrait"|"landscape"|"square";temperature:"warm"|"cool"|"balanced";luminance:number;paletteConfidence:number;softened:boolean}|null>(null);
@@ -163,6 +184,8 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   const [rewriteBusy,setRewriteBusy]=useState<"warmer"|"playful"|null>(null);
   const [rewriteNote,setRewriteNote]=useState("");
   const [messageUndo,setMessageUndo]=useState<string|null>(null);
+  const messageEdits=useRef(new Map<string,string>());
+  const selectionEpoch=useRef(0);
   const messageRef=useRef(message);
   messageRef.current=message;
   const generationAbort=useRef<AbortController|null>(null);
@@ -182,10 +205,6 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   useEffect(()=>{if(!["results","finish","checkout"].includes(phase))return;const frame=requestAnimationFrame(()=>studioShellRef.current?.querySelector<HTMLElement>("[data-phase-focus]")?.focus({preventScroll:false}));return()=>cancelAnimationFrame(frame);},[phase]);
 
   const resultDirections=useMemo<Direction[]>(()=>photoUrl&&photoState==="ready"?[editorial,midnight,photo]:[editorial,midnight,quiet],[photoUrl,photoState]);
-
-  useEffect(()=>{
-    if(selected.id==="photo"&&!photoUrl)setSelected(quiet);
-  },[selected.id,photoUrl]);
 
   const previewDirection=useMemo<VisualDirection>(()=>{
     // Live preview is a customer-facing surface: never use HOLD/RETIRED legacy families.
@@ -228,9 +247,10 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
     vi:{relationshipOptional:"Chọn nếu thật sự hữu ích (không bắt buộc)",printLayout:"Bố cục in (không bắt buộc)",printLayoutHint:"Bố cục cho file PDF số · không giao thiệp vật lý",whyFits:"Vì sao hướng này phù hợp",direction:"Hướng",refine:"Tinh chỉnh lời chúc",undo:"Hoàn tác",curatedColor:"Màu nhấn được chọn",photoColor:"Từ ảnh của bạn",originalColor:"Nguyên bản",original:"Nguyên bản"}
   })[locale],[locale]);
 
-  const generatedSelected=generatedResult?.directions.find(direction=>direction.id===selected.id);
-  const selectedHeadline=generatedSelected?.headline??(selected.id==="midnight"?m.copy.midnightHeadline:selected.id==="photo"?m.copy.photoHeadline:selected.id==="quiet"?launch.quiet.headline:m.copy.editorialHeadline);
-  const selectedKicker=generatedSelected?.kicker??(selected.id==="quiet"?launch.quiet.kicker:previewCopy.kicker);
+  // Finish/export consume the complete snapshot captured at Choose. They do
+  // not look back into generatedResult or derive copy from the slot identity.
+  const selectedHeadline=selected.headline;
+  const selectedKicker=selected.kicker;
 
   useEffect(()=>{
     const frame=requestAnimationFrame(()=>{
@@ -377,21 +397,47 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   }
 
   function choose(direction:Direction){
-    if(!direction.presentation){
+    if(!direction.presentation||!direction.templateId||!direction.templateVersionId||!direction.kicker||!direction.headline||!direction.body){
       return;
     }
-    const generated=generatedResult?.directions.find(item=>item.id===direction.id);
-    const next=generated?.body??(direction.id==="midnight"?m.copy.midnightBody:direction.id==="photo"?m.copy.photoBody:direction.id==="quiet"?launch.quiet.body:m.copy.editorialBody);
+    if(direction.presentation.templateId!==direction.templateId||direction.presentation.templateVersionId!==direction.templateVersionId){
+      return;
+    }
+    const next:SelectedDirection={
+      ...direction,
+      templateId:direction.presentation.templateId,
+      templateVersionId:direction.presentation.templateVersionId,
+      visual:direction.presentation.visualDirection as VisualDirection,
+      presentation:direction.presentation,
+      kicker:direction.kicker,
+      headline:direction.headline,
+      body:direction.body
+    };
+    const identityKey=directionKey(next);
+    const explicitMessage=messageEdits.current.get(identityKey);
     if(direction.templateId&&direction.templateVersionId)trackTemplate([{id:direction.templateId,versionId:direction.templateVersionId,name:direction.templateName??"Template",material:"",visualDirection:direction.visual,photoMode:direction.photoMode??"none",source:direction.templateSource??"recommended",position:direction.templatePosition??1,archetype:direction.id,eventToken:direction.templateEventToken??""}],"selected");
     haptic("select");
     trackFunnelEvent("direction_selected",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",direction:direction.visual,photoUsed:Boolean(photoUrl&&photoState==="ready"),templateId:direction.templateId,templateVersionId:direction.templateVersionId});
     trackFunnelEvent("finish_opened",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",direction:direction.visual,photoUsed:Boolean(photoUrl&&photoState==="ready"),templateId:direction.templateId,templateVersionId:direction.templateVersionId});
     withTransition(()=>{
-      setSelected(direction);
-      setMessage(detail||next);
-      setAccentMode(direction.suggestedAccentMode??(direction.photoMode==="required"&&photoPalette?"photo":"original"));
+      selectionEpoch.current+=1;
+      setSelected(next);
+      setMessage(explicitMessage??next.body);
+      setMessageUndo(null);
+      setAccentMode(next.suggestedAccentMode??(next.photoMode==="required"&&photoPalette?"photo":"original"));
       setPhase("finish");
     });
+  }
+
+  function directionKey(direction:Pick<Direction,"id"|"templateId"|"templateVersionId">){
+    return direction.templateId&&direction.templateVersionId?`${direction.templateId}:${direction.templateVersionId}`:direction.id;
+  }
+
+  function setExplicitMessage(next:string){
+    const key=directionKey(selected);
+    if(next===selected.body)messageEdits.current.delete(key);
+    else messageEdits.current.set(key,next);
+    setMessage(next);
   }
 
   function removePhoto(){
@@ -429,27 +475,28 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   function replaceMessage(next:string){
     if(next===message)return;
     setMessageUndo(message);
-    setMessage(next);
+    setExplicitMessage(next);
   }
 
   function undoMessage(){
     if(messageUndo===null)return;
     const previous=messageUndo;
     setMessageUndo(null);
-    setMessage(previous);
+    setExplicitMessage(previous);
     setRewriteNote("");
   }
 
   async function rewriteTone(mode:"warmer"|"playful"){
     if(generationMode!=="live"||rewriteBusy||!message.trim())return;
     const sourceMessage=message;
+    const sourceSelectionEpoch=selectionEpoch.current;
     setRewriteBusy(mode);setRewriteNote("");
     try{
       const response=await fetch("/api/rewrite",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode,message:sourceMessage,locale,occasion:effectiveOccasion,relationship:effectiveRelation,recipient:recipient.trim()||undefined})});
       const data=await response.json().catch(()=>null) as {text?:string}|null;
       if(response.ok&&data?.text){
         // Never overwrite a manual edit made while the bounded rewrite request is in flight.
-        if(messageRef.current!==sourceMessage)return;
+        if(messageRef.current!==sourceMessage||selectionEpoch.current!==sourceSelectionEpoch)return;
         replaceMessage(data.text);
       }else setRewriteNote(launch.rewriteUnavailable);
     }catch{setRewriteNote(launch.rewriteUnavailable);}
@@ -469,6 +516,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       occasion:effectiveOccasion,
       relationship:effectiveRelation,
       feeling,
+      customerRationale:selected.customerRationale,
       kicker:selectedKicker,
       headline:selectedHeadline,
       body:message,
@@ -484,7 +532,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
 
   async function downloadBetaAsset(assetKind:"jpg"|"pdf"){
     if(paymentMode!=="off"||betaBusy)return;
-    if(!selected.templateId||!selected.templateVersionId||!selected.presentation){
+    if(!selected.templateId||!selected.templateVersionId||!selected.presentation||!selected.kicker||!selected.headline||!selected.body){
       setBetaNote(beta.unavailable);
       return;
     }
@@ -503,7 +551,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
 
   async function beginCheckout(){
     if(checkoutInFlight.current)return;
-    if(!selected.templateId||!selected.templateVersionId||!selected.presentation){
+    if(!selected.templateId||!selected.templateVersionId||!selected.presentation||!selected.kicker||!selected.headline||!selected.body){
       setCheckoutNote(launch.checkoutUnavailable);
       return;
     }
@@ -684,7 +732,11 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
                 templatePosition:i+1,
                 templateEventToken:generated?.templateEventToken??d.templateEventToken,
                 photoMode,
-                suggestedAccentMode:generated?.accentMode??d.suggestedAccentMode
+                suggestedAccentMode:generated?.accentMode??d.suggestedAccentMode,
+                kicker:resultKicker,
+                headline:resultHeadline,
+                body:resultBody,
+                customerRationale:generated?.customerRationale?.trim()||undefined
               };
               const display=resolveCustomerStyleDisplay({
                 locale,
@@ -759,7 +811,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
             <aside className="finish-controls simple-finish">
               <span className="eyebrow">{m.finishEyebrow}</span>
               <h2 data-phase-focus tabIndex={-1}><span className="display-line">{m.finishTitleA}</span>{" "}<span className="display-line">{m.finishTitleB}</span></h2>
-              <div className="finish-identity" data-finish-identity data-template-id={selected.templateId} data-template-version-id={selected.templateVersionId}>
+              <div className="finish-identity" data-finish-identity data-template-id={selected.templateId} data-template-version-id={selected.templateVersionId} data-customer-rationale={selected.customerRationale??""}>
                 <span className="finish-identity-name">{finishDisplay.name}</span>
                 {finishDisplay.material ? <span className="finish-identity-material">{finishDisplay.material}</span> : null}
               </div>
@@ -767,7 +819,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
                 <p className="finish-beta-notice" data-finish-beta-notice role="status">{beta.finishNotice}</p>
               ):null}
               <label htmlFor="message">{m.message}</label>
-              <textarea id="message" rows={7} value={message} onChange={e=>{setMessageUndo(null);setMessage(e.target.value);}} maxLength={420}/>
+              <textarea id="message" rows={7} value={message} onChange={e=>{setMessageUndo(null);setExplicitMessage(e.target.value);}} maxLength={420}/>
               <div className="message-meta"><span>{message.length}/420</span><span>{copyGuard.suggestShortening?launch.messageFull:launch.magicBalanced}</span></div>
               {copyGuard.suggestShortening?<div className={`message-overflow-note ${copyGuard.hardOverflow?"strong":""}`} role="status"><span>{launch.messageFull}</span><button type="button" onClick={()=>replaceMessage(shortenCardBody(message,locale,copyGuard.softBodyVisualLimit*.76))}>{launch.shortenForMe}</button></div>:null}
               <div className="rewrite-row"><button type="button" onClick={()=>replaceMessage(shortenMessage(message,locale))}>{m.shorter}</button>{generationMode==="live"?<button type="button" disabled={Boolean(rewriteBusy)} onClick={()=>void rewriteTone("warmer")}>{rewriteBusy?"…":experience.refine}</button>:null}{messageUndo!==null?<button type="button" className="undo-action" onClick={undoMessage}>{experience.undo}</button>:null}</div>
