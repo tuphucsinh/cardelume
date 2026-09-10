@@ -28,6 +28,10 @@ must(
   pageSource.includes('paymentMode === "off"') || pageSource.includes('paymentMode==="off"'),
   "homepage must branch conditionally on paymentMode === 'off'"
 );
+must(
+  pageSource.includes('const trust=paymentMode === "off" ? beta.trust : m.home.trust;'),
+  "homepage trust copy must switch to beta-safe wording when payment is off"
+);
 
 // Extract OFF branch source block
 const offBranchIdx = pageSource.indexOf('paymentMode === "off"');

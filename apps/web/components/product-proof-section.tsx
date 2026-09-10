@@ -6,6 +6,7 @@ import { Check, Sparkles, FileText, ShieldCheck, Download } from "lucide-react";
 import type { TemplateMeta } from "@cardelume/templates";
 import { withoutRecipient, type LocaleCode, type Messages } from "../i18n/messages";
 import { launchCopy } from "../i18n/launch-copy";
+import { betaCopy } from "../i18n/beta-copy";
 import { CardVisual } from "./card-visual";
 import { PhysicalCardSurface } from "./physical-effects";
 import {
@@ -25,11 +26,13 @@ type Props = {
   messages: ProductProofMessages;
   createHref: string;
   templates: TemplateMeta[];
+  paymentMode: "off" | "on";
   isProduction?: boolean;
 };
 
-export function ProductProofSection({ locale, messages, createHref, templates, isProduction = false }: Props) {
+export function ProductProofSection({ locale, messages, createHref, templates, paymentMode, isProduction = false }: Props) {
   const launch = launchCopy(locale);
+  const beta = betaCopy(locale);
   const [activeCaseIndex, setActiveCaseIndex] = useState(0);
   const proofCases = getValidProductProofCases(templates, isProduction);
 
@@ -335,7 +338,7 @@ export function ProductProofSection({ locale, messages, createHref, templates, i
                   boxShadow: "0 2px 6px rgba(11,23,48,0.04)"
                 }}
               >
-                <FileText size={14} color="#8c6f45" /> {launch.vectorPdfJpg}
+                <FileText size={14} color="#8c6f45" /> {launch.downloadFormats}
               </span>
               <span
                 style={{
@@ -406,10 +409,10 @@ export function ProductProofSection({ locale, messages, createHref, templates, i
             color: "#6c6861"
           }}
         >
-          <span><Check size={14} color="#8c6f45" />{launch.oneTimePayment}</span>
-          <span><Check size={14} color="#8c6f45" />{launch.previewBeforePay}</span>
-          <span><Check size={14} color="#8c6f45" />{launch.vectorPdfJpg}</span>
+          <span><Check size={14} color="#8c6f45" />{paymentMode === "off" ? beta.finishNotice : launch.previewBeforePay}</span>
+          <span><Check size={14} color="#8c6f45" />{launch.downloadFormats}</span>
           <span><Check size={14} color="#8c6f45" />{launch.noAccountRequired}</span>
+          {paymentMode === "on" ? <span><Check size={14} color="#8c6f45" />{launch.oneTimePayment}</span> : null}
           <span><Check size={14} color="#8c6f45" />{launch.noPhysicalNotice}</span>
         </div>
         <small style={{ maxWidth: "540px", color: "#8a8177", fontSize: "11px", lineHeight: 1.5, marginTop: "8px" }}>

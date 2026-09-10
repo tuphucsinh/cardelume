@@ -26,6 +26,7 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
   const marketQuery=(process.env.APP_MODE ?? "mock")==="mock" && params.market ? `&market=${Array.isArray(params.market)?params.market[0]:params.market}` : "";
   const createHref=`/create${marketQuery?`?${marketQuery.slice(1)}`:""}`;
   const marketingTemplates=step17jShowcaseTemplatesForEnvironment(process.env.APP_ENV);
+  const trust=paymentMode === "off" ? beta.trust : m.home.trust;
   const samples=[
     {k:m.studio.copy.birthdayKicker,h:m.studio.copy.editorialHeadline,b:m.studio.copy.editorialBody},
     {k:m.studio.copy.birthdayKicker,h:m.studio.copy.midnightHeadline,b:m.studio.copy.midnightBody},
@@ -51,7 +52,7 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
               {marketingTemplates.length>0?<a className="text-link" href="#styles">{m.home.explore}<ArrowRight size={16}/></a>:null}
             </div>
             <div className="trust-row">
-              {m.home.trust.map(x=><span key={x}><Check size={15}/>{x}</span>)}
+              {trust.map(x=><span key={x}><Check size={15}/>{x}</span>)}
             </div>
           </div>
           <div className="hero-material-stage" aria-label={marketingTemplates.length>0?"CardeLume premium card example":undefined} aria-hidden={marketingTemplates.length===0?"true":undefined}>
@@ -81,6 +82,7 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
             }}
             createHref={createHref}
             templates={marketingTemplates}
+            paymentMode={paymentMode}
             isProduction={(process.env.APP_ENV ?? "") === "production"}
           />
         ):null}
