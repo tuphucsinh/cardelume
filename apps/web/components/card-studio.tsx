@@ -14,13 +14,13 @@ import { resolveCustomerStyleDisplay } from "../i18n/display-copy";
 import { launchCopy } from "../i18n/launch-copy";
 import { betaCopy } from "../i18n/beta-copy";
 import type { ResolvedPrice } from "../lib/pricing";
-import { isCurrentGenerationRequest, runGeneration, type GenerationStatus } from "../lib/generation-client";
+import { buildGenerationBrief, isCurrentGenerationRequest, runGeneration, type GenerationStatus } from "../lib/generation-client";
 import { uploadPreparedPhoto } from "../lib/photo-upload-client";
 import { trackFunnelEvent } from "../lib/analytics-events";
 
 const occasions=["Birthday","Anniversary","Thank You","Congratulations","New Baby","Other"] as const;
 const relations=["Partner","Mom","Dad","Friend","Coworker","Client","Someone else"] as const;
-const feelings=["Elegant","Warm","Romantic","Fun","Surprise me"] as const;
+const feelings=["Elegant","Warm","Romantic","Fun","Surprise me","Custom"] as const;
 
 type Phase="brief"|"revealing"|"results"|"finish"|"checkout";
 type AccentMode="original"|"photo"|"navy"|"sage"|"rose";
@@ -71,6 +71,7 @@ type QuoteRecoveryDraft={
   message:string;
   occasion:(typeof occasions)[number];
   customOccasion:string;
+  customFeeling:string;
   recipient:string;
   relation:""|(typeof relations)[number];
   customRelation:string;
@@ -302,6 +303,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   const [phase,setPhase]=useState<Phase>("brief");
   const [occasion,setOccasion]=useState<(typeof occasions)[number]>("Birthday");
   const [customOccasion,setCustomOccasion]=useState("");
+  const [customFeeling,setCustomFeeling]=useState("");
   const [recipient,setRecipient]=useState("");
   const [relation,setRelation]=useState<""|(typeof relations)[number]>("");
   const [customRelation,setCustomRelation]=useState("");
@@ -355,7 +357,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       try{
         const draft=JSON.parse(raw) as Partial<QuoteRecoveryDraft>;
         if(!isSelectedDirection(draft.selected)||typeof draft.message!=="string"||!isAccentMode(draft.accentMode)||
-          !isChoice(occasions,draft.occasion)||typeof draft.customOccasion!=="string"||typeof draft.recipient!=="string"||
+          !isChoice(occasions,draft.occasion)||typeof draft.customOccasion!=="string"||(draft.customFeeling!==undefined&&typeof draft.customFeeling!=="string")||typeof draft.recipient!=="string"||
           !(draft.relation===""||isChoice(relations,draft.relation))||typeof draft.customRelation!=="string"||
           !isChoice(feelings,draft.feeling)||typeof draft.detail!=="string"||!isChoice(formatValues,draft.format)||
           (draft.photoPalette!==null&&draft.photoPalette!==undefined&&!isPhotoPalette(draft.photoPalette))||
@@ -372,6 +374,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
         if(draft.message!==draft.selected.body)messageEdits.current.set(directionKey(draft.selected),draft.message);
         setOccasion(draft.occasion);
         setCustomOccasion(draft.customOccasion);
+        setCustomFeeling(draft.customFeeling??"");
         setRecipient(draft.recipient);
         setRelation(draft.relation);
         setCustomRelation(draft.customRelation);
@@ -407,12 +410,13 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
 
   const effectiveOccasion=occasion==="Other"?(customOccasion.trim()||"Other"):occasion;
   const effectiveRelation=relation==="Someone else"?(customRelation.trim()||"Someone else"):(relation||"Someone special");
+  const effectiveFeeling=feeling==="Custom"?(customFeeling.trim()||"Custom"):feeling;
+  const feelingLabel=feeling==="Custom"?(customFeeling.trim()||m.feelings.Custom):m.feelings[feeling];
 
   const previewCopy=useMemo(()=>{
     const entered=recipient.trim();
     const name=entered||launch.someoneSpecial;
-    if(occasion==="New Baby")return{kicker:launch.quiet.kicker,headline:launch.quiet.headline,body:detail||launch.quiet.body};
-    if(occasion==="Other")return{kicker:launch.quiet.kicker,headline:launch.quiet.headline,body:detail||launch.quiet.body};
+    if(occasion==="New Baby"||occasion==="Other"||feeling==="Custom")return{kicker:launch.quiet.kicker,headline:launch.quiet.headline,body:detail||launch.quiet.body};
     const formal=relation==="Coworker"||relation==="Client";
     if(occasion==="Anniversary")return{kicker:m.copy.anniversaryKicker,headline:interpolate(m.copy.anniversaryHeadline,{name}),body:detail||m.copy.anniversaryBody};
     if(occasion==="Thank You")return{kicker:m.copy.thankKicker,headline:interpolate(m.copy.thankHeadline,{name}),body:detail||m.copy.thankBody};
@@ -518,18 +522,21 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       const formatIndex=Math.max(0,formatValues.indexOf(format));
       const generated=await runGeneration({
         mode:generationMode,
-        brief:{
+        brief:buildGenerationBrief({
           occasion:effectiveOccasion,
+          customOccasion,
           recipient:recipient.trim()||undefined,
           relationship:effectiveRelation,
-          feeling,
+          customRelation,
+          feeling:feeling,
+          customFeeling,
           detail:detail.trim()||undefined,
           format:checkoutFormatValues[formatIndex]??"portrait-5x7",
           locale,
           hasPhoto:Boolean(photoUrl&&photoState==="ready"),
           photoProfile:photoProfile??undefined,
           refreshContext:seen.length?{seenTemplateIdentities:seen,priorTemplateIds:seen.slice(-3).map(item=>item.templateId)}:undefined
-        },
+        }),
         sessionCapability:priceQuote,
         onStatus:updateStatus,
         signal:controller.signal
@@ -714,7 +721,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       templateSource:selected.templateSource,
       occasion:effectiveOccasion,
       relationship:effectiveRelation,
-      feeling,
+      feeling:effectiveFeeling,
       customerRationale:selected.customerRationale,
       kicker:selectedKicker,
       headline:selectedHeadline,
@@ -745,7 +752,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       trackFunnelEvent(assetKind==="jpg"?"download_jpg":"download_pdf",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",direction:selected.visual,photoUsed:Boolean(photoUrl&&photoState==="ready"),templateId:selected.templateId,templateVersionId:selected.templateVersionId});
     }catch(error){
       if(error instanceof BetaDownloadError&&error.code==="quote_expired"){
-        void saveQuoteRecoveryDraft({selected,message,occasion,customOccasion,recipient,relation,customRelation,feeling,detail,format,accentMode,photoAssetId,photoPalette,photoProfile,photoPreviewDataUrl:null},photoUrl).then(()=>{
+        void saveQuoteRecoveryDraft({selected,message,occasion,customOccasion,customFeeling,recipient,relation,customRelation,feeling,detail,format,accentMode,photoAssetId,photoPalette,photoProfile,photoPreviewDataUrl:null},photoUrl).then(()=>{
           setBetaNote(beta.unavailable);
           window.setTimeout(()=>window.location.reload(),350);
         });
@@ -822,7 +829,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
           <form className="brief-card editorial-form" onSubmit={e=>{e.preventDefault();void generate(false);}}>
             <div className="mobile-mini-preview" aria-hidden="true">
               <div className={`mini-card mini-${previewDirection}`}><span>{previewCopy.kicker}</span><strong>{previewCopy.headline}</strong></div>
-              <div><b>{launch.liveDirectionPreview}</b><small>{m.feelings[feeling]}</small></div>
+              <div><b>{launch.liveDirectionPreview}</b><small>{feelingLabel}</small></div>
             </div>
 
             <div className="form-section">
@@ -830,7 +837,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
               <div className="chip-row" role="group" aria-label={m.occasion}>
                 {occasions.map(x=><button type="button" key={x} onClick={()=>setOccasion(x)} className={occasion===x?"chip active":"chip"} aria-pressed={occasion===x}>{m.occasions[x]}</button>)}
               </div>
-              {occasion==="Other"?<input className="inline-custom-field" value={customOccasion} onChange={e=>setCustomOccasion(e.target.value)} placeholder={launch.customOccasionPlaceholder} maxLength={80} autoComplete="off"/>:null}
+              {occasion==="Other"?<input className="inline-custom-field" value={customOccasion} onChange={e=>setCustomOccasion(e.target.value)} placeholder={launch.customOccasionPlaceholder} maxLength={80} autoComplete="off" required={occasion==="Other"}/>:null}
             </div>
 
             <div className="form-section">
@@ -840,7 +847,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
                   <label className="sub-label" htmlFor="recipient">{m.recipient} <span>· {m.optional}</span></label>
                   <input id="recipient" value={recipient} onChange={e=>setRecipient(e.target.value)} placeholder={launch.recipientPlaceholder} maxLength={120} autoComplete="off"/>
                 </div>
-                <div><label className="sub-label" htmlFor="relation">{m.relationship} <span>· {m.optional}</span></label><select id="relation" value={relation} onChange={e=>setRelation(e.target.value as typeof relation)}><option value="">{experience.relationshipOptional}</option>{relations.map(x=><option key={x} value={x}>{m.relations[x]??x}</option>)}</select>{relation==="Someone else"?<input className="inline-custom-field relation-custom" value={customRelation} onChange={e=>setCustomRelation(e.target.value)} placeholder={launch.customRelationPlaceholder} maxLength={80} autoComplete="off"/>:null}</div>
+                <div><label className="sub-label" htmlFor="relation">{m.relationship} <span>· {m.optional}</span></label><select id="relation" value={relation} onChange={e=>setRelation(e.target.value as typeof relation)}><option value="">{experience.relationshipOptional}</option>{relations.map(x=><option key={x} value={x}>{m.relations[x]??x}</option>)}</select>{relation==="Someone else"?<input className="inline-custom-field relation-custom" value={customRelation} onChange={e=>setCustomRelation(e.target.value)} placeholder={launch.customRelationPlaceholder} maxLength={80} autoComplete="off" required={relation==="Someone else"}/>:null}</div>
               </div>
             </div>
 
@@ -849,6 +856,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
               <div className="chip-row" role="group" aria-label={m.feel}>
                 {feelings.map(x=><button type="button" key={x} onClick={()=>setFeeling(x)} className={feeling===x?"chip active":"chip"} aria-pressed={feeling===x}>{m.feelings[x]}</button>)}
               </div>
+              {feeling==="Custom"?<input className="inline-custom-field" value={customFeeling} onChange={e=>setCustomFeeling(e.target.value)} placeholder={launch.customFeelingPlaceholder??(locale==="vi"?"Ví dụ: bình yên, tự hào…":"e.g., quietly proud, nostalgic…")} maxLength={80} autoComplete="off" required={feeling==="Custom"}/>:null}
             </div>
 
             <details className="optional-details" open={Boolean(photoUrl||detail)}>

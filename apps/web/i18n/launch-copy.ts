@@ -39,6 +39,7 @@ export type LaunchCopy = {
   rewriteUnavailable:string;
   customOccasionPlaceholder:string;
   customRelationPlaceholder:string;
+  customFeelingPlaceholder?:string;
   quiet:{name:string;sub:string;badge:string;kicker:string;headline:string;body:string};
 
   // P20M1T02: Product Proof & Buyer Confidence
@@ -134,7 +135,7 @@ const c:Record<LocaleCode,LaunchCopy>={
     refundPolicy:"Refund policy",preparingCheckout:"Preparing secure checkout…",checkoutUnavailable:"Checkout is temporarily unavailable. Please try again.",
     buyingThisCard:"You’re buying this card.",printReadyPdf:"Print-ready PDF",qualityGuarantee:"First Purchase Quality Guarantee",
     generationStages:["Choosing the paper and mood…","Setting the typography…","Composing three distinct directions…","Polishing the final details…"],generationWaiting:"Still composing — your card is being finished with care.",generationFallbackReady:"A few finishing touches changed — your three directions are ready.",generationFallbackNotice:"Our live design service took a little too long, so we prepared three curated CardeLume directions from your choices. You can keep going normally.",
-    noneFeelRight:'None of these feel quite right?',rewriteUnavailable:'We kept your message unchanged. Try again in a moment.',customOccasionPlaceholder:'e.g., Graduation, Retirement…',customRelationPlaceholder:'e.g., Sister, Teacher…',
+    noneFeelRight:'None of these feel quite right?',rewriteUnavailable:'We kept your message unchanged. Try again in a moment.',customOccasionPlaceholder:'e.g., Graduation, Retirement…',customRelationPlaceholder:'e.g., Sister, Teacher…',customFeelingPlaceholder:'e.g., quietly proud, nostalgic…',
     chooseNamed:(name)=>`Choose ${name}`,
     quiet:{name:"Quiet Letter",sub:"Letterpress · intimate typography · tactile restraint",badge:"Letterpress",kicker:"A QUIET NOTE",headline:"A few words, held close.",body:"Some things are best said simply, and kept for a long time."},
 
@@ -419,7 +420,7 @@ const c:Record<LocaleCode,LaunchCopy>={
     refundPolicy:"Política de reembolso",preparingCheckout:"Preparando el pago seguro…",checkoutUnavailable:"El pago no está disponible temporalmente. Inténtalo de nuevo.",
     buyingThisCard:"Estás comprando esta tarjeta.",printReadyPdf:"PDF listo para imprimir",qualityGuarantee:"Garantía de calidad en tu primera compra",
     generationStages:["Eligiendo el papel y la atmósfera…","Cuidando la tipografía…","Componiendo tres direcciones distintas…","Afinando los últimos detalles…"],generationWaiting:"Seguimos componiéndola con cuidado. Ya falta poco.",generationFallbackReady:"Hemos ajustado el acabado y tus tres direcciones ya están listas.",generationFallbackNotice:"El servicio de diseño en vivo tardó un poco más de lo previsto, así que preparamos tres direcciones CardeLume cuidadosamente seleccionadas a partir de tus elecciones. Puedes continuar con normalidad.",
-    noneFeelRight:'¿Ninguna termina de encajar?',rewriteUnavailable:'Conservamos tu mensaje sin cambios. Inténtalo de nuevo en un momento.',customOccasionPlaceholder:'p. ej., Graduación, Jubilación…',customRelationPlaceholder:'p. ej., Hermana, Profesora…',
+    noneFeelRight:'¿Ninguna termina de encajar?',rewriteUnavailable:'Conservamos tu mensaje sin cambios. Inténtalo de nuevo en un momento.',customOccasionPlaceholder:'p. ej., Graduación, Jubilación…',customRelationPlaceholder:'p. ej., Hermana, Profesora…',customFeelingPlaceholder:'p. ej., sereno, orgulloso…',
     chooseNamed:(name)=>`Elegir ${name}`,
     quiet:{name:"Carta serena",sub:"Letterpress · tipografía íntima · tacto contenido",badge:"Letterpress",kicker:"UNA NOTA TRANQUILA",headline:"Pocas palabras, muy cerca.",body:"Hay cosas que se dicen mejor con sencillez y se guardan durante mucho tiempo."},
 
@@ -1072,4 +1073,12 @@ const c:Record<LocaleCode,LaunchCopy>={
   },
 };
 
-export function launchCopy(locale:LocaleCode){ return c[locale]; }
+const customFeelingPlaceholders:Partial<Record<LocaleCode,string>>={
+  en:"e.g., quietly proud, nostalgic…",
+  vi:"Ví dụ: bình yên, tự hào…"
+};
+
+export function launchCopy(locale:LocaleCode){
+  const value=c[locale];
+  return {...value,customFeelingPlaceholder:value.customFeelingPlaceholder??customFeelingPlaceholders[locale]??customFeelingPlaceholders.en};
+}

@@ -21,6 +21,26 @@ export type GenerationBrief={
   refreshContext?:{priorTemplateIds?:string[];seenTemplateIdentities?:CanonicalPresentationIdentity[]};
 };
 
+export type StudioBriefInput=Omit<GenerationBrief,"occasion"|"relationship"|"feeling">&{
+  occasion:string;customOccasion?:string;
+  relationship:string;customRelation?:string;
+  feeling:string;customFeeling?:string;
+};
+
+export function buildGenerationBrief(input:StudioBriefInput):GenerationBrief{
+  const resolve=(selected:string,custom:string|undefined,sentinel:string,error:string)=>{
+    const value=(selected===sentinel?custom:selected)?.trim()??"";
+    if(!value)throw new Error(error);
+    return value;
+  };
+  return{
+    ...input,
+    occasion:resolve(input.occasion,input.customOccasion,"Other","custom_occasion_required"),
+    relationship:resolve(input.relationship,input.customRelation,"Someone else","custom_relationship_required"),
+    feeling:resolve(input.feeling,input.customFeeling,"Custom","custom_feeling_required")
+  };
+}
+
 export function isCurrentGenerationRequest(requestId:number,currentRequestId:number,signal?:AbortSignal){
   return requestId===currentRequestId&&!signal?.aborted;
 }
