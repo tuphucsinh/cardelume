@@ -331,6 +331,35 @@ export function semanticCopyContract(brief:GenerationBrief):SemanticCopyContract
 
 function semanticDisplay(value:string,max:number){return value.length<=max?value:`${value.slice(0,Math.max(1,max-1)).trim()}…`;}
 function semanticUpper(value:string){return value.toLocaleUpperCase().slice(0,48);}
+
+/**
+ * Produce customer-facing fit copy when a provider does not return a safe
+ * rationale. This deliberately uses only the brief's emotional and occasion
+ * semantics; catalog material, scores, model language, and hidden reasoning
+ * are never exposed as an explanation.
+ */
+export function semanticCustomerRationale(brief:GenerationBrief,directionIndex=0):string{
+  const contract=semanticCopyContract(brief);
+  const occasion=semanticDisplay(contract.occasionLabel,48);
+  const feeling=semanticDisplay(contract.feelingLabel,28).toLocaleLowerCase();
+  const relationship=semanticDisplay(contract.relationship,32).toLocaleLowerCase();
+  const relationshipCue=relationship&&relationship!=="someone special"&&relationship!=="someone else"?relationship:"";
+  if(contract.language==="vi"){
+    const variants=[
+      `Hợp với dịp ${occasion}, giữ sắc thái ${feeling}.`,
+      `Một hướng ${feeling} cho dịp ${occasion}${relationshipCue?` dành cho ${relationshipCue}`:""}.`,
+      `Đặt cảm xúc ${feeling} vào đúng câu chuyện của dịp ${occasion}.`
+    ];
+    return variants[Math.abs(directionIndex)%variants.length]??variants[0];
+  }
+  const variants=[
+    `A ${feeling} fit for ${occasion}.`,
+    `A ${feeling} direction for ${occasion}${relationshipCue?` and your ${relationshipCue}`:""}.`,
+    `Keeps the feeling of ${occasion} clear and personal.`
+  ];
+  return variants[Math.abs(directionIndex)%variants.length]??variants[0];
+}
+
 function semanticCopyForSlot(brief:GenerationBrief,slot:string,index:number){
   const contract=semanticCopyContract(brief);
   const name=semanticDisplay(contract.recipient|| (contract.language==="vi"?"người bạn thương":"someone special"),42);
@@ -594,7 +623,7 @@ function parseCreativeSelection(raw:unknown,brief:GenerationBrief,candidates:Ran
   if(o.action==="expand_pool")return{expand:true,reasonCode:str(o.reasonCode,80)||"insufficient_creative_range",desiredTraits:arr(o.desiredTraits).map(v=>str(v,60)).filter(Boolean).slice(0,6)};
   const rawDirections=arr(o.directions);if(rawDirections.length!==3)throw new Error("ai_direction_count_invalid");
   const byPair=new Map(candidates.map(c=>[`${c.template.id}:${c.template.versionId}`,c]));const expected=[...expectedDirectionIds(brief)];const directions:GeneratedDirection[]=[];const families=new Set<string>();const exactTemplates=new Set<string>();
-  for(const slot of expected){const d=rawDirections.find(v=>v&&typeof v==="object"&&(v as Record<string,unknown>).id===slot) as Record<string,unknown>|undefined;if(!d)throw new Error("ai_direction_set_invalid");
+  for(const [slotIndex,slot] of expected.entries()){const d=rawDirections.find(v=>v&&typeof v==="object"&&(v as Record<string,unknown>).id===slot) as Record<string,unknown>|undefined;if(!d)throw new Error("ai_direction_set_invalid");
     const templateId=str(d.templateId,80),templateVersionId=str(d.templateVersionId,80);const candidate=byPair.get(`${templateId}:${templateVersionId}`);if(!candidate)throw new Error("ai_template_not_in_candidate_pool");
     const key=`${candidate.template.id}:${candidate.template.versionId}`;
     if(exactTemplates.has(key)||exactTemplates.has(candidate.template.id))throw new Error("ai_template_exact_duplicate");
@@ -611,7 +640,7 @@ function parseCreativeSelection(raw:unknown,brief:GenerationBrief,candidates:Ran
     const recipe=templateCreativeRecipe(candidate.template);let accentMode=str(d.accentMode,20) as CreativeAccentMode;if(!ACCENTS.includes(accentMode)||!recipe.preferredAccents.includes(accentMode))accentMode=recipe.preferredAccents[0]??"original";if(accentMode==="photo"&&(!brief.hasPhoto||candidate.template.photoMode==="none"))accentMode="original";
     let signatureMove=str(d.signatureMove,60) as SignatureMove;if(!SIGNATURE_MOVES.includes(signatureMove)||!recipe.signatureMoves.includes(signatureMove))signatureMove=recipe.signatureMoves[0];
     const riskCodes=arr(d.riskCodes).map(v=>str(v,40)).filter((v):v is typeof RISKS[number]=>RISKS.includes(v as typeof RISKS[number])).slice(0,6);
-    const creativeThesis=str(d.creativeThesis,360);if(creativeThesis.length<24)throw new Error("ai_creative_thesis_too_weak");const customerRationale=safeCustomerRationale(d.customerRationale);
+    const creativeThesis=str(d.creativeThesis,360);if(creativeThesis.length<24)throw new Error("ai_creative_thesis_too_weak");const customerRationale=safeCustomerRationale(d.customerRationale)||semanticCustomerRationale(brief,slotIndex);
     const direction:GeneratedDirection={id:slot,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,presentation:resolveCanonicalPresentationFromTemplate(candidate.template,{hasPhoto:brief.hasPhoto,locale:brief.locale,format:brief.format}),visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis,customerRationale:customerRationale||undefined,signatureMove,accentMode,confidence:num(d.confidence),noveltyScore:num(d.noveltyScore),wowScore:num(d.wowScore),riskCodes,kicker:str(d.kicker,100),headline:str(d.headline,180),body:str(d.body,360)};
     validateDirectionCopy(direction,brief);directions.push(direction);
   }
@@ -745,9 +774,9 @@ export async function criticRepairDirections(provider:AIProvider,brief:Generatio
   const phaseTimeout=budget?budget.clampTimeoutMs(timeoutMs()):timeoutMs();
   const response=await provider.generateJson({system,prompt,timeoutMs:phaseTimeout});
   const raw=response.data;if(!raw||typeof raw!=="object"||!Array.isArray((raw as {repairs?:unknown}).repairs))throw new Error("ai_critic_invalid_response");const repairs=(raw as {repairs:unknown[]}).repairs;
-  const merged=result.directions.map(original=>{const r=repairs.find(v=>v&&typeof v==="object"&&(v as {id?:unknown}).id===original.id) as Record<string,unknown>|undefined;if(!r)return original;
+  const merged=result.directions.map((original,repairIndex)=>{const r=repairs.find(v=>v&&typeof v==="object"&&(v as {id?:unknown}).id===original.id) as Record<string,unknown>|undefined;if(!r)return original;
     let templateId=original.templateId,templateVersionId=original.templateVersionId;if(allowTemplateSwap){const requestedId=str(r.templateId,80),requestedVersion=str(r.templateVersionId,80);if(requestedId||requestedVersion){if(!requestedId||!requestedVersion)throw new Error("ai_critic_template_pair_invalid");templateId=requestedId;templateVersionId=requestedVersion;}}
-    const candidate=candidates.find(c=>c.template.id===templateId&&c.template.versionId===templateVersionId);if(!candidate)throw new Error("ai_critic_candidate_missing");const recipe=templateCreativeRecipe(candidate.template);let signatureMove=str(r.signatureMove,60) as SignatureMove;if(!recipe.signatureMoves.includes(signatureMove))signatureMove=original.signatureMove&&recipe.signatureMoves.includes(original.signatureMove)?original.signatureMove:recipe.signatureMoves[0];let accentMode=str(r.accentMode,20) as CreativeAccentMode;if(!recipe.preferredAccents.includes(accentMode))accentMode=original.accentMode&&recipe.preferredAccents.includes(original.accentMode)?original.accentMode:recipe.preferredAccents[0];if(accentMode==="photo"&&(!brief.hasPhoto||candidate.template.photoMode==="none"))accentMode="original";const thesis=str(r.creativeThesis,360)||original.creativeThesis;if(!thesis||thesis.length<24)throw new Error("ai_critic_thesis_too_weak");const customerRationale=safeCustomerRationale(r.customerRationale)||original.customerRationale;const next={...original,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,presentation:resolveCanonicalPresentationFromTemplate(candidate.template,{locale:brief.locale,format:brief.format}),visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis:thesis,customerRationale,signatureMove,accentMode,kicker:str(r.kicker,100)||original.kicker,headline:str(r.headline,180)||original.headline,body:str(r.body,360)||original.body,confidence:num(r.confidence,original.confidence??.8),noveltyScore:num(r.noveltyScore,original.noveltyScore??.8),wowScore:num(r.wowScore,original.wowScore??.8),riskCodes:[]};validateDirectionCopy(next,brief);return next;});
+    const candidate=candidates.find(c=>c.template.id===templateId&&c.template.versionId===templateVersionId);if(!candidate)throw new Error("ai_critic_candidate_missing");const recipe=templateCreativeRecipe(candidate.template);let signatureMove=str(r.signatureMove,60) as SignatureMove;if(!recipe.signatureMoves.includes(signatureMove))signatureMove=original.signatureMove&&recipe.signatureMoves.includes(original.signatureMove)?original.signatureMove:recipe.signatureMoves[0];let accentMode=str(r.accentMode,20) as CreativeAccentMode;if(!recipe.preferredAccents.includes(accentMode))accentMode=original.accentMode&&recipe.preferredAccents.includes(original.accentMode)?original.accentMode:recipe.preferredAccents[0];if(accentMode==="photo"&&(!brief.hasPhoto||candidate.template.photoMode==="none"))accentMode="original";const thesis=str(r.creativeThesis,360)||original.creativeThesis;if(!thesis||thesis.length<24)throw new Error("ai_critic_thesis_too_weak");const customerRationale=safeCustomerRationale(r.customerRationale)||original.customerRationale||semanticCustomerRationale(brief,repairIndex);const next={...original,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,presentation:resolveCanonicalPresentationFromTemplate(candidate.template,{locale:brief.locale,format:brief.format}),visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis:thesis,customerRationale,signatureMove,accentMode,kicker:str(r.kicker,100)||original.kicker,headline:str(r.headline,180)||original.headline,body:str(r.body,360)||original.body,confidence:num(r.confidence,original.confidence??.8),noveltyScore:num(r.noveltyScore,original.noveltyScore??.8),wowScore:num(r.wowScore,original.wowScore??.8),riskCodes:[]};validateDirectionCopy(next,brief);return next;});
   const families=new Set<string>();const exactTemplates=new Set<string>();
   const criticSeenKeys = seenTemplateKeys(brief);
   for(const direction of merged){

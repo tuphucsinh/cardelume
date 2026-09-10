@@ -53,6 +53,16 @@ type SelectedDirection=Direction & {
 };
 type TemplateOption={id:string;versionId:string;name:string;material:string;visualDirection:VisualDirection;photoMode:"none"|"optional"|"required";source:"ai_direction"|"recommended"|"market_pick"|"show_more";position:number;archetype:string;eventToken:string};
 
+function semanticRationaleFallback(locale:LocaleCode,occasion:string,feeling:string,relationship:string):string{
+  const occasionLabel=occasion.trim()||"your occasion";
+  const feelingLabel=feeling.trim().toLocaleLowerCase()||"warm";
+  const relation=relationship.trim().toLocaleLowerCase();
+  const relationCue=relation&&relation!=="someone special"&&relation!=="someone else"?` dành cho ${relation}`:"";
+  if(locale==="vi")return `Một hướng ${feelingLabel} cho dịp ${occasionLabel}${relationCue}.`;
+  const englishRelation=relation&&relation!=="someone special"&&relation!=="someone else"?` and your ${relation}`:"";
+  return `A ${feelingLabel} direction for ${occasionLabel}${englishRelation}.`;
+}
+
 const editorial:Direction={
   id:"editorial",
   visual:curatedFallbackPresentations.editorial.visualDirection,
@@ -744,7 +754,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
                 material:templateMaterial,
                 slotIndex:i
               });
-              const rationale=generated?.customerRationale?.trim()||(photoMode==="required"?m.photoAdapted:(display.material||previewCopy.kicker));
+              const rationale=generated?.customerRationale?.trim()||semanticRationaleFallback(locale,effectiveOccasion,feeling,effectiveRelation);
               const isPhotoRequired = photoMode === "required";
               return <article className="result-card result-enter" style={{animationDelay:`${i*85}ms`}} key={d.id}>
                 <div className="result-direction-index">{experience.direction} {String(i+1).padStart(2,"0")}</div>
