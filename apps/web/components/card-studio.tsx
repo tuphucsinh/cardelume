@@ -14,7 +14,7 @@ import { resolveCustomerStyleDisplay } from "../i18n/display-copy";
 import { launchCopy } from "../i18n/launch-copy";
 import { betaCopy } from "../i18n/beta-copy";
 import type { ResolvedPrice } from "../lib/pricing";
-import { runGeneration, type GenerationStatus } from "../lib/generation-client";
+import { isCurrentGenerationRequest, runGeneration, type GenerationStatus } from "../lib/generation-client";
 import { uploadPreparedPhoto } from "../lib/photo-upload-client";
 import { trackFunnelEvent } from "../lib/analytics-events";
 
@@ -159,6 +159,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   const [usedCuratedFallback,setUsedCuratedFallback]=useState(false);
   const [generatedResult,setGeneratedResult]=useState<GenerationResult|null>(null);
   const [exhaustionState,setExhaustionState]=useState<"none"|"partial"|"total">("none");
+  const [refreshUnavailable,setRefreshUnavailable]=useState(false);
   const [rewriteBusy,setRewriteBusy]=useState<"warmer"|"playful"|null>(null);
   const [rewriteNote,setRewriteNote]=useState("");
   const [messageUndo,setMessageUndo]=useState<string|null>(null);
@@ -172,10 +173,11 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
   const checkoutInFlight=useRef(false);
   const impressedTemplates=useRef(new Set<string>());
   const seenTemplateIdentities=useRef<CanonicalPresentationIdentity[]>([]);
+  const generationRequestId=useRef(0);
   const studioShellRef=useRef<HTMLElement>(null);
 
   useEffect(()=>()=>{if(photoUrl)URL.revokeObjectURL(photoUrl);},[photoUrl]);
-  useEffect(()=>()=>generationAbort.current?.abort(),[]);
+  useEffect(()=>()=>{generationRequestId.current+=1;generationAbort.current?.abort();},[]);
   useEffect(()=>{trackFunnelEvent("studio_started",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single"});},[locale,price.currency,price.source]);
   useEffect(()=>{if(!["results","finish","checkout"].includes(phase))return;const frame=requestAnimationFrame(()=>studioShellRef.current?.querySelector<HTMLElement>("[data-phase-focus]")?.focus({preventScroll:false}));return()=>cancelAnimationFrame(frame);},[phase]);
 
@@ -270,7 +272,13 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
 
   async function generate(regenerating=false){
     if(phase==="revealing")return;
+    const requestId=++generationRequestId.current;
+    const previousResult=generatedResult;
+    const previousExhaustionState=exhaustionState;
+    const previousUsedCuratedFallback=usedCuratedFallback;
     trackFunnelEvent("generation_requested",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",photoUsed:Boolean(photoUrl&&photoState==="ready")});
+    if(!regenerating)seenTemplateIdentities.current=[];
+    setRefreshUnavailable(false);
     const seen=regenerating?[...seenTemplateIdentities.current]:[];
     if(regenerating&&generatedResult?.directions?.length){
       const prior=generatedResult.directions.flatMap((item,index)=>item.templateId&&item.templateVersionId&&item.visualDirection&&item.templateEventToken?[{id:item.templateId,versionId:item.templateVersionId,name:item.templateName??"CardeLume",material:"",visualDirection:item.visualDirection as VisualDirection,photoMode:item.photoMode??"none",source:"ai_direction" as const,position:index+1,archetype:item.id,eventToken:item.templateEventToken}]:[]);
@@ -316,6 +324,8 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
         onStatus:updateStatus,
         signal:controller.signal
       });
+      if(!isCurrentGenerationRequest(requestId,generationRequestId.current,controller.signal))return;
+      if(!generated)throw new Error("generation_result_missing");
       setGeneratedResult(generated);
       setExhaustionState(generated?.exhaustionState??"none");
       rememberDisplayed(generated?.directions??resultDirections);
@@ -326,18 +336,30 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       const minimum=reducedMotion?80:1200;
       const elapsed=performance.now()-started;
       if(elapsed<minimum)await new Promise(resolve=>window.setTimeout(resolve,minimum-elapsed));
+      if(!isCurrentGenerationRequest(requestId,generationRequestId.current,controller.signal))return;
       if(!hapticPlayed)haptic("reveal");
       trackFunnelEvent("results_viewed",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",photoUsed:Boolean(photoUrl&&photoState==="ready")});
       withTransition(()=>setPhase("results"));
     }catch(error){
       if(error instanceof DOMException&&error.name==="AbortError")return;
+      if(!isCurrentGenerationRequest(requestId,generationRequestId.current,controller.signal))return;
+      if(regenerating){
+        setGeneratedResult(previousResult);
+        setExhaustionState(previousExhaustionState);
+        setUsedCuratedFallback(previousUsedCuratedFallback);
+        setRefreshUnavailable(true);
+        setGenerationMessage(launch.generationFallbackReady);
+        withTransition(()=>setPhase("results"));
+        return;
+      }
       // Provider/queue/network failures are an availability problem, not a dead end
-      // for the customer. Reveal the deterministic curated directions already
-      // available in the CardeLume product layer; never expose technical errors.
+      // for the customer, but do not reveal a fixed curated trio that bypasses
+      // the session novelty contract. Return to the brief so the customer can
+      // retry without recording or presenting identities that were never selected.
       setGeneratedResult(null);
-      setUsedCuratedFallback(true);
+      setUsedCuratedFallback(false);
       setExhaustionState("none");
-      rememberDisplayed(resultDirections);
+      setRefreshUnavailable(true);
       setGenerationMessage(launch.generationFallbackReady);
       const minimum=reducedMotion?80:1050;
       const elapsed=performance.now()-started;
@@ -345,7 +367,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       if(controller.signal.aborted)return;
       if(!hapticPlayed)haptic("reveal");
       trackFunnelEvent("results_viewed",{locale,currency:price.currency,pricingVariant:price.source,purchaseKind:"single",photoUsed:Boolean(photoUrl&&photoState==="ready")});
-      withTransition(()=>setPhase("results"));
+      withTransition(()=>setPhase("brief"));
     }
   }
 
@@ -701,7 +723,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
           </div>
           <div className="direction-refresh">
             <span>{launch.noneFeelRight}</span>
-            <button className="text-action" type="button" disabled={exhaustionState==="total"} data-exhaustion-state={exhaustionState} onClick={()=>void generate(true)}><RefreshCw size={15}/>{m.more}</button>
+            <button className="text-action" type="button" disabled={exhaustionState==="total"||refreshUnavailable} data-exhaustion-state={refreshUnavailable?"unavailable":exhaustionState} onClick={()=>void generate(true)}><RefreshCw size={15}/>{m.more}</button>
           </div>
         </div>
       )}

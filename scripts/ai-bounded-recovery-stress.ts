@@ -257,7 +257,8 @@ async function main() {
   const aiSrc = readFileSync("packages/ai/src/index.ts", "utf8");
 
   need(workerSrc.includes("buildDeterministicCreativeFallback"), "worker_missing_deterministic_fallback");
-  need(workerSrc.includes("selectGenerationTemplates"), "worker_missing_select_generation_templates");
+  need(workerSrc.includes("selectNovelGenerationTemplates"), "worker_missing_select_novel_generation_templates");
+  need(workerSrc.includes("seenTemplateIdentities:brief.refreshContext?.seenTemplateIdentities??[]"), "worker_recovery_seen_context_missing");
   need(workerSrc.includes('catalogMode:"production"'), "worker_fallback_not_production_mode");
   need(workerSrc.includes("ai_plan_recovery_started"), "worker_missing_recovery_started_log");
   need(workerSrc.includes("ai_plan_fallback_used"), "worker_missing_fallback_used_log");

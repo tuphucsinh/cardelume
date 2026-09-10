@@ -7,6 +7,7 @@ import { assertRendererFontsReady, CURRENT_RENDERER_VERSION, renderProductionFin
 import { R2ObjectStorage } from "@cardelume/storage";
 import { z } from "zod";
 import { buildCreativeCandidatePack, expandedCreativeCandidatePool, selectNovelGenerationTemplates, selectQualityAwareDiversifiedCandidates, type TemplateRankInput, type RecentStyleFingerprint, type TemplateIdentity } from "@cardelume/templates";
+import { assertCreativeDirectionDiversity } from "@cardelume/ai";
 import { assertEnvironmentIsolation } from "@cardelume/core";
 
 assertEnvironmentIsolation(process.env);
@@ -147,6 +148,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       const remaining=creativeQualityRisks(result,brief,recentStyles,candidatePool);
       if(remaining.some(r=>premiumCritical.has(r)))throw new Error("ai_premium_quality_not_met");
     }
+    assertCreativeDirectionDiversity(result,candidatePool,brief!);
     result={...result,exhaustionState:noveltySelection.exhaustionState==="none"?undefined:noveltySelection.exhaustionState};
     await assertGenerationJobActive(payload.data.jobId);
     if(generationBudget.remainingTotalMs<=0)throw new Error("ai_budget_exhausted");
@@ -161,7 +163,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       if(!brief||!catalog||!rankInput)throw new Error("ai_generation_safe_failure");
       if(!await generationJobIsActive({jobId:payload.data.jobId})){log("ai_plan_cancelled",{jobId:payload.data.jobId,reason:"generation_cancelled",queueWaitMs});return;}
       if(generationBudget&&generationBudget.remainingTotalMs<=0)throw new Error("ai_budget_exhausted");
-      const fallbackSelection=selectNovelGenerationTemplates(catalog,{...rankInput,catalogMode:"production"});
+      const fallbackSelection=selectNovelGenerationTemplates(catalog,{...(rankInput??{market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.selectionContext?.normalizedFeeling??brief.feeling,occasion:brief.selectionContext?.normalizedOccasion??brief.occasion,hasPhoto:brief.hasPhoto,seenTemplateIdentities:brief.refreshContext?.seenTemplateIdentities??[]}),catalogMode:"production"});
       if(fallbackSelection.candidates.length<3)throw new Error("ai_generation_safe_failure");
       const fallbackResult=buildDeterministicCreativeFallback(brief,fallbackSelection.candidates,{exhaustionState:fallbackSelection.exhaustionState});
       if(generationBudget&&generationBudget.remainingTotalMs<=0)throw new Error("ai_budget_exhausted");

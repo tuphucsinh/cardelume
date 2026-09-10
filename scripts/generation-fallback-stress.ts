@@ -8,8 +8,11 @@ const studio=fs.readFileSync("apps/web/components/card-studio.tsx","utf8");
 const client=fs.readFileSync("apps/web/lib/generation-client.ts","utf8");
 const copy=fs.readFileSync("apps/web/i18n/launch-copy.ts","utf8");
 
-must(studio.includes("setUsedCuratedFallback(true)"),"fallback state is not set");
-must(studio.includes('setPhase("results")'),"fallback does not reach results");
+const initialFailure=studio.slice(studio.indexOf("// Provider/queue/network failures"));
+must(initialFailure.includes("setRefreshUnavailable(true)"),"initial failure does not enter bounded unavailable state");
+must(initialFailure.includes('withTransition(()=>setPhase("brief"))'),"initial failure reveals result cards");
+must(!initialFailure.includes("setUsedCuratedFallback(true)"),"initial failure claims curated fallback");
+must(!initialFailure.includes("rememberDisplayed(resultDirections)"),"initial failure bypasses novelty history");
 must(!studio.includes('window.setTimeout(()=>setPhase("brief"),1800)'),"legacy failure reset still present");
 must(studio.includes("generationFallbackNotice"),"fallback notice missing from results");
 must(client.includes("LIVE_GENERATION_DEADLINE_MS=22_000"),"overall live deadline missing");

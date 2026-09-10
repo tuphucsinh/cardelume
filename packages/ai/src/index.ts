@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { GenerationResultSchema, cardCopyMetrics, type GeneratedDirection, type GenerationBrief, type GenerationResult } from "@cardelume/card-schema";
-import { templateCreativeRecipe, templateArchetype, templatePairKey, type RankedTemplate, type RecentStyleFingerprint, type SignatureMove, type CreativeAccentMode, type TemplateArchetype, type VisualDirection, type TemplatePhotoMode, type TemplateMaterialWorld, type TemplateEnergy, type TemplateColorWorld, type TemplateMeta, type TemplateRankInput } from "@cardelume/templates";
+import { resolveCanonicalPresentationFromTemplate, templateCreativeRecipe, templateArchetype, templatePairKey, type RankedTemplate, type RecentStyleFingerprint, type SignatureMove, type CreativeAccentMode, type TemplateArchetype, type VisualDirection, type TemplatePhotoMode, type TemplateMaterialWorld, type TemplateEnergy, type TemplateColorWorld, type TemplateMeta, type TemplateRankInput } from "@cardelume/templates";
 
 export type AIProviderUsage={inputTokens?:number;outputTokens?:number};
 export type AIProviderProtocol="chat_completions"|"responses";
@@ -445,6 +445,12 @@ export function isVisualSiblingTrio(
   return signatures.size <= 1 || archetypes.size <= 1 || thesisSimilarity > 0.35;
 }
 
+export function assertCreativeDirectionDiversity(result:GenerationResult,candidates:RankedTemplate[],brief:GenerationBrief){
+  const targets=resolveCandidateDiversityTargets(result.directions,candidates);
+  if(isLegacyCandidateContext(candidates,brief))validateThreeDirectionDiversity(targets);
+  else validateThreeDirectionDiversity(targets,candidates,brief);
+}
+
 function parseCreativeSelection(raw:unknown,brief:GenerationBrief,candidates:RankedTemplate[]):GenerationResult|{expand:true;reasonCode:string;desiredTraits:string[]}{
   if(!raw||typeof raw!=="object")throw new Error("ai_creative_invalid_response");const o=raw as Record<string,unknown>;
   if(o.action==="expand_pool")return{expand:true,reasonCode:str(o.reasonCode,80)||"insufficient_creative_range",desiredTraits:arr(o.desiredTraits).map(v=>str(v,60)).filter(Boolean).slice(0,6)};
@@ -468,16 +474,15 @@ function parseCreativeSelection(raw:unknown,brief:GenerationBrief,candidates:Ran
     let signatureMove=str(d.signatureMove,60) as SignatureMove;if(!SIGNATURE_MOVES.includes(signatureMove)||!recipe.signatureMoves.includes(signatureMove))signatureMove=recipe.signatureMoves[0];
     const riskCodes=arr(d.riskCodes).map(v=>str(v,40)).filter((v):v is typeof RISKS[number]=>RISKS.includes(v as typeof RISKS[number])).slice(0,6);
     const creativeThesis=str(d.creativeThesis,360);if(creativeThesis.length<24)throw new Error("ai_creative_thesis_too_weak");const customerRationale=safeCustomerRationale(d.customerRationale);
-    const direction:GeneratedDirection={id:slot,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis,customerRationale:customerRationale||undefined,signatureMove,accentMode,confidence:num(d.confidence),noveltyScore:num(d.noveltyScore),wowScore:num(d.wowScore),riskCodes,kicker:str(d.kicker,100),headline:str(d.headline,180),body:str(d.body,360)};
+    const direction:GeneratedDirection={id:slot,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,presentation:resolveCanonicalPresentationFromTemplate(candidate.template,{hasPhoto:brief.hasPhoto,locale:brief.locale,format:brief.format}),visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis,customerRationale:customerRationale||undefined,signatureMove,accentMode,confidence:num(d.confidence),noveltyScore:num(d.noveltyScore),wowScore:num(d.wowScore),riskCodes,kicker:str(d.kicker,100),headline:str(d.headline,180),body:str(d.body,360)};
     validateDirectionCopy(direction,brief);directions.push(direction);
   }
   const resolvedTargets=directions.map(d=>{const candidate=byPair.get(`${d.templateId}:${d.templateVersionId}`)!;return{id:d.id,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,familyId:candidate.template.familyId,visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,materialWorld:candidate.template.materialWorld,colorWorld:candidate.template.colorWorld,energy:candidate.template.energy,archetype:templateArchetype(candidate.template),signatureMove:d.signatureMove,creativeThesis:d.creativeThesis};});
-  if (isLegacyCandidateContext(candidates, brief)) {
-    validateThreeDirectionDiversity(resolvedTargets);
-  } else {
-    validateThreeDirectionDiversity(resolvedTargets, candidates, brief);
-  }
-  return GenerationResultSchema.parse({directions});
+  if(isLegacyCandidateContext(candidates,brief))validateThreeDirectionDiversity(resolvedTargets);
+  else validateThreeDirectionDiversity(resolvedTargets,candidates,brief);
+  const parsed=GenerationResultSchema.parse({directions});
+  assertCreativeDirectionDiversity(parsed,candidates,brief);
+  return parsed;
 }
 
 export async function generateCreativeDirectorDirections(provider:AIProvider,brief:GenerationBrief,candidates:RankedTemplate[],recentStyles?:RecentStyleFingerprint[],phase:"creative_director"|"expanded_director"="creative_director",priorCritique?:{reasonCode:string;desiredTraits:string[]},budget?:GenerationBudget):Promise<CreativeDirectorOutcome>{
@@ -603,7 +608,7 @@ export async function criticRepairDirections(provider:AIProvider,brief:Generatio
   const raw=response.data;if(!raw||typeof raw!=="object"||!Array.isArray((raw as {repairs?:unknown}).repairs))throw new Error("ai_critic_invalid_response");const repairs=(raw as {repairs:unknown[]}).repairs;
   const merged=result.directions.map(original=>{const r=repairs.find(v=>v&&typeof v==="object"&&(v as {id?:unknown}).id===original.id) as Record<string,unknown>|undefined;if(!r)return original;
     let templateId=original.templateId,templateVersionId=original.templateVersionId;if(allowTemplateSwap){const requestedId=str(r.templateId,80),requestedVersion=str(r.templateVersionId,80);if(requestedId||requestedVersion){if(!requestedId||!requestedVersion)throw new Error("ai_critic_template_pair_invalid");templateId=requestedId;templateVersionId=requestedVersion;}}
-    const candidate=candidates.find(c=>c.template.id===templateId&&c.template.versionId===templateVersionId);if(!candidate)throw new Error("ai_critic_candidate_missing");const recipe=templateCreativeRecipe(candidate.template);let signatureMove=str(r.signatureMove,60) as SignatureMove;if(!recipe.signatureMoves.includes(signatureMove))signatureMove=original.signatureMove&&recipe.signatureMoves.includes(original.signatureMove)?original.signatureMove:recipe.signatureMoves[0];let accentMode=str(r.accentMode,20) as CreativeAccentMode;if(!recipe.preferredAccents.includes(accentMode))accentMode=original.accentMode&&recipe.preferredAccents.includes(original.accentMode)?original.accentMode:recipe.preferredAccents[0];if(accentMode==="photo"&&(!brief.hasPhoto||candidate.template.photoMode==="none"))accentMode="original";const thesis=str(r.creativeThesis,360)||original.creativeThesis;if(!thesis||thesis.length<24)throw new Error("ai_critic_thesis_too_weak");const customerRationale=safeCustomerRationale(r.customerRationale)||original.customerRationale;const next={...original,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis:thesis,customerRationale,signatureMove,accentMode,kicker:str(r.kicker,100)||original.kicker,headline:str(r.headline,180)||original.headline,body:str(r.body,360)||original.body,confidence:num(r.confidence,original.confidence??.8),noveltyScore:num(r.noveltyScore,original.noveltyScore??.8),wowScore:num(r.wowScore,original.wowScore??.8),riskCodes:[]};validateDirectionCopy(next,brief);return next;});
+    const candidate=candidates.find(c=>c.template.id===templateId&&c.template.versionId===templateVersionId);if(!candidate)throw new Error("ai_critic_candidate_missing");const recipe=templateCreativeRecipe(candidate.template);let signatureMove=str(r.signatureMove,60) as SignatureMove;if(!recipe.signatureMoves.includes(signatureMove))signatureMove=original.signatureMove&&recipe.signatureMoves.includes(original.signatureMove)?original.signatureMove:recipe.signatureMoves[0];let accentMode=str(r.accentMode,20) as CreativeAccentMode;if(!recipe.preferredAccents.includes(accentMode))accentMode=original.accentMode&&recipe.preferredAccents.includes(original.accentMode)?original.accentMode:recipe.preferredAccents[0];if(accentMode==="photo"&&(!brief.hasPhoto||candidate.template.photoMode==="none"))accentMode="original";const thesis=str(r.creativeThesis,360)||original.creativeThesis;if(!thesis||thesis.length<24)throw new Error("ai_critic_thesis_too_weak");const customerRationale=safeCustomerRationale(r.customerRationale)||original.customerRationale;const next={...original,templateId:candidate.template.id,templateVersionId:candidate.template.versionId,templateName:candidate.template.name,presentation:resolveCanonicalPresentationFromTemplate(candidate.template,{locale:brief.locale,format:brief.format}),visualDirection:candidate.template.visualDirection,photoMode:candidate.template.photoMode,creativeThesis:thesis,customerRationale,signatureMove,accentMode,kicker:str(r.kicker,100)||original.kicker,headline:str(r.headline,180)||original.headline,body:str(r.body,360)||original.body,confidence:num(r.confidence,original.confidence??.8),noveltyScore:num(r.noveltyScore,original.noveltyScore??.8),wowScore:num(r.wowScore,original.wowScore??.8),riskCodes:[]};validateDirectionCopy(next,brief);return next;});
   const families=new Set<string>();const exactTemplates=new Set<string>();
   const criticSeenKeys = seenTemplateKeys(brief);
   for(const direction of merged){
@@ -627,7 +632,7 @@ export async function criticRepairDirections(provider:AIProvider,brief:Generatio
   } else {
     validateThreeDirectionDiversity(resolvedRepairs, candidates, brief);
   }
-  const parsed=GenerationResultSchema.parse({directions:merged});return{result:parsed,telemetry:telemetry("critic_repair",response)};
+  const parsed=GenerationResultSchema.parse({directions:merged});assertCreativeDirectionDiversity(parsed,candidates,brief);return{result:parsed,telemetry:telemetry("critic_repair",response)};
 }
 
 // Backward-compatible Step 12 entry point retained for tests/curated integration.
@@ -692,11 +697,14 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
     "A small note for the details, feelings, and memories that make this day yours.",
   ] as const;
   const usedCandidates = new Set<string>();
+  if(new Set(candidates.map(c=>templateArchetype(c.template))).size<2&&metadata?.exhaustionState!=="total")throw new Error("ai_fallback_unavailable");
   const directions=slots.map((slot,i)=>{
     // Match by templateArchetype — identity always comes from the matched candidate, never from slot name.
     const slotArchetype:TemplateArchetype=slot==="photo"?"photo":slot==="midnight"?"midnight":slot==="quiet"?"quiet":"editorial";
     let candidate=candidates.find(c=>!usedCandidates.has(c.template.id)&&templateArchetype(c.template)===slotArchetype);
-    if(!candidate) candidate=candidates.find(c=>!usedCandidates.has(c.template.id));
+    if(!candidate){
+      candidate=candidates.find(c=>!usedCandidates.has(c.template.id));
+    }
     if(!candidate)throw new Error("ai_fallback_unavailable");
     usedCandidates.add(candidate.template.id);
     const t=candidate.template;
@@ -711,6 +719,7 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
       templateName:t.name,
       visualDirection:t.visualDirection,
       photoMode:t.photoMode,
+      presentation:resolveCanonicalPresentationFromTemplate(t,{locale:brief.locale,format:brief.format}),
       signatureMove,
       accentMode,
       kicker:staticKickers[i]??"A MOMENT FOR YOU",

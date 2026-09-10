@@ -21,6 +21,10 @@ export type GenerationBrief={
   refreshContext?:{priorTemplateIds?:string[];seenTemplateIdentities?:CanonicalPresentationIdentity[]};
 };
 
+export function isCurrentGenerationRequest(requestId:number,currentRequestId:number,signal?:AbortSignal){
+  return requestId===currentRequestId&&!signal?.aborted;
+}
+
 export type GenerationFailureCode=
   |"generation_start_failed"
   |"generation_job_missing"
