@@ -93,6 +93,7 @@ export function fitTypography(headline:string,body:string,locale="en",format:Car
 }
 
 function assertRenderableCopy(headline:string,body:string,locale="en",format:CardDocument["format"]="portrait-5x7"){
+  if(!headline.trim()||!body.trim())throw new Error("typography_copy_missing");
   const metrics=cardCopyMetrics(headline,body,locale,format);
   if(metrics.hardOverflow)throw new Error("typography_copy_too_dense");
 }

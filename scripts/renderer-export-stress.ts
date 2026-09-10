@@ -361,14 +361,15 @@ const semanticRegions: TextRegion[] = [
   { name: "body", left: 200, top: 1120, width: 1100, height: 360 }
 ];
 
-// Fixed matching no-text/background baseline with identical format/template/palette/art
+// Fixed minimal-copy/background baseline with identical format/template/palette/art.
+// The production renderer rejects blank headline/body rather than emitting a blank artifact.
 const semanticBaselineDoc: CardDocument = {
   ...doc("portrait-5x7", "en"),
   id: "00000000-0000-4000-8000-000000000000",
   textBlocks: [
     { id: "kicker", role: "kicker", align: "center", text: "" },
-    { id: "headline", role: "headline", align: "center", text: "" },
-    { id: "body", role: "body", align: "center", text: "" }
+    { id: "headline", role: "headline", align: "center", text: "." },
+    { id: "body", role: "body", align: "center", text: "." }
   ]
 };
 const semanticBaselineRender = await renderProductionFinal(semanticBaselineDoc);
@@ -461,18 +462,10 @@ const blankDoc: CardDocument = {
     { id: "body", role: "body", align: "center", text: "" }
   ]
 };
-const blankRender = await renderProductionFinal(blankDoc);
-
-// Both JPG and PDF raster page must genuinely fail the visible glyph assertion
 await assert.rejects(
-  () => assertVisibleGlyphsInRegions(blankRender.jpg, semanticBaselineRender.jpg, semanticRegions),
-  /glyph_assertion_failed:headline/,
-  "blank text JPG fixture must genuinely fail visible glyph assertion at headline"
-);
-await assert.rejects(
-  () => assertVisibleGlyphsInRegions(rasterizePdfPage(blankRender.pdf), semanticBaselinePdfRaster, semanticRegions),
-  /glyph_assertion_failed:headline/,
-  "blank text PDF raster fixture must genuinely fail visible glyph assertion at headline"
+  () => renderProductionFinal(blankDoc),
+  /typography_copy_missing/,
+  "blank text fixture must fail closed before artifact encoding"
 );
 
 // Adversarial test: fixture with headline present but body missing must fail at body region
@@ -485,11 +478,10 @@ const blankBodyDoc: CardDocument = {
     { id: "body", role: "body", align: "center", text: "" }
   ]
 };
-const blankBodyRender = await renderProductionFinal(blankBodyDoc);
 await assert.rejects(
-  () => assertVisibleGlyphsInRegions(blankBodyRender.jpg, semanticBaselineRender.jpg, semanticRegions),
-  /glyph_assertion_failed:body/,
-  "missing body fixture must genuinely fail visible glyph assertion at body"
+  () => renderProductionFinal(blankBodyDoc),
+  /typography_copy_missing/,
+  "missing body fixture must fail closed before artifact encoding"
 );
 
 console.log("BLANK_TEXT_FIXTURE=FAIL_AS_EXPECTED");

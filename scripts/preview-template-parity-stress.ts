@@ -898,8 +898,8 @@ async function main() {
     "card-studio.tsx must preserve templateSource in checkout snapshot"
   );
   assert.ok(
-    studioSource.includes("setUsedCuratedFallback(true)"),
-    "card-studio.tsx must preserve curated fallback activation on error"
+    !studioSource.includes("setUsedCuratedFallback(true)"),
+    "card-studio.tsx must not restore curated presentation identity after an error"
   );
 
   // ============================================================================
