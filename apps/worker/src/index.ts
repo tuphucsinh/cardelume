@@ -183,6 +183,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       const fallbackSelection=selectNovelGenerationTemplates(catalog,{...(rankInput??{market:brief.market,locale:brief.locale,format:brief.format,feeling:brief.selectionContext?.normalizedFeeling??brief.feeling,occasion:brief.selectionContext?.normalizedOccasion??brief.occasion,hasPhoto:brief.hasPhoto,seenTemplateIdentities:brief.refreshContext?.seenTemplateIdentities??[]})});
       const isRefresh=Boolean(brief.refreshContext?.seenTemplateIdentities?.length||brief.refreshContext?.priorTemplateIds?.length);
       if(isRefresh&&fallbackSelection.unseenCount<3)throw new Error("ai_template_exhausted");
+      log("ai_recovery_selection_evaluated",{jobId:payload.data.jobId,unseenEligibleCount:fallbackSelection.unseenCount,exhaustionState:fallbackSelection.exhaustionState,candidateCount:fallbackSelection.candidates.length,candidateEligibility:fallbackSelection.candidates.map(item=>({templateId:item.template.id,status:item.template.status,launchStatus:item.template.launchStatus,health:item.template.health,photoMode:item.template.photoMode}))});
       if(fallbackSelection.candidates.length<3)throw new Error("ai_generation_safe_failure");
       const fallbackResult=buildDeterministicCreativeFallback(brief,fallbackSelection.candidates,{exhaustionState:fallbackSelection.exhaustionState,allowStagingCandidates:process.env.APP_ENV!=="production"});
       const fallbackRisks=creativeQualityRisks(fallbackResult,brief,rankInput.recentStyles,fallbackSelection.candidates);

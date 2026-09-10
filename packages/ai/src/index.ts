@@ -412,7 +412,7 @@ function semanticCopyForSlot(brief:GenerationBrief,slot:string,index:number){
   const detailCue=detail?(contract.language==="vi"?` Chi tiết bạn gửi: ${detail}.`:` Detail to carry through: ${detail}.`):"";
   if(contract.language==="vi"){
     const voices=[
-      {kicker:`DÀNH CHO ${semanticUpper(name)}`,headline:`${name}, một lời ${feelingLabel} cho ${occasionLabel}.`,body:`Một tấm thiệp ${feelingLabel} dành cho ${name}, viết riêng cho ${occasionLabel}.${relationshipCue}${detailCue}`},
+      {kicker:`DỊP ${semanticUpper(occasionLabel)}`,headline:`${name}, một lời ${feelingLabel} cho ${occasionLabel}.`,body:`Một tấm thiệp ${feelingLabel} dành cho ${name}, viết riêng cho ${occasionLabel}.${relationshipCue}${detailCue}`},
       {kicker:`${semanticUpper(feelingLabel)} & ${semanticUpper(occasionLabel)}`,headline:`${occasionLabel} này xứng đáng có lời nhắn dành riêng cho ${name}.`,body:`Gửi ${name} một lời nhắn ${feelingLabel}, để ${occasionLabel} giữ đúng câu chuyện của bạn.${relationshipCue}${detailCue}`},
       {kicker:`MỘT LỜI NHẮN RIÊNG`,headline:`Giữ lại ${occasionLabel} này bên ${name}, thật ${feelingLabel}.`,body:`Ba điều làm nên tấm thiệp này: ${name}, ${occasionLabel} và sắc thái ${feelingLabel}.${relationshipCue}${detailCue}`}
     ];
