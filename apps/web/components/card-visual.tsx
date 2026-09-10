@@ -150,6 +150,7 @@ export function CardVisual({
       data-renderer-template-key={presentation?.rendererTemplateKey}
       data-archetype={presentation?.archetype}
       data-visual-direction={resolvedDirection}
+      data-format={format}
     >
       <div className="material-grain" aria-hidden="true"/>
       <div className="card-art" aria-hidden="true">

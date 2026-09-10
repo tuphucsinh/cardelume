@@ -249,7 +249,8 @@ const initialSelected:SelectedDirection={
 
 function formatClass(value:string){
   if(value.startsWith("Square"))return"format-square";
-  if(value.startsWith("Landscape")||value.startsWith("Postcard"))return"format-landscape";
+  if(value.startsWith("Postcard"))return"format-postcard";
+  if(value.startsWith("Landscape"))return"format-landscape";
   return"format-portrait";
 }
 

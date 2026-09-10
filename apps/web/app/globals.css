@@ -390,6 +390,20 @@ html[data-dynamic-lighting="on"] .physical-card-surface::before{opacity:.065}
 .paper-card[lang="ko"] .card-copy h3{word-break:keep-all}
 .paper-card[lang="vi"] .card-copy h3{overflow-wrap:normal;word-break:normal}
 
+/* Physical output ratios are part of the preview contract, not decorative labels. */
+.paper-card.format-postcard{aspect-ratio:6/4}
+.paper-card.format-postcard .card-copy{padding:8% 9%}
+.paper-card .card-copy{min-width:0;overflow:hidden}
+.paper-card .card-copy h3,.paper-card .card-copy p{overflow-wrap:anywhere;hyphens:auto}
+.studio-submit{width:100%}
+@media(max-width:720px){
+  .brief-card,.finish-controls{min-width:0}
+  .studio-submit{position:relative;z-index:2}
+  .format-detail-grid,.compact-fields{min-width:0}
+  .print-layout-picker{min-width:0;overflow-x:auto;padding-bottom:4px}
+  .print-layout-choice{min-width:116px}
+}
+
 @media(max-width:720px){
   .mobile-sticky-cta{display:block}
   .language-native{display:none}
