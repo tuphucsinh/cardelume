@@ -1,4 +1,30 @@
-# CardeLume Master Plan — Regression Recovery
+# CardeLume Master Plan
+
+## CL2 — Generation Recovery & Premium UX — CURRENT AUTHORITY (2026-10-08)
+
+**Base:** `cl2-release` forked from `origin/main` = `e476ad71780413e0b5658f872d4dbdd6a9d32dd5` (deployed runtime SHA). Local `main` (`a73546a`) and its dirty tree are frozen (OWNER-01).
+**Status:** in progress. Active task queue: `tasks.md` §CL2-*.
+
+### Problem (verified 2026-10-08)
+
+Every realistic brief (recipient + detail) ended in `ai_generation_safe_failure`: the per-card literal copy contract was violated → `repairSemanticCopyContract` replaced all copy and overwrote `creativeThesis` with near-identical text → `creative_range`; the deterministic recovery copy then shared a relationship/detail suffix → `creative_range` again. Only EN/VI anchors existed, so 8 of 10 locales could never satisfy the contract. `@cardelume/ai` had a no-op package test and the E2E matrix asserted only "copy present", so the regression shipped. Provider, catalog and code were unchanged since the 2026-09-10 `20/20` PASS.
+
+### Approach (bounded optimality check)
+
+Loosening thresholds and deleting the deterministic repair were both rejected (they hide real duplicate trios or rely on the same robotic copy). Instead: make the contract set-level and locale-aware, make the repair minimal and same-language without overwriting per-direction thesis, exclude user-supplied inputs from similarity, replace the fallback copy bank with curated localized copy plus `generationSource` provenance, and wire a real generation-quality suite into the root gates. Thresholds `.62`/`.68` stay unchanged.
+
+### CL2 scope and gates
+
+Tasks: `CL2-CTRL-01`, `CL2-GEN-01/02`, `CL2-API-01`, `CL2-UX-01`, `CL2-UI-01/02/03`, `CL2-PERF-01`, `CL2-OPS-01`, `CL2-E2E-01`, `CL2-REL-01`, `CL2-DONE` (see `tasks.md`).
+Approval gates: candidate deploy + bounded live provider matrix (`CL2-E2E-01`), runtime `AI_MODEL` pin (`CL2-OPS-01`), push to `origin/main` (`CL2-REL-01`).
+Non-goals: payment activation, template approval, catalog expansion, DB migration, provider/governance framework, renderer rewrite, DNS/Cloudflare changes.
+
+### Owner decisions
+
+`OWNER-01` unpushed canonical WIP in the frozen dirty tree (template-admin routes, migration `0012`, 36 differing tracked files). `OWNER-02` zero production-approved templates; public runs `appEnv=staging`; paid launch `NO_GO`.
+
+### Historical — Regression Recovery (superseded, evidence only)
+
 
 **Baseline:** `0.4.3-step.17j` + public non-payment beta changes
 **Canonical editable plan:** `.ai/MASTER_PLAN.md`

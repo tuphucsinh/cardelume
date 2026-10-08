@@ -1,291 +1,98 @@
-# CardeLume WBS — Phase 21R Regression Recovery
+# CardeLume WBS — CL2 Generation Recovery & Premium UX (current authority)
 
 **Canonical editable plan:** `.ai/MASTER_PLAN.md`; `MASTERPLAN.MD` is a required byte-identical mirror.
-**Updated:** 2026-09-03
-**Default executor:** Agy (`gemini-3.8-flash-high`)
-**Reviewer:** Mika only where marked
-
+**Updated:** 2026-10-08 · **Base:** `cl2-release` forked from `origin/main` = `e476ad71780413e0b5658f872d4dbdd6a9d32dd5`
+**Default executor:** Agy (`gemini-3.8-flash-high`) · **Review:** fresh `reviewer` for CONTROLLED.
 Legend: `[ ]` pending · `[~]` active · `[x]` verified · `[!]` blocked.
 
-## Task standard
+Prior Phase 21R / CL-* history is preserved on the `origin/main` line and in `/home/pi5/hermes-artifacts/`; it is evidence, not an active queue. Local `main` (`a73546a`) and its dirty tree are frozen for OWNER-01 and are not a working surface.
 
-Each task must have one concern, a bounded primary area, focused verification and an explicit DoD. If a task cannot be independently verified, split it.
+Runner standard: inspect current source before editing; edit only files required by the task; preserve payment/security/template-approval/private-asset boundaries; run the declared focused checks and `git diff --check`; stop on a missing prerequisite, unrelated dirty-path collision or destructive ambiguity. Runner never edits `tasks.md`, `AGENTS.md`, `.ai/*`, `.state/*`.
 
-Agy must:
-- inspect current source before editing;
-- edit only files reasonably required by the current task;
-- preserve payment/security/template-approval/private-asset boundaries;
-- run focused tests and `git diff --check`;
-- stop on missing prerequisite, unrelated dirty-path collision or destructive ambiguity.
-
-If completing a task requires crossing into a materially unrelated package or domain, stop and return `REVIEW_REQUIRED`. Do not add a new governance or evidence framework.
-
-Mika reviews read-only and returns `PASS`, `PASS_WITH_NOTES` or `REWORK`.
-
-Current state: `PUBLIC_BETA=BLOCKED_BY_REGRESSION`, `PAYMENT_MODE=off`, Dodo/Oracle/Help-me-choose deferred.
-
-## Reconciled remote baseline — historical, not final RC evidence
-
-- Remote base: `origin/main=ff6660576864f04a54cc322f58b23ffd6e579e21`; its Phase 20/public non-payment/legal records are retained as historical inputs only.
-- Remote legal metadata is included only where it is additive and Owner-approved; it does not unlock payment, production promotion or paid entitlement.
-- This Phase 21R WBS remains the active recovery authority; all R6 evidence must be regenerated from the reconciled candidate tree.
+`V(file)` = `TSX_DISABLE_CACHE=1 node --import tsx scripts/<file>` (`.ts`) or `node scripts/<file>` (`.mjs`).
+Root gate = `pnpm run test && pnpm run lint && pnpm run typecheck && pnpm run build`.
+Evidence root: `/home/pi5/hermes-artifacts/cardelume-cl2/<TASK-ID>/`.
+Live provider jobs, candidate deploy, runtime config change and push to `origin/main` each require explicit owner approval.
 
 ---
 
-## R0 — Freeze and truth reset
+### [ ] [#CL2-CTRL-01] Control-plane bootstrap and durable state reconciliation
+Priority: P0 | Tier: control/FAST | Depends: [] | Owns (Mika): `cl2-release` control files + `.state/agent-state.json` | Locks: [control]
+**Goal:** one clean control authority on the deployed base without touching the frozen canonical dirty tree.
+**Changes:** create `cl2-release` control worktree from `e476ad7`; write the CL2 WBS; populate `.ai/PROJECT_TOOLING.md`; append CL2 decisions; refresh `HANDOFF.md`; reconcile `.state/agent-state.json` under lock (`remote_main_head`/`deployed_sha` → `e476ad7`, `canonical_head`/`BASE_SHA` → `e476ad7`, `active_task=null`, reservations empty).
+**DoD:** `MASTERPLAN.MD` byte-identical to `.ai/MASTER_PLAN.md`; state read-back equals observed Git; control commit created locally (push deferred to CL2-REL-01).
 
-### [#P21R0T01] Regression baseline
-**Status:** `[x]` · **Review:** none · **Depends:** none
-**Goal:** bind the current defects to exact HEAD and stop stale readiness claims.
-**Scope:** plan/status/evidence files only.
-**Work:** record current HEAD and dirty-state; record `PUBLIC_BETA=BLOCKED_BY_REGRESSION`; preserve all historical PASS evidence unchanged; recreate and verify `MASTERPLAN.MD` as the byte-identical mirror of `.ai/MASTER_PLAN.md`; keep `PAYMENT_MODE=off`.
-**Verify:** compare the two plan files byte-for-byte or by hash; run `git diff --check`; confirm no historical evidence file changed.
-**DoD:** `REGRESSION_BASELINE=PASS`.
+### [ ] [#CL2-GEN-01] Locale-aware set-level copy contract and minimal repair
+Priority: P0 | Tier: CONTROLLED | Depends: [CL2-CTRL-01] | Owns: `packages/ai/src/index.ts`, `packages/ai/package.json`, `scripts/generation-quality-contract.ts` | Locks: [ai-core]
+**Goal:** stop the deterministic safe-failure for realistic briefs and support all 10 locales without robotic or foreign rewrite.
+**Changes:** (1) set-level contract — occasion anchor in ≥2/3 cards, recipient (if supplied) in ≥2/3, feeling satisfied by anchors at set level (≥1 card), detail in ≥1 card; remove `moment`/`glow` from generic-collapse; keep cliché and `direction_copy_duplicate`; (2) locale-aware anchors for en, vi, ja, ko, zh, es, fr, de, pt, it; (3) `repairSemanticCopyContract` minimal + same-language: patch only the missing anchor in that card, never overwrite `creativeThesis`/`customerRationale`, never inject a different language; (4) diversity jaccard computed with user inputs stripped; (5) director and critic prompts state the set-level contract; (6) wire `packages/ai` `test` to the new suite.
+**DoD:** `pnpm --filter @cardelume/ai test` exits 0 with the new suite; the suite fails when the repair fix is reverted (negative control); natural-copy fixtures for 10 locales pass; G1–G4/P1/P2 replicas raise no `creative_range` from repair alone; negative fixtures still flagged; thresholds `.62`/`.68` unchanged; root test/lint/typecheck PASS; `git diff --check`; fresh CONTROLLED review PASS.
 
-### [#P21R0T02] Freeze deferred lanes
-**Status:** `[x]` · **Review:** none · **Depends:** R0T01 · **Parallel:** yes
-**Goal:** prevent recovery work from activating unrelated features.
-**Scope:** deferred feature flags and recovery boundaries.
-**Work:** confirm Help me choose remains OFF, Dodo remains OFF/deferred, and Oracle is not a recovery dependency; add no new product scope.
-**Verify:** payment-off/deferred-feature focused checks.
-**DoD:** `RECOVERY_SCOPE_FROZEN=PASS`.
+### [ ] [#CL2-GEN-02] Premium deterministic fallback and recovery provenance
+Priority: P0 | Tier: CONTROLLED | Depends: [CL2-GEN-01] | Owns: `packages/ai/src/index.ts`, `packages/ai/src/fallback-copy.ts` (new), `packages/card-schema/src/index.ts`, `apps/worker/src/index.ts`, `scripts/generation-quality-contract.ts` | Locks: [ai-core]
+**Goal:** the customer-facing recovery path is premium-grade, localized and honest.
+**Changes:** localized curated copy bank (en/vi full; 8 others concise) keyed by occasion family × slot voice; name optional; detail woven naturally into exactly one card; relationship = tone only; capitalized headlines; per-template `creativeThesis`; optional `GenerationResult.generationSource: "ai"|"recovery"`; worker sets it and logs `generationSource` + `criticUsed`.
+**DoD:** every matrix brief × 10 locales yields `creativeQualityRisks = []` for the deterministic fallback with `portfolioV2AllTemplates` and with the live recovery sets; forbidden strings absent (`Detail to carry through`, `This is for your`, `Người nhận là`, `Chi tiết bạn gửi`, lowercase-start headline, English tokens inside VI copy); detail appears once; `generation-fallback`/`bounded-recovery`/diversity scripts PASS; root gates; fresh review PASS.
 
----
+### [ ] [#CL2-API-01] Customer-safe status payload and template-events 403
+Priority: P1 | Tier: CONTROLLED | Depends: [CL2-GEN-02] | Owns: `apps/web/app/api/generate/[jobId]/route.ts`, `apps/web/app/api/templates/events/route.ts`, `apps/web/lib/template-event-token.server.ts`, `scripts/api-payload-hygiene-stress.ts` (new) | Locks: []
+**Goal:** stop leaking internal reasoning/scores to the browser; restore the template-events endpoint used on every result.
+**Changes:** whitelist direction fields returned to the browser (drop `creativeThesis`, `confidence`, `noveltyScore`, `wowScore`, `riskCodes`); reproduce the 403 with a captured UI event on the candidate and fix the root cause without weakening token verification.
+**DoD:** hygiene stress asserts dropped fields absent, valid event → 2xx, forged token → 4xx; `card-studio` consumers unchanged (typecheck); root gates; fresh review PASS.
 
-## R1 — Canonical preview/final rendering
+### [ ] [#CL2-UX-01] Customer copy, recovery UX and style names
+Priority: P1 | Tier: STANDARD | Depends: [CL2-GEN-02] | Owns: `apps/web/components/card-studio.tsx`, `apps/web/i18n/messages.ts`, `apps/web/i18n/launch-copy.ts`, `apps/web/i18n/display-copy.ts`, `scripts/cl2-copy-ux-stress.ts` (new) | Locks: []
+**Goal:** no mixed-language or robotic customer copy; every resolved style shows its real name.
+**Changes:** English `footerTagline`; recovery copy is system-side, no `anh`/`Brief`, with an explicit retry action; show the fallback notice when `generationSource==="recovery"`; natural VI studio title and VI recipient placeholder; display-name mapping for all active/candidate/experiment templates × 10 locales (no `Direction 0N` when a name exists); remove the `stagingNotice` customer string.
+**DoD:** copy stress (no Italian in EN, no English leak in VI, no placeholder) + customer-copy-localization + corrective-i18n/polish PASS; browser check EN/VI 390/1440; root gates.
 
-### [#P21R1T01] Canonical presentation contract
-**Status:** `[x]` · **Review:** none · **Depends:** R0T01
-**Goal:** define one exact server-owned presentation contract for result → Studio preview → final JPG/PDF.
-**Scope:** `card-schema`, managed templates and renderer interfaces plus focused tests.
-**Work:** resolve and carry `templateId`, `templateVersionId`, exact `rendererTemplateKey` or equivalent render identity, customer-facing template/style identity, visual/layout/archetype data, typography identity and photo compatibility/state. Keep the contract small and reusable; `visualDirection` alone is not sufficient identity.
-**Constraints:** the browser cannot author approval or renderer identity; no DB migration without `REVIEW_REQUIRED`.
-**Verify:** schema round-trip, incompatible version rejection and exact managed version preservation.
-**DoD:** `CANONICAL_PRESENTATION_CONTRACT=PASS`.
+### [ ] [#CL2-UI-01] Card typography and ornament fit with preview/export parity
+Priority: P1 | Tier: STANDARD | Depends: [CL2-CTRL-01] | Owns: `apps/web/app/globals.css` (card typography/ornament rules), `apps/web/components/card-visual.tsx`, `apps/web/components/magic-typography.ts`, `packages/renderer/src/template-layout.ts`, `scripts/preview-template-parity-stress.ts`, `scripts/renderer-export-stress.ts` | Locks: [candidate-browser]
+**Goal:** no word broken mid-word and no ornament intersecting text, in preview and in exported files.
+**Changes:** replace `overflow-wrap:anywhere` with word-safe wrapping plus size fitting; reserve or move ornament space; mirror in the renderer layout; CJK/hangul rules untouched.
+**DoD:** DOM check over 16 templates × 5 formats × EN/VI long names shows zero intra-word breaks and zero ornament∩text; preview-parity + renderer-export stress PASS; JPG/PDF visual check; screenshots 390/768/1440.
 
-### [#P21R1T02] Separate slot ID from customer style identity
-**Status:** `[x]` · **Review:** none · **Depends:** R1T01
-**Goal:** slot=`midnight` cannot force the label “Midnight Lume” for a non-midnight selected template.
-**Scope:** direction resolution, managed template metadata and customer-facing labels.
-**Work:** use slot only for routing; populate name/material/badge from the exact managed template; require approved `templateId + templateVersionId` for every customer-visible direction; fail closed on missing identity.
-**Verify:** adversarial slot/template mismatch test and missing-identity rejection at final beta export.
-**DoD:** `TEMPLATE_LABEL_IDENTITY=PASS`.
+### [ ] [#CL2-UI-02] Homepage proof, gallery and footer email
+Priority: P1 | Tier: STANDARD | Depends: [CL2-UX-01] | Owns: `apps/web/components/product-proof-section.tsx`, `apps/web/app/page.tsx` | Locks: [candidate-browser]
+**Goal:** the marketing proof surface looks premium and leaks nothing internal.
+**Changes:** size proof cards inside their article so labels are never covered; remove `Curated design · exact template identity · Ref · ID · v`; ≥6 distinct existing copy keys across the 8 gallery samples; wrap the footer support email in `<!--email_off-->` so Cloudflare stops rewriting the `mailto:`.
+**DoD:** card rect ∩ label rect = ∅ at 390/768/1440; no `Ref:`/`ID:`/`template identity`; ≥6 distinct gallery headlines; no CSP console error; public HTML retains `mailto:` (verified in CL2-E2E-01); screenshots.
 
-### [#P21R1T03] Preview consumes canonical presentation
-**Status:** `[x]` · **Review:** none · **Depends:** R1T01,R1T02
-**Goal:** remove generic `visualDirection` preview drift.
-**Scope:** Studio preview and the server-owned presentation resolver.
-**Work:** make preview consume the one resolved presentation contract used by final export, including the exact managed template/version and layout/art/typography data. Do not create a second preview source or let the browser author renderer identity.
-**Verify:** trace the same exact template/version from AI result through preview to export; use editorial/dark/tactile/photo fixtures.
-**DoD:** `PREVIEW_TEMPLATE_PARITY=PASS`.
+### [ ] [#CL2-UI-03] Studio form and accessibility polish
+Priority: P2 | Tier: STANDARD | Depends: [CL2-UI-01, CL2-UX-01] | Owns: `apps/web/app/globals.css` (studio/form/footer rules), `apps/web/components/card-studio.tsx` (markup/aria only) | Locks: [candidate-browser]
+**Goal:** the brief form is comfortable and accessible on all three viewports.
+**Changes:** full-width detail textarea, remove the reserved empty gap in the optional panel; VI relationship placeholder not truncated at 768; footer links ≥44px tap target on mobile; hidden photo input not exposed before H1.
+**DoD:** screenshots 390/768/1440 EN/VI; tap-target probe ≥44px; form labels/aria check; root gates.
 
-### [#P21R1T04] Renderer/font/runtime ownership
-**Status:** `[x]` · **Review:** none · **Depends:** R1T01 · **Parallel:** yes
-**Goal:** beta export and worker use an intentional renderer/font runtime.
-**Scope:** package manifests, runtime imports and required font/native dependencies.
-**Work:** declare renderer dependencies where imported; remove root-hoist reliance; align required fonts/native dependencies and use the canonical renderer runtime for beta export and worker. If ownership cannot be proven, stop with `REVIEW_REQUIRED`.
-**Verify:** frozen install/build, production-like web export boot and no silent font fallback.
-**DoD:** `TYPOGRAPHY_RUNTIME_PARITY=PASS`.
+### [ ] [#CL2-PERF-01] Fonts and cumulative layout shift
+Priority: P1 | Tier: STANDARD | Depends: [CL2-CTRL-01] | Owns: `apps/web/app/layout.tsx`, `apps/web/app/font-metrics.css` (new) | Locks: [candidate-browser]
+**Goal:** no layout jump on load and no unused CJK font payload for Latin locales.
+**Changes:** size-adjusted fallback faces / preload for the Vietnamese subsets; load CJK font CSS only for ja/ko/zh.
+**DoD:** CLS ≤ 0.1 for {home,create}×{390,768,1440}×{en,vi} (2 samples, median if spread >5%); VI tablet /create from ~0.35 → ≤0.1; LCP ≤ baseline+10%; no CJK font CSS requested on en/vi; ja/ko/zh glyph smoke renders.
 
-### [#P21R1G01] Mika R1 checkpoint
-**Status:** `[ ]` · **Executor:** Mika · **Depends:** R1T03,R1T04
-Review exact template/version identity, one-source presentation contract and security boundaries.
-**Pass:** no P0/P1.
+### [ ] [#CL2-OPS-01] Pin the AI model version (runtime config) — APPROVAL REQUIRED
+Priority: P1 | Tier: CONTROLLED | Depends: [CL2-GEN-02] | Owns: `/home/pi5/.config/cardelume/run-worker.sh` (AI_MODEL only), `config/environments/staging.env.example`, `config/environments/production.env.example` | Locks: [staging-runtime, provider-canary]
+**Changes:** look up the current stable pinned Gemini flash-lite model id (official docs, at execution time); byte backup + sha256; set `AI_MODEL`; restart worker inside the E2E window.
+**DoD:** bounded canary 2 jobs reach `ready`; telemetry model equals pinned id; rollback = restore exact bytes + restart.
 
----
+### [ ] [#CL2-E2E-01] Live candidate golden matrix — APPROVAL REQUIRED
+Priority: P0 | Tier: CONTROLLED | Depends: [CL2-GEN-01, CL2-GEN-02, CL2-API-01, CL2-UX-01, CL2-UI-01, CL2-UI-02, CL2-UI-03, CL2-PERF-01, CL2-OPS-01] | Owns: none in repo (harness under evidence dir) | Locks: [staging-runtime, provider-canary, browser, candidate-browser]
+**Matrix:** 12 briefs × {desktop 1440, mobile 390}; EN/VI heavy (birthday+detail, anniversary+detail, thank-you, congratulations, new baby, custom occasion+feeling, photo) + one each ja/ko/zh/es/fr/de/pt/it; Show More ×2 on 4 cases; JPG+PDF on 4.
+**DoD:** ready=100%, safe_failure=0, AI-primary ≥85%, recovery ≤15%, critic ≤38%, 3 distinct identities + distinct copy per result, no meta labels/mixed language; A3/A4/A5 browser checks on the deployed candidate SHA; correlated with worker logs + `generation_ai_usage`. On failure: one bounded repair round, else HALTED + rollback runtime to `e476ad7`.
 
-## R2 — Renderer/export semantic correctness
+### [ ] [#CL2-REL-01] Fresh independent review and publish — APPROVAL REQUIRED
+Priority: P0 | Tier: CONTROLLED | Depends: [CL2-E2E-01] | Owns: Mika integration WT only | Locks: [staging-runtime]
+**DoD:** fresh `reviewer` PASS bound to the exact candidate SHA; fast-forward push of the release line to `origin/main`; read back `origin/main` = runtime = public health SHA; `PAYMENT_MODE=off`; rollback target `e476ad7`.
 
-### [#P21R2T01] Real renderer stress
-**Status:** `[x]` · **Review:** none · **Depends:** R1G01,R1T04
-**Goal:** renderer tests must execute the real production raster path.
-**Scope:** renderer/export stress and its focused test helpers.
-**Work:** run the actual Resvg/production rasterizer; a raster stub that ignores SVG/content may remain only as a narrow unit helper and never as release evidence. Retain dimensions/DPI/MediaBox/determinism where valid.
-**Verify:** a fixed good fixture passes and a controlled text/font break fails, without leaving a mutation behind.
-**DoD:** `REAL_RENDER_STRESS=PASS`.
-
-### [#P21R2T02] Visible glyph/content assertions
-**Status:** `[x]` · **Review:** none · **Depends:** R2T01
-**Goal:** detect blank headline/body despite valid MIME/size.
-**Scope:** semantic artifact assertions for JPG and rasterized PDF pages.
-**Work:** assert that expected headline/body regions contain visible card content for Latin/Vietnamese, Japanese, Korean and Simplified Chinese. Calibrate one simple deterministic threshold from fixed good/bad fixtures during implementation; do not tune it against candidate output.
-**Verify:** a good JPG and rasterized PDF fixture pass; blank-text and missing-font fixtures fail.
-**DoD:** `GLYPH_CONTENT_ASSERTIONS=PASS`.
-
-### [#P21R2T03] Preview-final parity harness
-**Status:** `[x]` · **Review:** none · **Depends:** R1G01,R1T03,R2T01
-**Goal:** catch wrong-template/layout output after selection.
-**Scope:** preview/final parity harness and fixed presentation fixtures.
-**Work:** compare the canonical presentation identity and stable structural output for at least four managed families. Use a simple fixture-calibrated comparator; do not add arbitrary pixel/perceptual thresholds to the plan.
-**Verify:** deliberate template/version mismatch and typography shift fail.
-**DoD:** `PREVIEW_FINAL_PARITY=PASS`.
-
-### [#P21R2T04] Real beta export matrix
-**Status:** `[x]` · **Review:** none · **Depends:** R1G01,R1T04,R2T02,R2T03
-**Goal:** qualify `/api/beta/export` in the actual web runtime.
-**Scope:** beta export route and semantic export matrix.
-**Work:** cover JPG/PDF × portrait-5x7, folded-5x7, square-5x5, landscape-7x5, postcard-6x4 × Latin/Vietnamese, Japanese, Korean and Simplified Chinese × photo/no-photo, plus one Finish-state case with edited customer text.
-**Assert:** exact approved `templateId + templateVersionId`, visible headline/body content in JPG and rasterized PDF, page/dimension correctness, wrong-template rejection, no private URL/token leak and no order/PAID/entitlement mutation. Missing exact identity must fail closed; it may not derive a template from slot ID, `visualDirection` or a direction→template table.
-**Verify:** execute the real web runtime matrix; the good fixture passes, blank-text and wrong-template fixtures fail, and both JPG/PDF are checked.
-**DoD:** `BETA_EXPORT_RUNTIME=PASS`.
+### [ ] [#CL2-DONE] Closure
+Depends: [CL2-REL-01] | Mika. HANDOFF ≤15 lines, terminal state, worktrees/disposable roots reconciled, anh-owned dirty tree reported untouched.
 
 ---
 
-## R3 — AI exactly-three + true diversity
+## Owner decisions (non-blocking; not agent-executable)
 
-### [#P21R3T01] Provider capability + structured output
-**Status:** `[x]` · **Review:** none · **Depends:** R0T02 · **Parallel:** yes
-**Goal:** make the known AI verification path executable and handle the real invalid-count failure.
-**Scope:** existing AI provider/parser path and its focused verification.
-**Work:** repair the known execution failure in the current verification path (`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` at `packages/ai/src/index.ts:35`); verify valid structured response, invalid JSON, invalid direction count and the real `ai_direction_count_invalid` class. Use native structured output when the current provider supports it cleanly; otherwise retain the strict parser. Do not add a generic provider framework.
-**Verify:** valid, malformed JSON, wrong count, invented ID/version, oversized response and timeout.
-**DoD:** `AI_PROVIDER_CONTRACT=PASS`.
-
-### [#P21R3T02] Bounded exactly-three repair/fallback
-**Status:** `[x]` · **Review:** none · **Depends:** R3T01
-**Goal:** always reach exactly 3 valid directions or fail safely without retry loops.
-**Scope:** generation repair/fallback path and direction identity propagation.
-**Work:** bound AI calls and retries; choose the exact maximum call count from the existing pipeline during implementation, with no unbounded retry. Use one server-owned end-to-end deadline/budget; when remaining budget is insufficient, stop AI work and use a safe deterministic fallback. Every customer-visible normal or fallback direction must carry an approved `templateId + templateVersionId`; never bypass eligibility or approval.
-**Verify:** provider returns 0/1/2/4, duplicates, invalid IDs/versions, timeout and failed repair; missing fallback identity fails closed.
-**DoD:** `AI_EXACTLY_THREE=PASS`, `AI_BOUNDED_FAILURE=PASS`.
-
-### [#P21R3T03] Strong final diversity gate
-**Status:** `[x]` · **Review:** none · **Depends:** R3T02,R1T01
-**Goal:** prevent “same card in three colors”.
-**Scope:** final direction validation/repair and creative diversity scoring.
-**Work:** hard-fail duplicate exact template/version, misleading identity, incompatible template, invalid photo requirement and effectively duplicate customer directions where valid alternatives exist. Treat material, color, energy and composition differences as creative scoring/repair signals rather than rigid universal quotas. Preserve: hard constraints veto, soft scores inform, premium AI makes the final creative decision.
-**Repair:** use the existing critic/template-swap path; if valid alternatives do not exist, return a safe fallback/failure rather than a misleading trio.
-**Verify:** adversarial all-ivory, same-archetype, duplicate-family, invalid-photo and small-pool cases.
-**DoD:** `CUSTOMER_DIRECTION_DIVERSITY=PASS`.
-
-### [#P21R3T04] Complete fallback occasions
-**Status:** `[x]` · **Review:** none · **Depends:** R3T02 · **Parallel:** yes
-**Goal:** every UI occasion has a correct deterministic fallback with exact managed identity.
-**Scope:** fallback occasion mapping and enum coverage.
-**Work:** cover New Baby/Other and any other missing values; add enum-coverage test; ensure each fallback contains an approved `templateId + templateVersionId`.
-**Verify:** every supported occasion resolves to an approved fallback and missing identity fails closed.
-**DoD:** `FALLBACK_OCCASION_COVERAGE=PASS`.
-
-### [#P21R3T05] Shared generation deadline
-**Status:** `[x]` · **Review:** none · **Depends:** R3T02
-**Goal:** browser fallback cannot race an abandoned expensive worker path.
-**Scope:** server-owned generation deadline and budget propagation.
-**Work:** enforce one end-to-end deadline across director→expand→critic; reserve fallback budget; stop launching phases when budget is insufficient; use bounded calls/no unbounded retries and safe exact-identity fallback; record only existing cancellation telemetry needed to diagnose the path.
-**Verify:** normal, slow-first-call, expansion, critic and timeout-before-fallback.
-**DoD:** `GENERATION_DEADLINE_BUDGET=PASS`.
-
-### [#P21R3G01] Mika R3 quality checkpoint
-**Status:** `[x]` · **Executor:** Mika · **Depends:** R3T03,R3T04,R3T05
-Review ≥8 representative briefs across photo/no-photo, feelings and scripts.
-**Pass:** no misleading label, fallback mismatch or sibling-trio P0/P1.
-
----
-
-## R4 — Studio/beta UX cleanup
-
-### [#P21R4T01] True 3-step Studio hierarchy
-**Status:** `[x]` · **Review:** none · **Depends:** R1T02
-**Goal:** Brief → Choose → Finish/Download, one dominant hierarchy/action per phase.
-**Scope:** Studio flow and customer-facing selected-style presentation.
-**Work:** preserve focus/live-region/keyboard; show the resolved style identity; no template-editor/marketplace behavior.
-**Verify:** 390×844, 768×1024, 1440×900, keyboard, 200%, reduced motion.
-**DoD:** `STUDIO_3_STEP_HIERARCHY=PASS`.
-
-### [#P21R4T02] Payment-off messaging consistency
-**Status:** `[x]` · **Review:** none · **Depends:** R0T02 · **Parallel:** yes
-**Goal:** homepage/Studio/finish never contradict “free beta” vs “pay”.
-**Scope:** payment-mode customer messaging only.
-**Work:** propagate authoritative payment mode to marketing/Studio; beta OFF uses free-download copy; ON retains future one-time-payment copy without activating payment.
-**Verify:** OFF/ON snapshots and no contradictory customer strings.
-**DoD:** `BETA_MESSAGING_CONSISTENT=PASS`.
-
-### [#P21R4T03] Physical effects default OFF
-**Status:** `[x]` · **Review:** none · **Depends:** none · **Parallel:** yes
-**Goal:** physical effects cannot surprise customers or request motion permission by default.
-**Scope:** Studio physical-effect preferences and permission path.
-**Work:** master/haptics/gyro/lighting default false; explicit opt-in; no motion permission before user action; preserve stored preference.
-**Verify:** fresh profile, saved-on profile, reduced motion and permission path.
-**DoD:** `PHYSICAL_EFFECTS_DEFAULT_OFF=PASS`.
-
-### [#P21R4T04] Customer copy localization cleanup
-**Status:** `[x]` · **Review:** none · **Depends:** R1T02 · **Parallel:** yes
-**Goal:** remove hardcoded launch copy from recovered customer journey.
-**Scope:** customer-facing localization and template metadata labels.
-**Work:** move customer-visible gallery/result/beta labels to i18n; safe locale fallback for template metadata.
-**Verify:** all 10 locales and placeholder/overflow smoke.
-**DoD:** `CUSTOMER_COPY_LOCALIZED=PASS`.
-
-### [#P21R4G01] Mika R4 visual/UX checkpoint
-**Status:** `[x]` · **Executor:** Mika · **Depends:** R4T01,R4T02,R4T03,R4T04
-Review desktop+mobile hierarchy, premium feel, exact style identity and beta clarity.
-**Pass:** no P0/P1.
-
----
-
----
-
-## R6 — Regression acceptance
-
-### [#P21R6T01] Clean root/focused gates
-**Status:** `[x]` · **Review:** none · **Depends:** R1G01 (architecture checkpoint), R2T04 (semantic renderer/export gate), R3G01 (quality checkpoint), R4G01 (UX checkpoint), R5T03 (release gate)
-**Goal:** join the completed workstream gates before final E2E acceptance.
-**Scope:** root and focused verification only; no new product behavior.
-**Work:** run root test, lint, typecheck, build, real renderer/export stress, AI/diversity stress and the release product gate.
-**Verify:** all required checks pass on the exact candidate SHA; a `REWORK` checkpoint blocks acceptance.
-**DoD:** all PASS on the exact candidate SHA; a `REWORK` checkpoint blocks acceptance.
-
-### [#P21R6T02] Primary semantic E2E matrix
-**Status:** `[x]` · **Review:** none · **Depends:** R6T01
-**Goal:** prove the repaired customer journey across the primary browser and export matrix.
-**Scope:** local/staged runtime, browser journey and semantic JPG/PDF output.
-**Work:** execute the primary browser and export matrix below on the candidate.
-**Matrix:** 390×844 / 768×1024 / 1440×900; reduced motion; 200%; en/vi/ja/ko/zh; 5 formats; photo/no-photo; AI normal + bounded fallback; JPG/PDF.
-**Assert:** exact template/version parity, true 3-way diversity, visible/correct text, no JS/runtime error, no overflow/action block, no paid mutation, no private leak.
-**Verify:** execute the matrix on the candidate; every listed assertion passes.
-**DoD:** `PRIMARY_E2E_MATRIX=PASS`.
-
-### [#P21R6T03] Remaining locale/failure smoke
-**Status:** `[x]` · **Review:** none · **Depends:** R6T02
-**Goal:** prove recovery behavior outside the primary launch-locale matrix.
-**Scope:** remaining launch locales and bounded failure states.
-**Work:** execute the remaining locale and failure-state smoke cases below.
-**Locales:** es/fr/de/pt/it.
-**Failures:** provider timeout, invalid count, photo error, export unavailable, rate limit.
-**Verify:** no placeholder/overflow P0/P1, misleading identity or broken recovery.
-**DoD:** no placeholder/overflow P0/P1, misleading identity or broken recovery.
-
-### [#P21R6T04] Public repaired-beta smoke
-**Status:** `[x]` · **Result:** `BLOCKED_EXTERNAL_PREREQUISITE` · **Depends:** R6T02,R6T03
-**Goal:** verify an already Owner-approved deployed candidate, not local source and not a new deployment.
-**Scope:** public repaired-beta smoke only.
-**Work:** homepage → brief → 3 directions → choose → finish → JPG/PDF, desktop+mobile.
-**Verify:** approved deployed SHA, TLS/security, live/ready/worker, semantic downloaded files and payment disabled before mutation.
-**Constraint:** Agy must not deploy or modify Cloudflare, DNS, Pi5 routing, Oracle or payment. If no Owner-approved deployed candidate exists, return `BLOCKED_EXTERNAL_PREREQUISITE`. No Dodo or unrelated VOrigin changes.
-**DoD:** `PUBLIC_PAYMENT_OFF_SMOKE=PASS` or the explicit blocked result above.
-
-### [#P21R6G01] Mika final product review
-**Status:** `[x]` · **Result:** `PASS_WITH_NOTES` · **Executor:** Mika · **Depends:** R6T04
-Review 3 normal journeys + 1 fallback, desktop+mobile, preview/download parity, premium quality and beta clarity.
-**Pass:** `PASS`/`PASS_WITH_NOTES` with no P0/P1.
-
-### [#P21R6T05] Close regression
-**Status:** `[ ]` · **Review:** none · **Depends:** R6G01
-**Goal:** close the regression only after independent final acceptance.
-**Scope:** plan/status/evidence closure; no product-code changes.
-**Work:** create final candidate-bound evidence; update plan/tasks/project context; preserve old evidence; remove the beta block only if every R6 gate passes. `PUBLIC_BETA_READY_WITH_PAYMENT_OFF=PASS` is allowed only after R6 acceptance, never before it.
-**Verify:** R6G01 is PASS or PASS_WITH_NOTES with no P0/P1, all R6 gates are PASS, and payment/deferred statuses remain unchanged.
-**DoD:**
-```text
-PHASE_21R PASS
-PUBLIC_BETA_READY_WITH_PAYMENT_OFF PASS
-PAYMENT_MODE OFF
-DODO DEFERRED_BY_OWNER
-ORACLE_FAILOVER DEFERRED_BY_OWNER_INFRA
-PAID_LAUNCH NO_GO
-```
-
----
+- **OWNER-01:** canonical dirty tree holds unpushed work absent from `origin/main` (template-admin activity/preview/auth routes, migration `0012_template_admin_activity.sql`, 36 differing tracked files, prior CL closure control records). Decide integrate / archive / discard.
+- **OWNER-02:** production eligibility = 0 approved templates (7 candidate / 12 experiment / 9 hold); public runs `appEnv=staging`. Paid/production launch stays `NO_GO` until a flagship set passes human/IP/Golden approval.
 
 ## Deferred queue — do not execute
-
-Dodo/payment/recovery · Oracle failover · Help me choose · Final Golden/N=30 · accounts/subscriptions/social/physical fulfilment · unrelated catalog expansion.
+Dodo/payment activation · Oracle failover · Help me choose · accounts/subscriptions · catalog expansion · DNS/Cloudflare zone changes.

@@ -2,7 +2,19 @@
 
 This file mixes confirmed open defects and deliberately unproven runtime gates. Do not call a runtime gate a source bug unless evidence supports it.
 
-## P0 / launch blockers
+## CL2 open defects (2026-10-08, verified)
+
+- **P0 — generation fails for realistic briefs.** `ai_generation_safe_failure` on 4/4 realistic briefs. Copy contract (per-card literal anchors) → `repairSemanticCopyContract` overwrites `creativeThesis` → `creative_range`; deterministic recovery copy shares a suffix → `creative_range`. Fix: `CL2-GEN-01`, `CL2-GEN-02`.
+- **P0 — 8/10 locales unsupported.** Contract anchors exist only for en/vi; natural es/ja/fr copy always violates. Fix: `CL2-GEN-01`, `CL2-GEN-02`.
+- **P1 — recovery copy is robotic/mixed-language** and shown with no notice. Fix: `CL2-GEN-02`, `CL2-UX-01`.
+- **P1 — internal `creativeThesis` and model scores returned to the browser.** Fix: `CL2-API-01`.
+- **P1 — `/api/templates/events` returns 403 on every result.** Fix: `CL2-API-01`.
+- **P1 — UI:** proof cards overlap their labels; ornament intersects headline; words break mid-word; EN page shows Italian tagline; internal `Ref`/`ID` line; VI error copy says "anh"/"Brief"; style names show `Direction 0N`. Fix: `CL2-UX-01`, `CL2-UI-01/02/03`.
+- **P1 — VI tablet `/create` CLS ≈ 0.35–0.37** (>= 0.1 target). Fix: `CL2-PERF-01`.
+- **P1 — provider is the unpinned alias `gemini-flash-lite-latest`.** Fix: `CL2-OPS-01`.
+- **Gate — `@cardelume/ai` package test was a no-op;** the P0 shipped past root gates. Fix: `CL2-GEN-01`.
+
+## Historical — P0 / launch blockers
 
 ### Runtime/build
 - `pnpm-lock.yaml` absent by design; Step18 must create/review a new candidate lock.

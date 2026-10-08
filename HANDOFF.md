@@ -1,16 +1,9 @@
 # HANDOFF — CardeLume
 
-- Public non-payment technical beta: `PASS` with payment OFF.
-- Public URL: `https://cardelume.vorigin.vn` → isolated `127.0.0.1:3010`.
-- Public health: `/health/live`, `/health/ready`, `/health/worker` all `200`.
-- Public security: CSP/HSTS/frame/nosniff/Referrer PASS; anonymous admin `403`; no CORS/R2/secret markers.
-- Public journey: brief → generation → 3 directions → select → finish → JPG/PDF; both exports `200`.
-- Primary OpenCode Go `gpt-5.6-luna` attempt returned `ai_direction_count_invalid`; bounded fallback completed once; no retry loop.
-- Console JS errors: `0`; desktop `1440x900` and mobile `390x844` smoke usable.
-- Finish focus fix verified: heading top `90px`, sticky header bottom `71px`, no coverage.
-- Payment boundary: `503 payment_disabled`; no Dodo/order/PAID/entitlement bypass.
-- `vorigin.vn`, `www.vorigin.vn`, ports `8080/8081`, and `/srv/vorigin` unchanged.
-- Evidence: `.ai/evidence/public-beta-20260903.json` plus `/home/pi5/hermes-artifacts/browser-evidence/cardelume-public-20260903/`.
-- Phase 20 remains `DONE — PASS`; Dodo `DEFERRED_BY_OWNER`; Oracle `DEFERRED_BY_OWNER_INFRA`.
-- Legal: Owner approved; `LEGAL_CONTENT_APPROVED=true`, `LEGAL_NATIVE_COPY=APPROVED`, `PUBLIC_BETA_READY_WITH_PAYMENT_OFF=PASS`.
-- Next: keep payment OFF and Dodo deferred; do not reopen technical gates, activate payment, or merge `main`.
+- Phase CL2 (Generation Recovery & Premium UX) in progress. Base: `cl2-release` forked from `origin/main` = `e476ad71780413e0b5658f872d4dbdd6a9d32dd5`.
+- Deployed runtime `/home/pi5/projects/cardelume-fastship-clone` = `e476ad7`; public live/ready/worker `200`; `PAYMENT_MODE=off`.
+- Known P0 at CL2 start: every realistic brief ends in `ai_generation_safe_failure` (copy contract → repair → `creative_range`); 8/10 locales affected. Diagnosis: `/home/pi5/hermes-artifacts/cardelume-review-20261008/`.
+- Control authority for CL2 is the `cl2-control` worktree on `cl2-release`; local `main` (`a73546a`) and its dirty tree are frozen (OWNER-01).
+- Approval gates pending: candidate deploy + live provider matrix (CL2-E2E-01), runtime `AI_MODEL` pin (CL2-OPS-01), push to `origin/main` (CL2-REL-01).
+- Owner decisions pending: OWNER-01 unpushed canonical WIP; OWNER-02 production eligibility = 0 approved templates.
+- Payment remains off; paid launch `NO_GO`; nothing pushed to `origin/main` by CL2.
