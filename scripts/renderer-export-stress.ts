@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import {
   CARD_BODY_MIN_CSS_PX,
@@ -75,6 +77,29 @@ function doc(format: CardDocument["format"], locale = "en"): CardDocument {
   };
 }
 
+
+// Guard: every character emitted as SVG text must exist in a configured face. A text glyph
+// with no glyph in any face rasterises as missing-glyph bars - that is exactly how the star
+// signature mark broke silently. Catch it at the source, not in a screenshot.
+const glyphCoverage = (() => {
+  const cp = new Set<number>();
+  const p = fileURLToPath(new URL("../packages/renderer/fonts/metrics.json", import.meta.url));
+  if (existsSync(p)) {
+    for (const face of Object.values(JSON.parse(readFileSync(p, "utf8"))) as { chars: Record<string, unknown> }[]) {
+      for (const k of Object.keys(face.chars)) cp.add(Number(k));
+    }
+  }
+  return cp;
+})();
+function assertTextCovered(svg: string, locale: string) {
+  if (/^(ja|ko|zh)/.test(locale)) return; // CJK faces come from the system fonts-noto-cjk package
+  const bad = new Set<string>();
+  for (const m of svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)) {
+    for (const ch of m[1]) if (!glyphCoverage.has(ch.codePointAt(0)!)) bad.add(ch);
+  }
+  assert.equal(bad.size, 0, `SVG text uses characters no configured face provides: ${[...bad].map(c => "U+" + c.codePointAt(0)!.toString(16).toUpperCase()).join(",")}`);
+}
+
 function hash(bytes: Uint8Array) { return createHash("sha256").update(bytes).digest("hex"); }
 function pdfText(pdf: Uint8Array) { return Buffer.from(pdf).toString("latin1"); }
 
@@ -116,6 +141,7 @@ for (const format of formats) {
 
   // Emitted SVG body size assertion
   const finalSvg = renderFinalSvg(input);
+  assertTextCovered(finalSvg, input.locale);
   const emittedBodyPx = extractEmittedBodyPx(finalSvg);
   assert.ok(emittedBodyPx >= CARD_BODY_MIN_RENDER_PX, `${format} emitted body px ${emittedBodyPx} >= floor ${CARD_BODY_MIN_RENDER_PX}`);
 

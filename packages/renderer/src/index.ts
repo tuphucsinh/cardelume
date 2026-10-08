@@ -121,6 +121,18 @@ function wrapText(value:string,maxVisual:number,locale:string):string[]{
   if(line)lines.push(line);return lines;
 }
 function visualWidthPx(value:string,size:number,locale:string){return cardVisualLength(value,locale)*size*.54;}
+// A decorative signature mark must not depend on a font. No face in the configured set
+// contains U+2726, so the previous "<text>\u2726</text>" rasterised as missing-glyph bars.
+// Draw the sparkle as a path: deterministic, font-independent, and correctly concave.
+function signatureMark(textX:number,sparkY:number,anchor:string,accent:string,scale:number){
+  const r=Math.max(18,Math.round(29*scale));
+  const cx=anchor==="middle"?textX:anchor==="end"?textX-r:textX+r;
+  const cy=sparkY-Math.round(r*0.72);
+  const k=r*0.30;
+  const f=(v:number)=>Math.round(v*100)/100;
+  return `<path d="M ${f(cx)} ${f(cy-r)} C ${f(cx+k)} ${f(cy-k)}, ${f(cx+k)} ${f(cy-k)}, ${f(cx+r)} ${f(cy)} C ${f(cx+k)} ${f(cy+k)}, ${f(cx+k)} ${f(cy+k)}, ${f(cx)} ${f(cy+r)} C ${f(cx-k)} ${f(cy+k)}, ${f(cx-k)} ${f(cy+k)}, ${f(cx-r)} ${f(cy)} C ${f(cx-k)} ${f(cy-k)}, ${f(cx-k)} ${f(cy-k)}, ${f(cx)} ${f(cy-r)} Z" fill="${accent}"/>`;
+}
+
 function textLines(lines:string[],x:number,startY:number,size:number,lineHeight:number,attrs:string){return lines.map((line,index)=>`<text x="${x}" y="${startY+index*size*lineHeight}" ${attrs}>${escapeXml(line)}</text>`).join("\n");}
 function base64Asset(asset:RenderAsset){return`data:${asset.contentType};base64,${Buffer.from(asset.bytes).toString("base64")}`;}
 function firstPhoto(doc:CardDocument,assets?:RenderAssets){
@@ -344,7 +356,7 @@ export function renderSafeSvg(input:CardDocument,options:RenderSvgOptions={}):st
       <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
       ${textLines(headlineLines,textX,headlineStart,hp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${hp}"`)}
       ${textLines(bodyLines,textX,bodyStart,bp,bLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
-      ${layout.showSignatureMark?`<text x="${textX}" y="${sparkY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="serif" font-size="${Math.max(36,Math.round(58*scale))}">✦</text>`:""}
+      ${layout.showSignatureMark?signatureMark(textX,sparkY,textAnchor,palette.accent,scale):""}
       ${watermark}
     </svg>`;
   } catch(primaryErr){
@@ -369,7 +381,7 @@ export function renderSafeSvg(input:CardDocument,options:RenderSvgOptions={}):st
       <text x="${textX}" y="${kickerY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="sans-serif" font-size="${kp}" letter-spacing="${Math.max(3,Math.round(8*scale))}">${escapeXml(kicker)}</text>
       ${textLines(headlineLines,textX,altHeadlineStart,altHp,hLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="serif" font-size="${altHp}"`)}
       ${textLines(altBodyLines,textX,altBodyStart,bp,altBLeading,`text-anchor="${textAnchor}" fill="${palette.fg}" font-family="sans-serif" font-size="${bp}"`)}
-      ${layout.showSignatureMark?`<text x="${textX}" y="${sparkY}" text-anchor="${textAnchor}" fill="${palette.accent}" font-family="serif" font-size="${Math.max(36,Math.round(58*scale))}">✦</text>`:""}
+      ${layout.showSignatureMark?signatureMark(textX,sparkY,textAnchor,palette.accent,scale):""}
       ${watermark}
     </svg>`;
   }
