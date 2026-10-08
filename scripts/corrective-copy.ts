@@ -114,7 +114,9 @@ async function main() {
   need(copyText(recovery).includes("An") && copyText(recovery).includes("Get Well"), "recovery_semantic_signals_missing");
   markers.push("PROVIDER_FAILURE_RECOVERY=PASS");
 
-  // Explicit regression: a known collapsed generic result is classified as a semantic copy risk.
+  // Explicit regression: a collapsed generic trio is still classified as a copy risk.
+  // (CL2 removed the `generic_collapse` keyword rule that banned premium words such as
+  // "moment"/"glow"; duplicate/collapsed output is caught by `direction_copy_duplicate`.)
   const collapsed = GenerationResultSchema.parse({
     directions: recovery.directions.map((direction, index) => ({
       ...direction,
@@ -123,7 +125,7 @@ async function main() {
       body: "A moment worth keeping for someone special.",
     })),
   });
-  need(semanticCopyContractViolations(collapsed, recoveryBrief).includes("generic_collapse"), "generic_collapse_not_detected");
+  need(semanticCopyContractViolations(collapsed, recoveryBrief).includes("direction_copy_duplicate"), "collapsed_generic_trio_not_detected");
   markers.push("GENERIC_COLLAPSE_DETECTED=PASS");
 
   // User-supplied semantic inputs may legitimately contain detector vocabulary.
@@ -133,7 +135,7 @@ async function main() {
   ]) {
     const legitimate = buildDeterministicCreativeFallback(legitimateBrief, candidates);
     assertSemanticCopyContract(legitimate, legitimateBrief);
-    need(!semanticCopyContractViolations(legitimate, legitimateBrief).includes("generic_collapse"), "user_input_detector_false_positive");
+    need(semanticCopyContractViolations(legitimate, legitimateBrief).length === 0, "user_input_detector_false_positive");
   }
   markers.push("USER_INPUT_GENERIC_WORDS_SAFE=PASS");
 

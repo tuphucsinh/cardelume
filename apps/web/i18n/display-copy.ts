@@ -244,7 +244,21 @@ const styleNames:Record<LocaleCode,Record<string,string>>={
   "Monogram Orbit":"Monogram Orbit",
   "Memory Window":"Memory Window",
   "Petal Geometry":"Petal Geometry",
-  "Soft Fold":"Soft Fold"
+  "Soft Fold":"Soft Fold",
+  "Bold Pop":"Bold Pop",
+  "Celestial Night":"Celestial Night",
+  "Golden Hour":"Golden Hour",
+  "Ink Pause":"Ink Pause",
+  "Kawaii Joy":"Kawaii Joy",
+  "Little Wonders":"Little Wonders",
+  "Night Ledger":"Night Ledger",
+  "Pressed Shadow":"Pressed Shadow",
+  "Quiet Noir":"Quiet Noir",
+  "Quiet Seal":"Quiet Seal",
+  "Ribbon Line":"Ribbon Line",
+  "Type Celebration":"Type Celebration",
+  "Watercolor Bloom":"Watercolor Bloom",
+  "Whispered Type":"Whispered Type"
  },
  ja:{
   "Classic Letterpress":"クラシック・レタープレス",
@@ -388,7 +402,21 @@ const styleNames:Record<LocaleCode,Record<string,string>>={
   "Quiet Minimal":"Tối giản tĩnh lặng",
   "Washi Elegance":"Washi thanh lịch",
   "Soft Seoul":"Seoul dịu nhẹ",
-  "Art Deco Noir":"Art Deco Noir"
+  "Art Deco Noir":"Art Deco Noir",
+  "Bold Pop":"Pop nổi bật",
+  "Celestial Night":"Đêm thiên hà",
+  "Golden Hour":"Giờ hoàng hôn",
+  "Ink Pause":"Khoảng lặng mực",
+  "Kawaii Joy":"Niềm vui Kawaii",
+  "Little Wonders":"Điều nhỏ diệu kỳ",
+  "Night Ledger":"Sổ đêm",
+  "Pressed Shadow":"Bóng ép",
+  "Quiet Noir":"Noir tĩnh lặng",
+  "Quiet Seal":"Ấn tín tĩnh lặng",
+  "Ribbon Line":"Dải ruy băng",
+  "Type Celebration":"Chữ mừng",
+  "Watercolor Bloom":"Hoa màu nước",
+  "Whispered Type":"Chữ thì thầm"
  }
 };
 

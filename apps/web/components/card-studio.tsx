@@ -116,9 +116,15 @@ export function generationRecoveryMode(error:unknown):GenerationRecoveryMode{
 }
 
 const generationRecoveryCopy:Record<string,Record<GenerationRecoveryMode,string>>={
-  en:{retryable:"The design service needs another moment. Your brief is unchanged; try again.",exhausted:"This attempt could not finish safely. Your brief is unchanged; review it and try again.",novelty_exhausted:"There are no more unseen directions for this brief. Your current designs are kept."},
-  vi:{retryable:"Dịch vụ thiết kế cần thêm một chút thời gian. Brief của anh vẫn nguyên vẹn; hãy thử lại.",exhausted:"Lần này chưa thể hoàn tất an toàn. Brief của anh vẫn nguyên vẹn; hãy xem lại và thử lại.",novelty_exhausted:"Brief này không còn hướng thiết kế mới chưa xuất hiện. Các thiết kế hiện tại vẫn được giữ nguyên."}
+  en:{retryable:"The design service is taking a little longer than usual. Your brief is unchanged — try again.",exhausted:"We couldn’t finish this attempt safely. Your brief is unchanged — try again.",novelty_exhausted:"No new unseen directions remain for this brief. Your current designs are kept."},
+  vi:{retryable:"Dịch vụ thiết kế đang cần thêm chút thời gian. Nội dung bạn nhập vẫn giữ nguyên — hãy thử lại.",exhausted:"Lần này chưa thể hoàn tất an toàn. Nội dung bạn nhập vẫn giữ nguyên — hãy thử lại.",novelty_exhausted:"Nội dung này không còn hướng thiết kế mới. Ba thiết kế hiện tại vẫn được giữ nguyên."}
 };
+
+const generationRecoveryAction:Record<string,string>={en:"Try again",vi:"Thử lại"};
+
+function generationRecoveryActionLabel(locale:LocaleCode){
+  return generationRecoveryAction[locale]??generationRecoveryAction.en;
+}
 
 function generationRecoveryMessage(locale:LocaleCode,mode:GenerationRecoveryMode){
   return (generationRecoveryCopy[locale]??generationRecoveryCopy.en)[mode];
@@ -546,6 +552,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
       if(!isCurrentGenerationRequest(requestId,generationRequestId.current,controller.signal))return;
       if(!generated)throw new Error("generation_result_missing");
       setGeneratedResult(generated);
+      setUsedCuratedFallback(generated?.generationSource==="recovery");
       setExhaustionState(generated?.exhaustionState??"none");
       rememberDisplayed(generated?.directions??resultDirections);
       if(generated?.directions?.length){
@@ -887,7 +894,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
             </details>
 
             <button className="button button-primary studio-submit" type="submit" disabled={phase==="revealing"}><WandSparkles size={17}/>{m.generate}</button>
-            {generationFailure?<p className="checkout-note" data-generation-recovery={generationFailure} role="status">{generationRecoveryMessage(locale,generationFailure)}</p>:null}
+            {generationFailure?<div className="checkout-note" data-generation-recovery={generationFailure} role="status"><span>{generationRecoveryMessage(locale,generationFailure)}</span>{generationFailure!=="novelty_exhausted"?<button type="button" className="text-action recovery-retry" onClick={()=>void generate(false)}>{generationRecoveryActionLabel(locale)}</button>:null}</div>:null}
             <p className="form-assurance">{m.assurance}</p>
           </form>
 
@@ -994,7 +1001,7 @@ export function CardStudio({locale,messages,price,priceQuote,generationMode,paym
           </div>
           <div className="direction-refresh">
             <span>{launch.noneFeelRight}</span>
-            {generationFailure?<p className="checkout-note" data-generation-recovery={generationFailure} role="status">{generationRecoveryMessage(locale,generationFailure)}</p>:null}
+            {generationFailure?<div className="checkout-note" data-generation-recovery={generationFailure} role="status"><span>{generationRecoveryMessage(locale,generationFailure)}</span>{generationFailure!=="novelty_exhausted"?<button type="button" className="text-action recovery-retry" onClick={()=>void generate(false)}>{generationRecoveryActionLabel(locale)}</button>:null}</div>:null}
             <button className="text-action" type="button" disabled={exhaustionState==="total"||refreshUnavailable} data-exhaustion-state={refreshUnavailable?"unavailable":exhaustionState} onClick={()=>void generate(true)}><RefreshCw size={15}/>{m.more}</button>
           </div>
         </div>

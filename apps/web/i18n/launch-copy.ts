@@ -978,7 +978,7 @@ const c:Record<LocaleCode,LaunchCopy>={
   },
   vi:{
     heroEyebrow:"Thiệp cao cấp, được chăm chút từng chi tiết",skipContent:"Đi tới nội dung",
-    recipientPlaceholder:"ví dụ: Olivia",someoneSpecial:"một người đặc biệt",
+    recipientPlaceholder:"ví dụ: Lan",someoneSpecial:"một người đặc biệt",
     liveDirectionPreview:"Xem trước hướng thiết kế",previewNote:"Ba bố cục hoàn chỉnh sẽ xuất hiện sau khi tạo.",
     printSizeLayout:"Kích thước in / bố cục",
     photoPrivacy:"Chỉ dùng để tạo tấm thiệp này.",photoTypes:"JPG, PNG, WebP hoặc AVIF · tối đa 10 MB",removePhoto:"Xóa ảnh",
