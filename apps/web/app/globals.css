@@ -31,8 +31,8 @@
 .badge{backdrop-filter:none;background:rgba(255,255,255,.96)}
 
 /* Magic Typography — protects art direction as copy changes */
-.paper-card .card-copy h3{font-size:var(--magic-headline,42px)!important;line-height:var(--magic-headline-leading,1)!important;letter-spacing:var(--magic-tracking,-.025em)!important;max-width:var(--magic-headline-width,88%);margin-left:auto;margin-right:auto;text-wrap:balance;overflow-wrap:anywhere}
-.paper-card .card-copy p{font-size:var(--magic-body,11px)!important;line-height:var(--magic-body-leading,1.55)!important;max-width:var(--magic-body-width,88%);text-wrap:pretty;overflow-wrap:anywhere}
+.paper-card .card-copy h3{font-size:var(--magic-headline,42px)!important;line-height:var(--magic-headline-leading,1)!important;letter-spacing:var(--magic-tracking,-.025em)!important;max-width:var(--magic-headline-width,88%);margin-left:auto;margin-right:auto;text-wrap:balance;overflow-wrap:break-word}
+.paper-card .card-copy p{font-size:var(--magic-body,11px)!important;line-height:var(--magic-body-leading,1.55)!important;max-width:var(--magic-body-width,88%);text-wrap:pretty;overflow-wrap:break-word}
 .paper-card.density-compact .card-copy{padding-left:8%;padding-right:8%}.paper-card.density-compact .card-spark{margin-top:9px}
 .format-square{aspect-ratio:1/1}.format-landscape{aspect-ratio:7/5}.format-landscape .card-copy{padding:8% 10%}.format-landscape .card-copy h3{max-width:76%}.format-square .card-copy{padding:10%}
 
@@ -393,8 +393,9 @@ html[data-dynamic-lighting="on"] .physical-card-surface::before{opacity:.065}
 /* Physical output ratios are part of the preview contract, not decorative labels. */
 .paper-card.format-postcard{aspect-ratio:6/4}
 .paper-card.format-postcard .card-copy{padding:8% 9%}
-.paper-card .card-copy{min-width:0;overflow:hidden}
-.paper-card .card-copy h3,.paper-card .card-copy p{overflow-wrap:anywhere;hyphens:auto}
+.paper-card .card-copy{min-width:0;overflow:hidden;position:relative;z-index:2}
+.paper-card .art-a,.paper-card .art-b,.paper-card .art-c{pointer-events:none;z-index:0}
+.paper-card .card-copy h3,.paper-card .card-copy p{overflow-wrap:break-word;hyphens:manual}
 .studio-submit{width:100%}
 @media(max-width:720px){
   .brief-card,.finish-controls{min-width:0}
