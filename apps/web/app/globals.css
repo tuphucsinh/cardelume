@@ -1,7 +1,15 @@
+/* Metric-matched local fallbacks (CL2-PERF-01).
+   Measured on the deployed font stack: Arial is 3.57% narrower than Plus Jakarta Sans,
+   Georgia is 2.65% wider than Cormorant Garamond. Tuning size-adjust to those ratios keeps
+   first-paint text at the same advance widths as the webfont, so chip/heading rows do not
+   re-wrap when the webfont swaps in (that reflow was the 0.37 CLS on tablet/VI).
+   The settled render (webfont) is unchanged. */
+@font-face{font-family:"CL Sans Fallback";src:local("Arial"),local("Helvetica"),local("Liberation Sans");size-adjust:103.7%}
+@font-face{font-family:"CL Serif Fallback";src:local("Georgia"),local("Times New Roman"),local("Liberation Serif");size-adjust:97.42%}
 :root{
   --navy:#0b1730;--navy2:#12223e;--ink:#171a21;--ivory:#fbf8f1;--paper:#fffdf8;
   --gold:#b99762;--gold2:#d8c095;--muted:#6f6a62;--line:rgba(11,23,48,.12);
-  --serif:"Cormorant Garamond", Georgia, serif;--sans:"Plus Jakarta Sans",system-ui,sans-serif;
+  --serif:"Cormorant Garamond","CL Serif Fallback",Georgia,serif;--sans:"Plus Jakarta Sans","CL Sans Fallback",system-ui,sans-serif;
   --shadow:0 24px 70px rgba(18,24,38,.12);--radius-ui:24px;--radius-card:6px
 }
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--ivory);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}button,input,select,textarea{font:inherit}.shell{width:min(1180px,calc(100% - 40px));margin-inline:auto}
