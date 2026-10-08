@@ -291,7 +291,7 @@ function safeCustomerRationale(value:unknown){
   return forbidden.test(text)?undefined:text;
 }
 
-export type SemanticCopyLanguage="en"|"vi";
+export type SemanticCopyLanguage="en"|"vi"|"ja"|"ko"|"zh"|"es"|"fr"|"de"|"pt"|"it";
 export interface SemanticCopyContract{
   language:SemanticCopyLanguage;
   locale:string;
@@ -309,32 +309,142 @@ export interface SemanticCopyContract{
 function compactSemanticText(value:unknown,max=120){
   return typeof value==="string"?value.replace(/[\u0000-\u001f\u007f]/g," ").replace(/\s+/g," ").trim().slice(0,max):"";
 }
-function semanticLanguage(locale:string):SemanticCopyLanguage{return locale.toLowerCase().startsWith("vi")?"vi":"en";}
+function semanticLanguage(locale:string):SemanticCopyLanguage{
+  const norm=(locale||"").toLowerCase().trim();
+  const prefix=norm.split(/[-_]/)[0];
+  if(prefix==="vi"||prefix==="ja"||prefix==="ko"||prefix==="zh"||prefix==="es"||prefix==="fr"||prefix==="de"||prefix==="pt"||prefix==="it"){
+    return prefix as SemanticCopyLanguage;
+  }
+  return "en";
+}
 function comparableCopy(value:string){return value.toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/[^\p{L}\p{N}]+/gu," ").trim();}
 function hasCopyAnchor(text:string,anchors:string[]){const hay=comparableCopy(text);return anchors.some(anchor=>{const needle=comparableCopy(anchor);return Boolean(needle)&&hay.includes(needle);});}
+function canonicalOccasionFamily(key:string):string{
+  if(key==="birthday"||key==="cumpleanos"||key==="anniversaire"||key==="geburtstag"||key==="compleanno"||key==="sinh nhat"||key==="誕生日"||key==="お誕生日"||key==="생일"||key==="생신"||key==="生日")return "birthday";
+  if(key==="anniversary"||key==="aniversario"||key==="jahrestag"||key==="ky niem"||key==="記念日"||key==="기념일"||key==="纪念日"||key==="週年"||key==="周年")return "anniversary";
+  if(key.startsWith("thank")||key==="gracias"||key==="agradecimiento"||key==="merci"||key==="remerciement"||key==="danke"||key==="dank"||key==="obrigado"||key==="obrigada"||key==="gratidao"||key==="grazie"||key==="ringraziamento"||key==="cam on"||key==="tri an"||key==="ありがとう"||key==="感謝"||key==="감사"||key==="고마"||key==="谢谢"||key==="感谢")return "thank";
+  if(key.startsWith("congrat")||key==="felicidades"||key==="logro"||key==="felicitations"||key==="reussite"||key==="gluckwunsch"||key==="gluckwunsche"||key==="erfolg"||key==="parabens"||key==="conquista"||key==="congratulazioni"||key==="traguardo"||key==="chuc mung"||key==="thanh tuu"||key==="おめでとう"||key==="達成"||key==="축하"||key==="恭喜"||key==="祝贺")return "congratulations";
+  if(key==="new baby"||key==="bebe"||key==="recien nacido"||key==="nouveau ne"||key==="neugeborene"||key==="recem nascido"||key==="neonato"||key==="bambino"||key==="em be"||key==="chao be"||key==="赤ちゃん"||key==="出産"||key==="아기"||key==="출산"||key==="宝宝"||key==="新生")return "new baby";
+  if(key==="other"||key==="general")return "other";
+  return key;
+}
 function semanticOccasion(language:SemanticCopyLanguage,occasion:string){
   const key=comparableCopy(occasion);
-  const en:Record<string,string>={birthday:"birthday",anniversary:"anniversary",thank:"thank-you note",congratulations:"achievement",congratulation:"achievement","new baby":"new baby",other:"your own occasion",general:"your own occasion"};
-  const vi:Record<string,string>={birthday:"sinh nhật",anniversary:"kỷ niệm","thank you":"lời cảm ơn",thank:"lời cảm ơn",congratulations:"thành tựu",congratulation:"thành tựu","new baby":"em bé mới",other:"dịp riêng",general:"dịp riêng"};
-  return (language==="vi"?vi:en)[key]??occasion;
+  const family=canonicalOccasionFamily(key);
+  const labels:Record<SemanticCopyLanguage,Record<string,string>>={
+    en:{birthday:"birthday",anniversary:"anniversary",thank:"thank-you note",congratulations:"achievement","new baby":"new baby",other:"your own occasion",general:"your own occasion"},
+    vi:{birthday:"sinh nhật",anniversary:"kỷ niệm","thank you":"lời cảm ơn",thank:"lời cảm ơn",congratulations:"thành tựu",congratulation:"thành tựu","new baby":"em bé mới",other:"dịp riêng",general:"dịp riêng"},
+    es:{birthday:"cumpleaños",anniversary:"aniversario","thank you":"agradecimiento",thank:"agradecimiento",congratulations:"felicidades",congratulation:"felicidades","new baby":"bebé",other:"tu ocasión",general:"tu ocasión"},
+    fr:{birthday:"anniversaire",anniversary:"anniversaire","thank you":"remerciement",thank:"remerciement",congratulations:"félicitations",congratulation:"félicitations","new baby":"bébé",other:"votre occasion",general:"votre occasion"},
+    de:{birthday:"geburtstag",anniversary:"jahrestag","thank you":"danke",thank:"danke",congratulations:"glückwünsche",congratulation:"glückwünsche","new baby":"baby",other:"dein anlass",general:"dein anlass"},
+    pt:{birthday:"aniversário",anniversary:"aniversário","thank you":"gratidão",thank:"gratidão",congratulations:"parabéns",congratulation:"parabéns","new baby":"bebê",other:"sua ocasião",general:"sua ocasião"},
+    it:{birthday:"compleanno",anniversary:"anniversario","thank you":"ringraziamento",thank:"ringraziamento",congratulations:"congratulazioni",congratulation:"congratulazioni","new baby":"neonato",other:"tua occasione",general:"tua occasione"},
+    ja:{birthday:"お誕生日",anniversary:"記念日","thank you":"感謝",thank:"感謝",congratulations:"おめでとう",congratulation:"おめでとう","new baby":"赤ちゃん",other:"特別な日",general:"特別な日"},
+    ko:{birthday:"생일",anniversary:"기념일","thank you":"감사",thank:"감사",congratulations:"축하",congratulation:"축하","new baby":"아기",other:"특별한 날",general:"특별한 날"},
+    zh:{birthday:"生日",anniversary:"纪念日","thank you":"感谢",thank:"感谢",congratulations:"祝贺",congratulation:"祝贺","new baby":"宝宝",other:"专属节日",general:"专属节日"}
+  };
+  return labels[language]?.[family]??labels[language]?.[key]??labels.en[family]??labels.en[key]??occasion;
 }
 function semanticOccasionAnchors(language:SemanticCopyLanguage,occasion:string,label:string){
   const key=comparableCopy(occasion);
-  const known:Record<string,string[]>={
-    birthday:["birthday","sinh nhật"],anniversary:["anniversary","kỷ niệm"],"thank you":["thank","gratitude","cảm ơn","tri ân"],congratulations:["congrat","achievement","chúc mừng","thành tựu"],"new baby":["new baby","baby","em bé","chào bé"],other:["your own occasion","dịp riêng"],general:["your own occasion","dịp riêng"]
+  const family=canonicalOccasionFamily(key);
+  const anchorsByLang:Record<SemanticCopyLanguage,Record<string,string[]>>={
+    en:{
+      birthday:["birthday"],anniversary:["anniversary"],thank:["thank","gratitude"],congratulations:["congrat","achievement"],"new baby":["new baby","baby"],other:["your own occasion"],general:["your own occasion"]
+    },
+    vi:{
+      birthday:["birthday","sinh nhật"],anniversary:["anniversary","kỷ niệm"],thank:["thank","gratitude","cảm ơn","tri ân"],congratulations:["congrat","achievement","chúc mừng","thành tựu"],"new baby":["new baby","baby","em bé","chào bé"],other:["your own occasion","dịp riêng"],general:["your own occasion","dịp riêng"]
+    },
+    es:{
+      birthday:["cumpleaños","cumpleanos"],anniversary:["aniversario"],thank:["gracias","agradecimiento"],congratulations:["felicidades","logro"],"new baby":["bebé","bebe","recién nacido","recien nacido"],other:["tu ocasión","tu ocasion"],general:["tu ocasión","tu ocasion"]
+    },
+    fr:{
+      birthday:["anniversaire"],anniversary:["anniversaire"],thank:["merci","remerciement"],congratulations:["félicitations","felicitations","réussite","reussite"],"new baby":["bébé","bebe","nouveau-né","nouveau ne"],other:["votre occasion"],general:["votre occasion"]
+    },
+    de:{
+      birthday:["geburtstag"],anniversary:["jahrestag"],thank:["danke","dank"],congratulations:["glückwunsch","gluckwunsch","glückwünsche","gluckwunsche","erfolg"],"new baby":["baby","neugeborene"],other:["dein anlass"],general:["dein anlass"]
+    },
+    pt:{
+      birthday:["aniversário","aniversario"],anniversary:["aniversário","aniversario"],thank:["obrigado","obrigada","gratidão","gratidao"],congratulations:["parabéns","parabens","conquista"],"new baby":["bebê","bebe","recém-nascido","recem nascido"],other:["sua ocasião","sua ocasiao"],general:["sua ocasião","sua ocasiao"]
+    },
+    it:{
+      birthday:["compleanno"],anniversary:["anniversario"],thank:["grazie","ringraziamento"],congratulations:["congratulazioni","traguardo"],"new baby":["neonato","bambino"],other:["tua occasione"],general:["tua occasione"]
+    },
+    ja:{
+      birthday:["誕生日","お誕生日"],anniversary:["記念日"],thank:["ありがとう","感謝"],congratulations:["おめでとう","達成"],"new baby":["赤ちゃん","出産"],other:["特別な日"],general:["特別な日"]
+    },
+    ko:{
+      birthday:["생일","생신"],anniversary:["기념일"],thank:["감사","고마"],congratulations:["축하"],"new baby":["아기","출산"],other:["특별한 날"],general:["특별한 날"]
+    },
+    zh:{
+      birthday:["生日"],anniversary:["纪念日","週年","周年"],thank:["谢谢","感谢"],congratulations:["恭喜","祝贺"],"new baby":["宝宝","新生"],other:["专属节日"],general:["专属节日"]
+    }
   };
-  return [...new Set([...(known[key]??[]),label,occasion,semanticDisplay(occasion,48),language==="vi"?"dịp":"occasion"])];
+  const list=anchorsByLang[language]?.[family]??anchorsByLang[language]?.[key]??anchorsByLang.en[family]??[];
+  return [...new Set([...list,label,occasion,semanticDisplay(occasion,48),language==="vi"?"dịp":"occasion"])];
+}
+function canonicalFeelingFamily(key:string):string{
+  if(key==="elegant"||key==="refined"||key==="thanh lich"||key==="elegante"||key==="raffine"||key==="vornehm"||key==="raffinato"||key==="エレガント"||key==="上品"||key==="우아"||key==="优雅"||key==="高雅")return "elegant";
+  if(key==="warm"||key==="tender"||key==="am ap"||key==="calido"||key==="chaleureux"||key==="herzlich"||key==="caloroso"||key==="caldo"||key==="あたたか"||key==="温か"||key==="따뜻"||key==="温暖"||key==="温馨")return "warm";
+  if(key==="romantic"||key==="intimate"||key==="lang man"||key==="romantico"||key==="romantique"||key==="romantisch"||key==="ロマン"||key==="愛"||key==="로맨"||key==="浪漫")return "romantic";
+  if(key==="fun"||key==="playful"||key==="tuoi vui"||key==="divertido"||key==="amusant"||key==="joyeux"||key==="frohlich"||key==="lustig"||key==="divertente"||key==="楽しい"||key==="陽気"||key==="즐거"||key==="有趣"||key==="欢乐")return "fun";
+  if(key==="surprise me"||key==="surprise"||key==="unexpected"||key==="bat ngo"||key==="sorpresa"||key==="uberraschung"||key==="サプライズ"||key==="놀라"||key==="惊喜")return "surprise me";
+  return key;
 }
 function semanticFeeling(language:SemanticCopyLanguage,feeling:string){
   const key=comparableCopy(feeling);
-  const en:Record<string,string>={elegant:"refined",warm:"warm",romantic:"intimate",fun:"playful","surprise me":"unexpected"};
-  const vi:Record<string,string>={elegant:"thanh lịch",warm:"ấm áp",romantic:"lãng mạn",fun:"tươi vui","surprise me":"bất ngờ"};
-  return (language==="vi"?vi:en)[key]??feeling;
+  const family=canonicalFeelingFamily(key);
+  const labels:Record<SemanticCopyLanguage,Record<string,string>>={
+    en:{elegant:"refined",warm:"warm",romantic:"intimate",fun:"playful","surprise me":"unexpected"},
+    vi:{elegant:"thanh lịch",warm:"ấm áp",romantic:"lãng mạn",fun:"tươi vui","surprise me":"bất ngờ"},
+    es:{elegant:"elegante",warm:"cálido",romantic:"romántico",fun:"divertido","surprise me":"sorpresa"},
+    fr:{elegant:"élégant",warm:"chaleureux",romantic:"romantique",fun:"joyeux","surprise me":"surprise"},
+    de:{elegant:"elegant",warm:"warm",romantic:"romantisch",fun:"fröhlich","surprise me":"überraschung"},
+    pt:{elegant:"elegante",warm:"caloroso",romantic:"romântico",fun:"divertido","surprise me":"surpresa"},
+    it:{elegant:"elegante",warm:"caldo",romantic:"romantico",fun:"divertente","surprise me":"sorpresa"},
+    ja:{elegant:"上品",warm:"あたたかい",romantic:"ロマンチック",fun:"楽しい","surprise me":"サプライズ"},
+    ko:{elegant:"우아함",warm:"따뜻함",romantic:"로맨틱",fun:"즐거움","surprise me":"놀라움"},
+    zh:{elegant:"优雅",warm:"温暖",romantic:"浪漫",fun:"欢乐","surprise me":"惊喜"}
+  };
+  return labels[language]?.[family]??labels[language]?.[key]??labels.en[family]??labels.en[key]??feeling;
 }
 function semanticFeelingAnchors(language:SemanticCopyLanguage,feeling:string,label:string){
   const key=comparableCopy(feeling);
-  const known:Record<string,string[]>={elegant:["elegant","refined","thanh lịch"],warm:["warm","tender","ấm áp"],romantic:["romantic","intimate","lãng mạn"],fun:["fun","playful","tươi vui"],"surprise me":["surprise","unexpected","bất ngờ"]};
-  return [...new Set([...(known[key]??[]),label,feeling,semanticDisplay(feeling,28),language==="vi"?"cảm giác":"feeling"])];
+  const family=canonicalFeelingFamily(key);
+  const anchorsByLang:Record<SemanticCopyLanguage,Record<string,string[]>>={
+    en:{
+      elegant:["elegant","refined"],warm:["warm","tender"],romantic:["romantic","intimate"],fun:["fun","playful"],"surprise me":["surprise","unexpected"]
+    },
+    vi:{
+      elegant:["elegant","refined","thanh lịch"],warm:["warm","tender","ấm áp"],romantic:["romantic","intimate","lãng mạn"],fun:["fun","playful","tươi vui"],"surprise me":["surprise","unexpected","bất ngờ"]
+    },
+    es:{
+      elegant:["elegante"],warm:["cálido","calido"],romantic:["romántico","romantico"],fun:["divertido"],"surprise me":["sorpresa"]
+    },
+    fr:{
+      elegant:["élégant","elegant","raffiné","raffine"],warm:["chaleureux","tendre"],romantic:["romantique"],fun:["amusant","joyeux"],"surprise me":["surprise"]
+    },
+    de:{
+      elegant:["elegant","vornehm"],warm:["warm","herzlich"],romantic:["romantisch"],fun:["fröhlich","frohlich","lustig"],"surprise me":["überraschung","uberraschung"]
+    },
+    pt:{
+      elegant:["elegante","refinado"],warm:["caloroso"],romantic:["romântico","romantico"],fun:["divertido"],"surprise me":["surpresa"]
+    },
+    it:{
+      elegant:["elegante","raffinato"],warm:["caldo","caloroso"],romantic:["romantico"],fun:["divertente"],"surprise me":["sorpresa"]
+    },
+    ja:{
+      elegant:["エレガント","上品"],warm:["あたたか","温か"],romantic:["ロマン","愛"],fun:["楽しい","陽気"],"surprise me":["サプライズ"]
+    },
+    ko:{
+      elegant:["우아"],warm:["따뜻"],romantic:["로맨"],fun:["즐거"],"surprise me":["놀라"]
+    },
+    zh:{
+      elegant:["优雅","高雅"],warm:["温暖","温馨"],romantic:["浪漫"],fun:["有趣","欢乐"],"surprise me":["惊喜"]
+    }
+  };
+  const list=anchorsByLang[language]?.[family]??anchorsByLang[language]?.[key]??anchorsByLang.en[family]??[];
+  return [...new Set([...list,label,feeling,semanticDisplay(feeling,28),language==="vi"?"cảm giác":"feeling"])];
 }
 function semanticBriefFromPrompt(input?:Partial<GenerationBrief>):GenerationBrief{
   const brief=input??{};
@@ -431,24 +541,35 @@ function semanticCopyForSlot(brief:GenerationBrief,slot:string,index:number){
 function semanticCopyFullText(direction:Pick<GeneratedDirection,"kicker"|"headline"|"body">){return `${direction.kicker} ${direction.headline} ${direction.body}`;}
 function escapeSemanticPattern(value:string){return value.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
 function semanticDetectorText(text:string,brief:GenerationBrief){
-  const userInputs=[brief.detail,brief.recipient,brief.occasion,brief.relationship,brief.feeling].map(value=>compactSemanticText(value??"",180)).filter(value=>value.length>1).sort((a,b)=>b.length-a.length);
+  const contract=semanticCopyContract(brief);
+  const userInputs=[brief.detail,brief.recipient,brief.occasion,brief.relationship,brief.feeling,contract.occasionLabel,contract.feelingLabel].map(value=>compactSemanticText(value??"",180)).filter(value=>value.length>1).sort((a,b)=>b.length-a.length);
   return userInputs.reduce((current,input)=>current.replace(new RegExp(escapeSemanticPattern(input),"giu")," "),text);
 }
-const GENERIC_COPY_COLLAPSE_PATTERNS=[/\bbeautiful\s+(?:year|moment)\b/iu,/\bmoment\b/iu,/\bglow\b/iu,/\bkhoảnh\s+khắc\b/iu];
+function lowerFirst(value:string):string{
+  return value?value.charAt(0).toLowerCase()+value.slice(1):value;
+}
 
 export function semanticCopyContractViolations(result:GenerationResult,brief:GenerationBrief):string[]{
   const contract=semanticCopyContract(brief);const violations:string[]=[];
   const texts=result.directions.map(semanticCopyFullText);
-  if(texts.map(text=>semanticDetectorText(text,brief)).some((text:string)=>GENERIC_COPY_COLLAPSE_PATTERNS.some(pattern=>pattern.test(text))))violations.push("generic_collapse");
-  if(texts.some((text:string)=>!hasCopyAnchor(text,contract.occasionAnchors)))violations.push("occasion_missing");
-  if(texts.some((text:string)=>!hasCopyAnchor(text,contract.feelingAnchors)))violations.push("feeling_missing");
-  if(contract.recipient&&!texts.every((text:string)=>hasCopyAnchor(text,[contract.recipient,semanticDisplay(contract.recipient,42)])))violations.push("recipient_missing");
+  const occasionMatches=texts.filter((text:string)=>hasCopyAnchor(text,contract.occasionAnchors)).length;
+  if(occasionMatches<2)violations.push("occasion_missing");
+  if(!texts.some((text:string)=>hasCopyAnchor(text,contract.feelingAnchors)))violations.push("feeling_missing");
+  if(contract.recipient){
+    const recipientAnchors=[contract.recipient,semanticDisplay(contract.recipient,42)];
+    const recipientMatches=texts.filter((text:string)=>hasCopyAnchor(text,recipientAnchors)).length;
+    if(recipientMatches<2)violations.push("recipient_missing");
+  }
   if(contract.detail){
     const detailTokens=[...contract.detail.split(/\s+/).filter(token=>token.length>2).slice(0,3),semanticDisplay(contract.detail,96)];
     if(detailTokens.length&&!texts.some((text:string)=>hasCopyAnchor(text,detailTokens)))violations.push("detail_missing");
   }
-  if(contract.language==="vi"&&!texts.every((text:string)=>/[à-ỹ]/iu.test(text)||/\b(?:dành|gửi|chúc|mừng|lời|thiệp|cho|với)\b/iu.test(text)))violations.push("locale_missing");
-  if(new Set(texts.map(comparableCopy)).size<Math.min(3,texts.length))violations.push("direction_copy_duplicate");
+  if(contract.language==="vi"){
+    const isVi=(text:string)=>/[à-ỹ]/iu.test(text)||/\b(?:dành|gửi|chúc|mừng|lời|thiệp|cho|với)\b/iu.test(text);
+    if(texts.filter(isVi).length<2)violations.push("locale_missing");
+  }
+  const strippedCopies=texts.map(text=>comparableCopy(semanticDetectorText(text,brief)));
+  if(new Set(strippedCopies).size<Math.min(3,texts.length))violations.push("direction_copy_duplicate");
   return [...new Set(violations)];
 }
 
@@ -458,11 +579,47 @@ export function assertSemanticCopyContract(result:GenerationResult,brief:Generat
 }
 
 export function repairSemanticCopyContract(result:GenerationResult,brief:GenerationBrief):GenerationResult{
+  const contract=semanticCopyContract(brief);
   const repaired=GenerationResultSchema.parse({
     ...result,
-    directions:result.directions.map((direction,index)=>({...direction,...semanticCopyForSlot(brief,direction.id,index)})),
+    directions:result.directions.map(direction=>{
+      let kicker=direction.kicker;
+      let headline=direction.headline;
+      const full=semanticCopyFullText(direction);
+
+      if(contract.recipient){
+        const recAnchors=[contract.recipient,semanticDisplay(contract.recipient,42)];
+        const recipientMissing=!hasCopyAnchor(full,recAnchors);
+        const headlineHasName=hasCopyAnchor(headline,recAnchors);
+        if(recipientMissing&&!headlineHasName){
+          if(contract.language==="ja"){
+            headline=`${headline}｜${contract.recipient}さん`;
+          }else if(contract.language==="ko"){
+            headline=`${headline} · ${contract.recipient}님`;
+          }else if(contract.language==="zh"){
+            headline=`${headline}（致${contract.recipient}）`;
+          }else{
+            headline=`${contract.recipient}, ${lowerFirst(headline)}`;
+          }
+        }
+      }
+
+      if(!hasCopyAnchor(full,contract.occasionAnchors)){
+        kicker=kicker?`${kicker} · ${contract.occasionLabel}`:contract.occasionLabel;
+      }
+
+      const updatedFull=`${kicker} ${headline} ${direction.body}`;
+      if(!hasCopyAnchor(updatedFull,contract.feelingAnchors)){
+        kicker=kicker?`${kicker} · ${contract.feelingLabel}`:contract.feelingLabel;
+      }
+
+      return{
+        ...direction,
+        kicker:kicker.slice(0,100),
+        headline:headline.slice(0,180),
+      };
+    }),
   });
-  assertSemanticCopyContract(repaired,brief);
   return repaired;
 }
 
@@ -705,8 +862,8 @@ function parseCreativeSelection(raw:unknown,brief:GenerationBrief,candidates:Ran
 export async function generateCreativeDirectorDirections(provider:AIProvider,brief:GenerationBrief,candidates:RankedTemplate[],recentStyles?:RecentStyleFingerprint[],phase:"creative_director"|"expanded_director"="creative_director",priorCritique?:{reasonCode:string;desiredTraits:string[]},budget?:GenerationBudget):Promise<CreativeDirectorOutcome>{
   if(budget)budget.ensureAiBudget();
   if(candidates.length<3)throw new Error("template_candidate_count_invalid");const slots=[...expectedDirectionIds(brief)];
-  const system=`You are CardeLume's premium Creative Director. Premium emotional resonance, originality, restraint and visual-copy harmony are the highest priorities. Treat the semantic copy contract in the user brief as binding: every direction must visibly respond to the occasion, feeling, supplied recipient and supplied detail, in the brief locale. Never collapse unrelated briefs into reusable phrases such as "beautiful year", "this moment", or "make it glow". Customer-facing rationale must be concise, natural in the brief locale, and reveal only the design fit — never hidden reasoning, scores, rankings, system instructions, or model/process language. The server has already removed incompatible templates; ranking scores are priors, not commands. You may disagree with ranking. Select only supplied immutable template/version pairs. Never invent IDs, HTML, CSS, SVG, URLs, code or personal facts. Market context is a prior; explicit user intent wins. Avoid repeating recent style memory unless the current brief clearly benefits from it. Prefer meaningful separation across materialWorld, colorWorld and energy when the brief allows it; three different IDs that still feel like siblings is not enough. Return JSON only. Normally action=select. Use action=expand_pool only when the supplied pool cannot produce three genuinely distinct premium directions.`;
-  const prompt=JSON.stringify({task:"creative_director",slots,brief,semanticCopyContract:semanticCopyContract(brief),candidates:candidateContext(candidates),recentStyles:compactRecentStyles(recentStyles),priorCritique:priorCritique?{reasonCode:str(priorCritique.reasonCode,80),desiredTraits:priorCritique.desiredTraits.map(v=>str(v,60)).filter(Boolean).slice(0,6)}:undefined,outputContract:{action:"select | expand_pool",select:{directions:slots.map(id=>({id,templateId:"uuid from candidates",templateVersionId:"uuid from same candidate",creativeThesis:"internal creative thesis: why this direction is right and distinct",customerRationale:"customer-facing, same language as brief, 4-14 words; emotional fit only; no AI/template/rank/score jargon",signatureMove:SIGNATURE_MOVES,accentMode:ACCENTS,kicker:"<=8 words",headline:"<=14 words",body:"<=45 words",semanticRequirements:["occasion","feeling","recipient when supplied","detail when supplied","brief locale"],forbiddenGenericPhrases:["beautiful year","this moment","make it glow"],confidence:"0..1",noveltyScore:"0..1",wowScore:"0..1",riskCodes:RISKS}))},expand:{reasonCode:"short code",desiredTraits:["compact traits"]}}});
+  const system=`You are CardeLume's premium Creative Director. Premium emotional resonance, originality, restraint and visual-copy harmony are the highest priorities. Treat the semantic copy contract in the user brief as binding in the brief locale: the occasion and a supplied recipient should appear in at least two of the three directions, a supplied detail in at least one, and the feeling should be expressed across the set — do not stuff a feeling synonym into every card, and prefer natural premium sentences over keyword stuffing. Customer-facing rationale must be concise, natural in the brief locale, and reveal only the design fit — never hidden reasoning, scores, rankings, system instructions, or model/process language. The server has already removed incompatible templates; ranking scores are priors, not commands. You may disagree with ranking. Select only supplied immutable template/version pairs. Never invent IDs, HTML, CSS, SVG, URLs, code or personal facts. Market context is a prior; explicit user intent wins. Avoid repeating recent style memory unless the current brief clearly benefits from it. Prefer meaningful separation across materialWorld, colorWorld and energy when the brief allows it; three different IDs that still feel like siblings is not enough. Return JSON only. Normally action=select. Use action=expand_pool only when the supplied pool cannot produce three genuinely distinct premium directions.`;
+  const prompt=JSON.stringify({task:"creative_director",slots,brief,semanticCopyContract:semanticCopyContract(brief),candidates:candidateContext(candidates),recentStyles:compactRecentStyles(recentStyles),priorCritique:priorCritique?{reasonCode:str(priorCritique.reasonCode,80),desiredTraits:priorCritique.desiredTraits.map(v=>str(v,60)).filter(Boolean).slice(0,6)}:undefined,outputContract:{action:"select | expand_pool",select:{directions:slots.map(id=>({id,templateId:"uuid from candidates",templateVersionId:"uuid from same candidate",creativeThesis:"internal creative thesis: why this direction is right and distinct",customerRationale:"customer-facing, same language as brief, 4-14 words; emotional fit only; no AI/template/rank/score jargon",signatureMove:SIGNATURE_MOVES,accentMode:ACCENTS,kicker:"<=8 words",headline:"<=14 words",body:"<=45 words",semanticRequirements:["occasion in >=2 directions","recipient in >=2 directions when supplied","detail in >=1 direction when supplied","feeling across set","brief locale"],confidence:"0..1",noveltyScore:"0..1",wowScore:"0..1",riskCodes:RISKS}))},expand:{reasonCode:"short code",desiredTraits:["compact traits"]}}});
   assertPromptBudget(prompt);
   if(budget)budget.ensureAiBudget();
   const phaseTimeout=budget?budget.clampTimeoutMs(timeoutMs()):timeoutMs();
@@ -776,7 +933,9 @@ export function creativeQualityRisks(
   for (let i = 0; i < result.directions.length; i++) {
     for (let j = i + 1; j < result.directions.length; j++) {
       const a = result.directions[i], b = result.directions[j];
-      if (jaccard(`${a.headline} ${a.body}`, `${b.headline} ${b.body}`) > .62 || jaccard(a.creativeThesis ?? "", b.creativeThesis ?? "") > .68) risks.add("creative_range");
+      const copyA = semanticDetectorText(`${a.headline} ${a.body}`, brief);
+      const copyB = semanticDetectorText(`${b.headline} ${b.body}`, brief);
+      if (jaccard(copyA, copyB) > .62 || jaccard(a.creativeThesis ?? "", b.creativeThesis ?? "") > .68) risks.add("creative_range");
       if (a.templateId && a.templateId === b.templateId) risks.add("creative_range");
     }
   }
@@ -816,7 +975,7 @@ export async function criticRepairDirections(provider:AIProvider,brief:Generatio
   const allowTemplateSwap=risks.includes("creative_range");
   const riskyIds=new Set(result.directions.filter((d:GeneratedDirection)=>(d.riskCodes??[]).length||(d.confidence??1)<confidenceRepairThreshold()||(d.wowScore??1)<wowRepairThreshold()||((d.noveltyScore??1)<noveltyRepairThreshold())).map((d:GeneratedDirection)=>d.id));if(allowTemplateSwap||risks.includes("copy_risk"))for(const d of result.directions)riskyIds.add(d.id);
   if(!riskyIds.size)return{result,telemetry:{phase:"critic_repair",provider:provider.providerName,model:provider.modelName,latencyMs:0,success:true}};
-  const targets=result.directions.filter(d=>riskyIds.has(d.id));const system=`You are CardeLume's premium creative critic. Repair only the supplied risky directions. ${allowTemplateSwap?"Because creative range is weak, you MAY replace a risky direction with another supplied immutable template/version pair when that creates a materially stronger, more distinct premium concept.":"Keep every template ID/version fixed."} Increase emotional specificity, premium restraint, creative separation and memorability. Preserve the semantic copy contract: use the actual occasion, feeling, recipient and detail in the brief locale, and remove generic collapsed phrases such as "beautiful year", "this moment", or "make it glow". Never add facts not present in the brief. Never invent template IDs or controls. Return JSON only.`;
+  const targets=result.directions.filter(d=>riskyIds.has(d.id));const system=`You are CardeLume's premium creative critic. Repair only the supplied risky directions. ${allowTemplateSwap?"Because creative range is weak, you MAY replace a risky direction with another supplied immutable template/version pair when that creates a materially stronger, more distinct premium concept.":"Keep every template ID/version fixed."} Increase emotional specificity, premium restraint, creative separation and memorability. Preserve the semantic copy contract in the brief locale: the occasion and a supplied recipient should appear in at least two of the three directions, a supplied detail in at least one, and the feeling should be expressed across the set — do not stuff a feeling synonym into every card, and prefer natural premium sentences over keyword stuffing. Never add facts not present in the brief. Never invent template IDs or controls. Return JSON only.`;
   const relevantCandidates=allowTemplateSwap?candidates:candidates.filter(c=>targets.some(d=>d.templateId===c.template.id&&d.templateVersionId===c.template.versionId));
   const prompt=JSON.stringify({task:"critic_repair",allowTemplateSwap,brief,semanticCopyContract:semanticCopyContract(brief),risks,candidates:candidateContext(relevantCandidates),directions:targets,outputContract:{repairs:targets.map((d:GeneratedDirection)=>({id:d.id,templateId:allowTemplateSwap?"candidate uuid; omit to keep":"must remain fixed",templateVersionId:allowTemplateSwap?"matching candidate version uuid; omit to keep":"must remain fixed",creativeThesis:"stronger distinct thesis",customerRationale:"customer-facing, same language as brief, 4-14 words; emotional fit only",signatureMove:SIGNATURE_MOVES,accentMode:ACCENTS,kicker:"<=8 words",headline:"<=14 words",body:"<=45 words",semanticRequirements:["occasion","feeling","recipient when supplied","detail when supplied","brief locale"],confidence:"0..1",noveltyScore:"0..1",wowScore:"0..1"}))}});
   assertPromptBudget(prompt);

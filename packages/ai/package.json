@@ -14,7 +14,7 @@
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "node -e \"process.exit(0)\"",
-    "test": "node -e \"process.exit(0)\""
+    "test": "cd ../.. && TSX_DISABLE_CACHE=1 node --import tsx scripts/generation-quality-contract.ts"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",
