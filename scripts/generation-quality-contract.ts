@@ -426,6 +426,63 @@ async function main() {
 
   markers.push("NEGATIVE_FIXTURES_FLAGGED=PASS");
 
+  // ---- CL2-GEN-02: live recovery sets, same-material adversarial set, localized fallback quality ----
+  const templateById = (suffix: string) => portfolioV2AllTemplates.find(t => t.id.endsWith(suffix));
+  const liveSets: Array<{ id: string; ids: string[]; brief: GenerationBrief }> = [
+    { id: "liveG1", ids: ["110", "014", "105"], brief: { locale: "en", format: "portrait-5x7", hasPhoto: false, market: "GLOBAL", occasion: "Birthday", recipient: "Maya", relationship: "Mom", feeling: "Warm", detail: "She turns 60 and loves quiet mornings with garden roses." } },
+    { id: "liveG2", ids: ["111", "101", "003"], brief: { locale: "vi", format: "portrait-5x7", hasPhoto: false, market: "GLOBAL", occasion: "Anniversary", recipient: "Lan", relationship: "Partner", feeling: "Romantic", detail: "10 năm bên nhau, vẫn nhớ chuyến đi Đà Lạt đầu tiên." } },
+    { id: "liveG3", ids: ["107", "001", "101"], brief: { locale: "en", format: "portrait-5x7", hasPhoto: false, market: "GLOBAL", occasion: "Thank You", recipient: "Mr. Tan", relationship: "Coworker", feeling: "Elegant", detail: "" } },
+    { id: "liveG4", ids: ["111", "107", "103"], brief: { locale: "vi", format: "portrait-5x7", hasPhoto: false, market: "GLOBAL", occasion: "Tốt nghiệp đại học", recipient: "Minh", relationship: "Friend", feeling: "tự hào", detail: "Vừa tốt nghiệp ngành kiến trúc." } },
+  ];
+  for (const set of liveSets) {
+    const pool = set.ids.map(s => { const t = templateById(s); need(t, `live_set_template_missing:${set.id}:${s}`); return ranked(approved(t!)); });
+    const fallback = buildDeterministicCreativeFallback(set.brief, pool, { exhaustionState: "none", allowStagingCandidates: true });
+    const risks = creativeQualityRisks(fallback, set.brief, [], pool);
+    need(risks.length === 0, `live_recovery_set_risk:${set.id}:${risks.join(",")}`);
+    need(fallback.generationSource === "recovery", `live_recovery_source_missing:${set.id}`);
+  }
+  const sameMaterialPool = ["107", "001", "101"].map(s => { const t = templateById(s); need(t, `same_material_template_missing:${s}`); return ranked(approved(t!)); });
+  const sameMaterialBrief: GenerationBrief = { locale: "en", format: "portrait-5x7", hasPhoto: false, market: "GLOBAL", occasion: "Thank You", recipient: "Alex", relationship: "Friend", feeling: "Elegant", detail: "" };
+  const sameMaterialFallback = buildDeterministicCreativeFallback(sameMaterialBrief, sameMaterialPool, { exhaustionState: "none", allowStagingCandidates: true });
+  need(creativeQualityRisks(sameMaterialFallback, sameMaterialBrief, [], sameMaterialPool).length === 0, "same_material_thesis_collapse");
+  markers.push("LIVE_RECOVERY_SETS_PASS=PASS");
+
+  const forbiddenFallback = ["Detail to carry through", "This is for your", "Người nhận là", "Chi tiết bạn gửi"];
+  const occasionBriefs = ["birthday", "anniversary", "thank_you"] as const;
+  const occasionLabel: Record<string, string> = { birthday: "Birthday", anniversary: "Anniversary", thank_you: "Thank You" };
+  let fallbackRuns = 0;
+  for (const loc of allLocales) {
+    for (const family of occasionBriefs) {
+      const b: GenerationBrief = { locale: loc, format: "portrait-5x7", hasPhoto: false, market: "GLOBAL", occasion: occasionLabel[family], recipient: "Maya", relationship: "Friend", feeling: "Warm", detail: "quiet mornings with garden roses" };
+      const fb = buildDeterministicCreativeFallback(b, candidates, { exhaustionState: "none", allowStagingCandidates: true });
+      const risks = creativeQualityRisks(fb, b, [], candidates);
+      need(risks.length === 0, `localized_fallback_risk:${loc}:${family}:${risks.join(",")}`);
+      const joined = copyText(fb);
+      for (const f of forbiddenFallback) need(!joined.includes(f), `fallback_forbidden_text:${loc}:${family}:${f}`);
+      for (const d of fb.directions) {
+        const first = d.headline.trim().charAt(0);
+        need(first === first.toUpperCase(), `fallback_headline_lowercase:${loc}:${family}:${d.headline}`);
+      }
+      const detailHits = fb.directions.filter(d => `${d.headline} ${d.body}`.includes("garden roses")).length;
+      need(detailHits === 1, `fallback_detail_count:${loc}:${family}:${detailHits}`);
+      if (["ja", "ko", "zh"].includes(loc)) {
+        const leakText = joined
+          .split("Maya").join(" ")
+          .split("quiet mornings with garden roses").join(" ");
+        need(!/[A-Za-z]{4,}/.test(leakText), `fallback_latin_leak:${loc}:${family}`);
+      }
+      fallbackRuns++;
+    }
+  }
+  need(fallbackRuns === allLocales.length * occasionBriefs.length, "localized_fallback_runs_incomplete");
+
+  const parsedWithSource = GenerationResultSchema.parse({ ...sameMaterialFallback, generationSource: "recovery" });
+  need(parsedWithSource.generationSource === "recovery", "generation_source_recovery_not_parsed");
+  const { generationSource: _omittedSource, ...withoutSource } = sameMaterialFallback;
+  const parsedWithoutSource = GenerationResultSchema.parse(withoutSource);
+  need(parsedWithoutSource.generationSource === undefined, "generation_source_backward_compat_broken");
+  markers.push("LOCALIZED_FALLBACK_QUALITY=PASS");
+
   for (const marker of markers) console.log(marker);
   console.log("GENERATION_QUALITY_CONTRACT=PASS");
 }

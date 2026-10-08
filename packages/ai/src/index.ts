@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { GenerationResultSchema, cardCopyMetrics, type GeneratedDirection, type GenerationBrief, type GenerationResult } from "@cardelume/card-schema";
 import { resolveCanonicalPresentationFromTemplate, templateCreativeRecipe, templateArchetype, templatePairKey, type RankedTemplate, type RecentStyleFingerprint, type SignatureMove, type CreativeAccentMode, type TemplateArchetype, type VisualDirection, type TemplatePhotoMode, type TemplateMaterialWorld, type TemplateEnergy, type TemplateColorWorld, type TemplateMeta, type TemplateRankInput } from "@cardelume/templates";
+import { deterministicFallbackCopy } from "./fallback-copy.ts";
+export { deterministicFallbackCopy } from "./fallback-copy.ts";
 
 export type AIProviderUsage={inputTokens?:number;outputTokens?:number};
 export type AIProviderProtocol="chat_completions"|"responses";
@@ -512,30 +514,7 @@ export function semanticCustomerRationale(brief:GenerationBrief,directionIndex=0
 }
 
 function semanticCopyForSlot(brief:GenerationBrief,slot:string,index:number){
-  const contract=semanticCopyContract(brief);
-  const name=semanticDisplay(contract.recipient|| (contract.language==="vi"?"người bạn thương":"someone special"),42);
-  const occasionLabel=semanticDisplay(contract.occasionLabel,48);
-  const feelingLabel=semanticDisplay(contract.feelingLabel,28);
-  const relationship=semanticDisplay(contract.relationship.toLowerCase(),32);
-  const detail=semanticDisplay(contract.detail,96);
-  const relationshipCue=relationship!=="someone special"&&relationship!=="someone else"?(contract.language==="vi"?` Người nhận là ${relationship}.`:` This is for your ${relationship}.`):"";
-  const detailCue=detail?(contract.language==="vi"?` Chi tiết bạn gửi: ${detail}.`:` Detail to carry through: ${detail}.`):"";
-  if(contract.language==="vi"){
-    const voices=[
-      {kicker:`DỊP ${semanticUpper(occasionLabel)}`,headline:`${name}, một lời ${feelingLabel} cho ${occasionLabel}.`,body:`Một tấm thiệp ${feelingLabel} dành cho ${name}, viết riêng cho ${occasionLabel}.${relationshipCue}${detailCue}`},
-      {kicker:`${semanticUpper(feelingLabel)} & ${semanticUpper(occasionLabel)}`,headline:`${occasionLabel} này xứng đáng có lời nhắn dành riêng cho ${name}.`,body:`Gửi ${name} một lời nhắn ${feelingLabel}, để ${occasionLabel} giữ đúng câu chuyện của bạn.${relationshipCue}${detailCue}`},
-      {kicker:`MỘT LỜI NHẮN RIÊNG`,headline:`Giữ lại ${occasionLabel} này bên ${name}, thật ${feelingLabel}.`,body:`Ba điều làm nên tấm thiệp này: ${name}, ${occasionLabel} và sắc thái ${feelingLabel}.${relationshipCue}${detailCue}`}
-    ];
-    const copy=voices[index%voices.length]??voices[0];
-    return{...copy,creativeThesis:`Một hướng ${feelingLabel} dành cho ${occasionLabel}, có tên người nhận và chi tiết riêng.`,customerRationale:`Hợp với ${occasionLabel} và sắc thái ${feelingLabel}.`};
-  }
-  const voices=[
-    {kicker:`FOR ${semanticUpper(occasionLabel)}`,headline:`${name}, a ${feelingLabel} ${occasionLabel} made for you.`,body:`A ${feelingLabel} note for ${name}, written around ${occasionLabel}.${relationshipCue}${detailCue}`},
-    {kicker:`${semanticUpper(feelingLabel)} & ${semanticUpper(occasionLabel)}`,headline:`${occasionLabel} deserves words made for ${name}.`,body:`For ${name}, with a ${feelingLabel} voice that suits ${occasionLabel}.${relationshipCue}${detailCue}`},
-    {kicker:`A KEEPSAKE FOR ${semanticUpper(occasionLabel)}`,headline:`${name}, keep this ${occasionLabel} close.`,body:`A personal ${feelingLabel} keepsake for ${name}, shaped by ${occasionLabel}.${relationshipCue}${detailCue}`}
-  ];
-  const copy=voices[index%voices.length]??voices[0];
-  return{...copy,creativeThesis:`A ${feelingLabel} ${occasionLabel} concept with a distinct ${slot} voice, anchored in the named recipient and supplied detail.`,customerRationale:`A ${feelingLabel} fit for ${occasionLabel}.`};
+  return deterministicFallbackCopy(brief,slot,index);
 }
 
 function semanticCopyFullText(direction:Pick<GeneratedDirection,"kicker"|"headline"|"body">){return `${direction.kicker} ${direction.headline} ${direction.body}`;}
@@ -1080,7 +1059,7 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
     const signatureMove:SignatureMove=recipe.signatureMoves[0];
     let accentMode:CreativeAccentMode=recipe.preferredAccents[0]??"original";
     if(accentMode==="photo"&&(!brief.hasPhoto||t.photoMode==="none"))accentMode="original";
-    const thesisLead=slot==="photo"?"Photo-led framing":slot==="midnight"?"Low-light contrast":slot==="quiet"?"Quiet paper restraint":"Editorial framing";
+    const copy=deterministicFallbackCopy(brief,slot,i,t);
     return{
       id:slot,
       templateId:t.id,
@@ -1091,8 +1070,7 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
       presentation:resolveCanonicalPresentationFromTemplate(t,{locale:brief.locale,format:brief.format}),
       signatureMove,
       accentMode,
-      ...semanticCopyForSlot(brief,slot,i),
-      creativeThesis:`${thesisLead} uses ${t.name}, ${t.materialWorld} material and ${t.energy} energy for this ${brief.occasion.toLowerCase()} direction.`,
+      ...copy,
       confidence:.80,
       noveltyScore:.70,
       wowScore:.75,
@@ -1101,7 +1079,8 @@ export function buildDeterministicCreativeFallback(brief:GenerationBrief,candida
   });
   const parsed=GenerationResultSchema.parse({
     directions,
-    exhaustionState: metadata?.exhaustionState && metadata.exhaustionState !== "none" ? metadata.exhaustionState : undefined
+    exhaustionState: metadata?.exhaustionState && metadata.exhaustionState !== "none" ? metadata.exhaustionState : undefined,
+    generationSource: "recovery"
   });
   assertSemanticCopyContract(parsed,brief);
   return parsed;

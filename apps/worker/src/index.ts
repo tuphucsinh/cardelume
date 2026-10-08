@@ -94,6 +94,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
   let noveltySelection:ReturnType<typeof selectNovelGenerationTemplates>|undefined;
   let generationBudget:ReturnType<typeof createGenerationBudget>|undefined;
   let provider:ReturnType<typeof createAIProviderFromEnv>|undefined;
+  let criticUsed=false;
   generationBudget=createGenerationBudget({startedAt:Number.isFinite(createdAtMs)?createdAtMs:Date.now()});
   try{
     brief=withNormalizedBriefContext(GenerationBriefSchema.parse(claim.job.brief));
@@ -150,6 +151,7 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       if(candidatePool.length<3)throw new Error("ai_template_candidates_insufficient");
     }
     if(risks.some(r=>criticTriggers.has(r))){
+      criticUsed=true;
       await assertGenerationJobActive(payload.data.jobId);
       generationBudget.ensureAiBudget();
       const criticStarted=Date.now();
@@ -175,12 +177,12 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       if(remaining.some(r=>premiumCritical.has(r)))throw new Error("ai_premium_quality_not_met");
     }
     assertCreativeDirectionDiversity(result,candidatePool,brief!);
-    result={...result,exhaustionState:noveltySelection.exhaustionState==="none"?undefined:noveltySelection.exhaustionState};
+    result={...result,generationSource:"ai",exhaustionState:noveltySelection.exhaustionState==="none"?undefined:noveltySelection.exhaustionState};
     await assertGenerationJobActive(payload.data.jobId);
     if(generationBudget.remainingTotalMs<=0)throw new Error("ai_budget_exhausted");
     await completeGenerationJob({jobId:payload.data.jobId,result});
     await Promise.all(result.directions.flatMap((direction,index)=>direction.templateId&&direction.templateVersionId?[recordTemplateEvent({eventId:randomUUID(),templateId:direction.templateId,templateVersionId:direction.templateVersionId,eventType:"ai_assigned",source:"ai_direction",market:brief!.market,locale:brief!.locale,rankPosition:index+1})]:[])).catch(()=>undefined);
-    log("ai_plan_complete",{jobId:payload.data.jobId,directionCount:result.directions.length});
+    log("ai_plan_complete",{jobId:payload.data.jobId,directionCount:result.directions.length,generationSource:"ai",criticUsed});
   }catch(error){
     const failure=safeGenerationError(error);
     if(failure.errorCode==="generation_cancelled"){log("ai_plan_cancelled",{jobId:payload.data.jobId,reason:"generation_cancelled",queueWaitMs});return;}
@@ -208,8 +210,9 @@ await boss.work(QUEUES.aiPlan,{localConcurrency:int("AI_PLAN_CONCURRENCY",1)},as
       log("ai_recovery_quality_evaluated",{jobId:payload.data.jobId,unseenEligibleCount:fallbackSelection.unseenCount,candidateTemplateIds:fallbackSelection.candidates.map(item=>item.template.id),remainingRisks:fallbackRisks,premiumCriticalRemaining:fallbackRisks.filter(r=>["creative_range","copy_risk","low_confidence","low_wow"].includes(r))});
       if(fallbackRisks.some(r=>["creative_range","copy_risk","low_confidence","low_wow"].includes(r)))throw new Error("ai_premium_quality_not_met");
       if(generationBudget&&generationBudget.remainingTotalMs<=0)throw new Error("ai_budget_exhausted");
-      await completeGenerationJob({jobId:payload.data.jobId,result:fallbackResult});
-      log("ai_plan_fallback_used",{jobId:payload.data.jobId,directionCount:fallbackResult.directions.length,errorCode:failure.errorCode,failureClass:failure.failureClass,queueWaitMs,catalogMode:"runtime",unseenEligibleCount:fallbackSelection.unseenCount,candidateTemplateIds:fallbackSelection.candidates.map(item=>item.template.id)});
+      const completedFallbackResult={...fallbackResult,generationSource:"recovery" as const};
+      await completeGenerationJob({jobId:payload.data.jobId,result:completedFallbackResult});
+      log("ai_plan_fallback_used",{jobId:payload.data.jobId,directionCount:fallbackResult.directions.length,errorCode:failure.errorCode,failureClass:failure.failureClass,queueWaitMs,catalogMode:"runtime",unseenEligibleCount:fallbackSelection.unseenCount,candidateTemplateIds:fallbackSelection.candidates.map(item=>item.template.id),generationSource:"recovery",criticUsed});
     }catch(recoveryError){
       if(!await generationJobIsActive({jobId:payload.data.jobId})){log("ai_plan_cancelled",{jobId:payload.data.jobId,reason:"generation_cancelled",queueWaitMs});return;}
       const recoveryFailure=safeGenerationError(recoveryError);

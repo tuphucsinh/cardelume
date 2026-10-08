@@ -244,7 +244,8 @@ export const GeneratedDirectionSchema=z.object({
 });
 export const GenerationResultSchema=z.object({
   directions:z.array(GeneratedDirectionSchema).length(3),
-  exhaustionState:z.enum(["none","partial","total"]).optional()
+  exhaustionState:z.enum(["none","partial","total"]).optional(),
+  generationSource:z.enum(["ai","recovery"]).optional()
 });
 export type GenerationBrief=z.infer<typeof GenerationBriefSchema>;
 export type GeneratedDirection=z.infer<typeof GeneratedDirectionSchema>;
