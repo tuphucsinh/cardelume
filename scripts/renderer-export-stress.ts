@@ -78,6 +78,16 @@ function doc(format: CardDocument["format"], locale = "en"): CardDocument {
 function hash(bytes: Uint8Array) { return createHash("sha256").update(bytes).digest("hex"); }
 function pdfText(pdf: Uint8Array) { return Buffer.from(pdf).toString("latin1"); }
 
+// Raster-level guard: the printed card must actually contain ink. resvg silently drops
+// every glyph when it cannot load a font from RENDER_FONT_DIRS (woff2 is not loadable),
+// which produced text-free exports while every SVG-source assertion still passed.
+async function rasterInkPixels(jpg: Uint8Array) {
+  const { data } = await sharp(Buffer.from(jpg)).greyscale().raw().toBuffer({ resolveWithObject: true });
+  let dark = 0;
+  for (const v of data) if (v < 120) dark++;
+  return dark;
+}
+
 // 2. Multi-format deterministic export & readability floor assertions (real Resvg raster path)
 for (const format of formats) {
   const input = doc(format, format === "square-5x5" ? "ja" : "en");
@@ -90,6 +100,8 @@ for (const format of formats) {
   assert.equal(meta.width, spec.front.widthPx, `${format} jpg width`);
   assert.equal(meta.height, spec.front.heightPx, `${format} jpg height`);
   assert.equal(meta.density, 300, `${format} jpg dpi`);
+  const ink = await rasterInkPixels(a.jpg);
+  assert.ok(ink > 2000, `${format} rasterized export must contain rendered text ink (got ${ink} dark px) - check renderer font loading`);
   assert.equal(a.metadata.pdf.pageCount, spec.pdf.pageCount, `${format} pdf page count metadata`);
   assert.equal(hash(a.jpg), hash(b.jpg), `${format} jpg deterministic`);
   assert.equal(hash(a.pdf), hash(b.pdf), `${format} pdf deterministic`);

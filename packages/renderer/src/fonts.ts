@@ -41,5 +41,5 @@ export function rendererFontConfig(locale:string):RendererFontConfig{
   if(script==="ja")return{loadSystemFonts:false,fontDirs:dirs,serifFamily:"Noto Serif CJK JP",sansSerifFamily:"Noto Sans CJK JP",defaultFontFamily:"Noto Sans CJK JP"};
   if(script==="ko")return{loadSystemFonts:false,fontDirs:dirs,serifFamily:"Noto Serif CJK KR",sansSerifFamily:"Noto Sans CJK KR",defaultFontFamily:"Noto Sans CJK KR"};
   if(script==="zh")return{loadSystemFonts:false,fontDirs:dirs,serifFamily:"Noto Serif CJK SC",sansSerifFamily:"Noto Sans CJK SC",defaultFontFamily:"Noto Sans CJK SC"};
-  return{loadSystemFonts:false,fontDirs:dirs,serifFamily:"EB Garamond",sansSerifFamily:"Lato",defaultFontFamily:"Lato"};
+  return{loadSystemFonts:false,fontDirs:dirs,serifFamily:"Cormorant Garamond",sansSerifFamily:"Plus Jakarta Sans",defaultFontFamily:"Plus Jakarta Sans"};
 }
