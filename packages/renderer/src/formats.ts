@@ -8,37 +8,41 @@ export type CardFormatSpec = {
   pdf:{widthIn:number;heightIn:number;pageCount:number;layout:"single"|"folded-outside-inside"};
   dpi:300;
   safeMarginIn:number;
+  bleedIn:number;
 };
 
 const DPI=300 as const;
+// Standard print bleed: the artwork must extend past the trim line so the guillotine
+// never exposes paper white. MediaBox = trim + 2*bleed, TrimBox = the finished card.
+const BLEED_IN=.125;
 
 const specs:Record<CardFormat,CardFormatSpec>={
   "portrait-5x7":{
     format:"portrait-5x7",
     front:{widthIn:5,heightIn:7,widthPx:1500,heightPx:2100},
-    pdf:{widthIn:5,heightIn:7,pageCount:1,layout:"single"},dpi:DPI,safeMarginIn:.25
+    pdf:{widthIn:5,heightIn:7,pageCount:1,layout:"single"},dpi:DPI,safeMarginIn:.25,bleedIn:BLEED_IN
   },
   "folded-5x7":{
     format:"folded-5x7",
     // JPG is the finished front panel. PDF is a 10×7 outside spread plus
     // a blank inside spread so a home/print-shop duplex workflow is possible.
     front:{widthIn:5,heightIn:7,widthPx:1500,heightPx:2100},
-    pdf:{widthIn:10,heightIn:7,pageCount:2,layout:"folded-outside-inside"},dpi:DPI,safeMarginIn:.25
+    pdf:{widthIn:10,heightIn:7,pageCount:2,layout:"folded-outside-inside"},dpi:DPI,safeMarginIn:.25,bleedIn:BLEED_IN
   },
   "square-5x5":{
     format:"square-5x5",
     front:{widthIn:5,heightIn:5,widthPx:1500,heightPx:1500},
-    pdf:{widthIn:5,heightIn:5,pageCount:1,layout:"single"},dpi:DPI,safeMarginIn:.25
+    pdf:{widthIn:5,heightIn:5,pageCount:1,layout:"single"},dpi:DPI,safeMarginIn:.25,bleedIn:BLEED_IN
   },
   "landscape-7x5":{
     format:"landscape-7x5",
     front:{widthIn:7,heightIn:5,widthPx:2100,heightPx:1500},
-    pdf:{widthIn:7,heightIn:5,pageCount:1,layout:"single"},dpi:DPI,safeMarginIn:.25
+    pdf:{widthIn:7,heightIn:5,pageCount:1,layout:"single"},dpi:DPI,safeMarginIn:.25,bleedIn:BLEED_IN
   },
   "postcard-6x4":{
     format:"postcard-6x4",
     front:{widthIn:6,heightIn:4,widthPx:1800,heightPx:1200},
-    pdf:{widthIn:6,heightIn:4,pageCount:1,layout:"single"},dpi:DPI,safeMarginIn:.20
+    pdf:{widthIn:6,heightIn:4,pageCount:1,layout:"single"},dpi:DPI,safeMarginIn:.20,bleedIn:BLEED_IN
   }
 };
 

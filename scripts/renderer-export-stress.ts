@@ -106,8 +106,12 @@ for (const format of formats) {
   assert.equal(hash(a.jpg), hash(b.jpg), `${format} jpg deterministic`);
   assert.equal(hash(a.pdf), hash(b.pdf), `${format} pdf deterministic`);
   const text = pdfText(a.pdf);
+  const bleedPt = spec.bleedIn * 72;
   const pointsW = spec.pdf.widthIn * 72, pointsH = spec.pdf.heightIn * 72;
-  assert.ok(text.includes(`/MediaBox [0 0 ${pointsW} ${pointsH}]`), `${format} MediaBox`);
+  assert.ok(text.includes(`/MediaBox [0 0 ${pointsW + 2 * bleedPt} ${pointsH + 2 * bleedPt}]`), `${format} MediaBox carries bleed`);
+  assert.ok(text.includes(`/TrimBox [${bleedPt} ${bleedPt} ${bleedPt + pointsW} ${bleedPt + pointsH}]`), `${format} TrimBox is the finished size inside the bleed`);
+  assert.ok(text.includes(`/BleedBox [0 0 ${pointsW + 2 * bleedPt} ${pointsH + 2 * bleedPt}]`), `${format} BleedBox`);
+  assert.ok(text.includes(`/BleedIn ${spec.bleedIn}`), `${format} declares bleed allowance`);
   assert.ok(text.startsWith("%PDF-1.4"), `${format} PDF signature`);
 
   // Emitted SVG body size assertion

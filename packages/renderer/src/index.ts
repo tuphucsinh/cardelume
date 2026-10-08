@@ -406,6 +406,21 @@ async function encodeJpeg(png:Uint8Array,width:number,height:number){
   return new Uint8Array(out);
 }
 
+// Print bleed: the JPG the customer sees stays at trim size, while the print PDF carries
+// the artwork 0.125in past the trim line. Extending by copying the outermost pixels keeps
+// the composition untouched (no scaling, no cropping) and stays deterministic.
+async function extendToBleed(jpg:Uint8Array,width:number,height:number,bleedPx:number){
+  if(bleedPx<=0)return jpg;
+  const out=await sharp(Buffer.from(jpg),{failOn:"error"})
+    .extend({top:bleedPx,bottom:bleedPx,left:bleedPx,right:bleedPx,extendWith:"copy"})
+    .jpeg({quality:95,chromaSubsampling:"4:4:4",progressive:true,force:true})
+    .withMetadata({density:300})
+    .toBuffer();
+  const meta=await sharp(out).metadata();
+  if(meta.width!==width+2*bleedPx||meta.height!==height+2*bleedPx)throw new Error(`bleed_dimension_mismatch:${meta.width}x${meta.height}`);
+  return new Uint8Array(out);
+}
+
 export async function renderProductionFinal(input:CardDocument,options:{assets?:RenderAssets;rasterize?:RasterizeSvg;presentation?:CanonicalPresentation}={}):Promise<{jpg:Uint8Array;pdf:Uint8Array;metadata:ProductionRenderMetadata}>{
   const doc=CardDocumentSchema.parse(input);
   const presentation = options.presentation ?? doc.presentation;
@@ -423,7 +438,9 @@ export async function renderProductionFinal(input:CardDocument,options:{assets?:
   const rasterize=options.rasterize??rasterizeSvgWithResvg;
   const png=await rasterize(svg,{width:spec.front.widthPx,height:spec.front.heightPx,locale:doc.locale});
   const jpg=await encodeJpeg(png,spec.front.widthPx,spec.front.heightPx);
-  const pdf=createPrintPdfFromJpeg({jpeg:jpg,format:doc.format,pixelWidth:spec.front.widthPx,pixelHeight:spec.front.heightPx});
+  const bleedPx=Math.round(spec.bleedIn*spec.dpi);
+  const printJpg=await extendToBleed(jpg,spec.front.widthPx,spec.front.heightPx,bleedPx);
+  const pdf=createPrintPdfFromJpeg({jpeg:printJpg,format:doc.format,pixelWidth:spec.front.widthPx+2*bleedPx,pixelHeight:spec.front.heightPx+2*bleedPx,bleedPx});
   const deterministicKey = presentation
     ? `${doc.id}:${doc.rendererVersion}:${doc.templateVersion}:${presentation.templateId}:${presentation.templateVersionId}:${doc.format}`
     : `${doc.id}:${doc.rendererVersion}:${doc.templateVersion}:${doc.format}`;
