@@ -33,7 +33,7 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
     {k:m.studio.copy.birthdayKicker,h:withoutRecipient(m.studio.copy.birthdayHeadline),b:m.studio.copy.birthdayBody},
     {k:m.studio.copy.thankKicker,h:withoutRecipient(m.studio.copy.thankHeadline),b:m.studio.copy.thankBody},
     {k:m.studio.copy.anniversaryKicker,h:withoutRecipient(m.studio.copy.anniversaryHeadline),b:m.studio.copy.anniversaryBody},
-    {k:m.studio.copy.congratsKicker,h:m.studio.copy.editorialHeadline,b:m.studio.copy.congratsBody},
+    {k:m.studio.copy.congratsKicker,h:withoutRecipient(m.studio.copy.congratsHeadline),b:m.studio.copy.congratsBody},
     {k:m.studio.copy.birthdayKicker,h:m.studio.copy.photoHeadline,b:m.studio.copy.photoBody},
     {k:m.studio.copy.formalBirthdayKicker,h:withoutRecipient(m.studio.copy.formalBirthdayHeadline),b:m.studio.copy.formalBirthdayBody}
   ];
@@ -138,7 +138,7 @@ export default async function HomePage({searchParams}:{searchParams:Promise<{lan
         <nav aria-label="Footer">
           <a href={`/privacy${marketQuery?`?${marketQuery.slice(1)}`:""}`}>{m.home.privacy}</a>
           <a href={`/terms${marketQuery?`?${marketQuery.slice(1)}`:""}`}>{m.home.terms}</a>
-          <a href={identity.email?`mailto:${identity.email}`:"/privacy"}>{m.home.support}</a>
+          {identity.email?<><span dangerouslySetInnerHTML={{__html:"<!--email_off-->"}}/><a href={`mailto:${identity.email}`}>{m.home.support}</a><span dangerouslySetInnerHTML={{__html:"<!--/email_off-->"}}/></>:<a href="/privacy">{m.home.support}</a>}
         </nav>
       </footer>
     </div>

@@ -43,14 +43,6 @@ export function ProductProofSection({ locale, messages, createHref, templates, p
   const activeCase: ProofCase = proofCases[activeCaseIndex] ?? proofCases[0];
   const retainedTemplates = getRetainedMvpTemplates(templates);
 
-  const matchedChosen = templates.find(
-    (t) =>
-      t.id === activeCase.provenance.templateId &&
-      t.versionId === activeCase.provenance.versionId
-  );
-  const provId = matchedChosen ? matchedChosen.id : activeCase.provenance.templateId;
-  const provVersion = matchedChosen ? matchedChosen.version : activeCase.provenance.version;
-
   const samples = [
     { k: messages.studio.copy.birthdayKicker, h: messages.studio.copy.editorialHeadline, b: messages.studio.copy.editorialBody },
     { k: messages.studio.copy.birthdayKicker, h: messages.studio.copy.midnightHeadline, b: messages.studio.copy.midnightBody },
@@ -268,7 +260,7 @@ export function ProductProofSection({ locale, messages, createHref, templates, p
                       ) : null}
                     </div>
 
-                    <div style={{ height: "280px", display: "grid", placeItems: "center", marginBottom: "10px" }}>
+                    <div style={{ height: "280px", display: "grid", placeItems: "center", marginBottom: "10px", overflow: "hidden", position: "relative", zIndex: 0, isolation: "isolate" }}>
                       <PhysicalCardSurface className="gallery-physical" intensity={0.88}>
                         <CardVisual
                           direction={visualDirection}
@@ -282,7 +274,7 @@ export function ProductProofSection({ locale, messages, createHref, templates, p
                       </PhysicalCardSurface>
                     </div>
 
-                    <div style={{ marginTop: "auto", borderTop: "1px solid rgba(11,23,48,0.06)", paddingTop: "8px" }}>
+                    <div style={{ marginTop: "auto", borderTop: "1px solid rgba(11,23,48,0.06)", paddingTop: "8px", position: "relative", zIndex: 1, background: "var(--surface, #fff)" }}>
                       <small style={{ color: "#8d7756", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.08em", display: "block" }}>
                         {display.material}
                       </small>
@@ -318,9 +310,6 @@ export function ProductProofSection({ locale, messages, createHref, templates, p
               <p style={{ margin: "2px 0 6px", color: "var(--navy)", fontSize: "13px", lineHeight: "1.5" }}>
                 {launch[activeCase.chosenRationaleKey] as string}
               </p>
-              <small style={{ color: "#7a7267", fontSize: "11px", display: "block" }}>
-                {launch.stagingNotice} · {launch.proofRefLabel}: {activeCase.goldenRef} · {launch.proofIdLabel}: {provId.slice(0, 8)}… · {launch.proofVersionLabel}{provVersion}
-              </small>
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
