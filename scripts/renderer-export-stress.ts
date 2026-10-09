@@ -100,6 +100,44 @@ function assertTextCovered(svg: string, locale: string) {
   assert.equal(bad.size, 0, `SVG text uses characters no configured face provides: ${[...bad].map(c => "U+" + c.codePointAt(0)!.toString(16).toUpperCase()).join(",")}`);
 }
 
+
+// Line-break policy: reproduce the exact strings that broke on real cards and require the
+// emitted lines to keep word groups together.
+const FN_LATIN = new Set(["a","an","the","of","to","and","or","for","with","in","on","as","at","by","but","that","this","your","my","her","his","their","our","is","are","was","were","be","its","not"]);
+const FN_VI = new Set(["và","của","với","trong","một","những","các","đã","sẽ","đang","là","mà","thì","cho","để","khi","như","nhưng","vẫn","rất"]);
+const PAIRS = new Set(["lặng mạn","đồng hành","yêu thương","biết ơn","tri ân","kỷ niệm","chân thành","cảm xúc"]);
+function emittedLines(svg: string) {
+  return [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map(m => m[1]);
+}
+function assertBreakPolicy(svg: string, locale: string) {
+  const lines = emittedLines(svg);
+  const fn = locale.startsWith("vi") ? FN_VI : FN_LATIN;
+  for (const line of lines) {
+    const tail = line.split(" ").pop()!.toLowerCase().replace(/[.,;:!?…"'”“()]+$/g, "");
+    assert.ok(!fn.has(tail), `${locale} line must not end on a function word: "${line}"`);
+  }
+  for (let i = 0; i < lines.length - 1; i++) {
+    const a = lines[i].split(" ").pop()!.toLowerCase().replace(/[.,;:!?…"'”“()]+/g, "");
+    const b = lines[i + 1].split(" ")[0].toLowerCase().replace(/[.,;:!?…"'”“()]+/g, "");
+    assert.ok(!PAIRS.has(`${a} ${b}`), `${locale} must not split the compound "${a} ${b}" across lines`);
+  }
+}
+const wrapEnDoc = doc("portrait-5x7", "en");
+wrapEnDoc.textBlocks = [
+  { id: "kicker", role: "kicker", align: "center", text: "SIXTY" },
+  { id: "headline", role: "headline", align: "center", text: "Happy Birthday" },
+  { id: "body", role: "body", align: "center", text: "To the heart of our home, wishing you a birthday as warm and beautiful as the quiet mornings you cherish." }
+];
+assertBreakPolicy(renderFinalSvg(wrapEnDoc as never), "en");
+const wrapViDoc = doc("portrait-5x7", "vi");
+wrapViDoc.textBlocks = [
+  { id: "kicker", role: "kicker", align: "center", text: "KỶ NIỆM" },
+  { id: "headline", role: "headline", align: "center", text: "Mười năm bên nhau" },
+  { id: "body", role: "body", align: "center", text: "Gửi Lan, người đồng hành thương yêu. Giữa muôn vàn đổi thay, anh vẫn nhớ chuyến đi Đà Lạt đầu tiên, nơi câu chuyện bắt đầu bằng sự lặng mạn chân thành nhất." }
+];
+assertBreakPolicy(renderFinalSvg(wrapViDoc as never), "vi");
+console.log("BREAK_POLICY=PASS");
+
 function hash(bytes: Uint8Array) { return createHash("sha256").update(bytes).digest("hex"); }
 function pdfText(pdf: Uint8Array) { return Buffer.from(pdf).toString("latin1"); }
 

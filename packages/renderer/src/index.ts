@@ -106,6 +106,25 @@ function splitLongToken(token:string,maxVisual:number,locale:string){
   if(line)out.push(line);
   return out;
 }
+// Line breaking must respect word groups, not just width.
+// Observed defects: English "beautiful as / the quiet" (line ended on a function word) and
+// Vietnamese "người đồng / hành", "cảm xúc lặng / mạn" (a two-syllable compound split across
+// lines). Moves only ever shorten a line and lengthen the next, so widths stay valid.
+const LINE_TAIL_BLOCKED_LATIN=new Set(["a","an","the","of","to","and","or","for","with","in","on","as","at","by","but","that","this","your","my","her","his","their","our","is","are","was","were","be","its","not","from","into","than","then","so","if","when","while"]);
+const LINE_TAIL_BLOCKED_VI=new Set(["và","của","với","trong","một","những","các","đã","sẽ","đang","là","mà","thì","cho","để","khi","như","nhưng","vẫn","rất","này","đó","ở","từ","đến","bằng","vì","nên","cũng","được","bị","hãy","mỗi","từng","giữa","trên","dưới","sau","trước","hay","hoặc","rồi","vào","ra","lên","xuống"]);
+// Seeded, explicitly extensible data - NOT full Vietnamese word segmentation. It covers the
+// compounds that actually appear in card copy and that were observed being split.
+const VI_KEEP_TOGETHER=new Set(["lặng mạn","đồng hành","yêu thương","biết ơn","tri ân","kỷ niệm","ấm áp","chân thành","trân trọng","dịu dàng","bình yên","hạnh phúc","cảm xúc","thương yêu","yêu quý","gắn bó","sẻ chia","đồng cảm","tôn vinh","khắc ghi"]);
+function lineTailBlocked(word:string,locale:string){
+  if(/^(ja|ko|zh)/.test(locale))return false;
+  const set=locale.startsWith("vi")?LINE_TAIL_BLOCKED_VI:LINE_TAIL_BLOCKED_LATIN;
+  return set.has(word.toLowerCase().replace(/[.,;:!?…"'”“()]+$/,""));
+}
+function wouldSplitCompound(leftTail:string,rightHead:string,locale:string){
+  if(!locale.startsWith("vi"))return false;
+  const pair=`${leftTail} ${rightHead}`.toLowerCase().replace(/[.,;:!?…"'”“()]+/g,"");
+  return VI_KEEP_TOGETHER.has(pair);
+}
 function wrapText(value:string,maxVisual:number,locale:string):string[]{
   const clean=value.replace(/\s+/g," ").trim();if(!clean)return[];
   if(!clean.includes(" "))return splitLongToken(clean,maxVisual,locale);
@@ -118,7 +137,28 @@ function wrapText(value:string,maxVisual:number,locale:string):string[]{
     const candidate=line?`${line} ${word}`:word;
     if(line&&cardVisualLength(candidate,locale)>maxVisual){lines.push(line);line=word;}else line=candidate;
   }
-  if(line)lines.push(line);return lines;
+  if(line)lines.push(line);
+
+  // Phrase repair: pull a word down from the end of a line when the break would strand a
+  // function word, split a known compound, or leave a one-word final line.
+  for(let pass=0;pass<2;pass++){
+    for(let i=0;i<lines.length-1;i++){
+      const parts=lines[i].split(" ");
+      if(parts.length<2)continue;
+      const tail=parts[parts.length-1];
+      const nextHead=lines[i+1].split(" ")[0];
+      const isLastLine=i+1===lines.length-1;
+      const runt=isLastLine&&lines[i+1].split(" ").length<2;
+      if(lineTailBlocked(tail,locale)||wouldSplitCompound(tail,nextHead,locale)||runt){
+        const moved=`${tail} ${lines[i+1]}`;
+        // Never fix phrasing by overflowing the receiving line.
+        if(cardVisualLength(moved,locale)>maxVisual)continue;
+        lines[i]=parts.slice(0,-1).join(" ");
+        lines[i+1]=moved;
+      }
+    }
+  }
+  return lines;
 }
 function visualWidthPx(value:string,size:number,locale:string){return cardVisualLength(value,locale)*size*.54;}
 // A decorative signature mark must not depend on a font. No face in the configured set
