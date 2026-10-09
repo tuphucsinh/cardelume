@@ -128,36 +128,40 @@ function wouldSplitCompound(leftTail:string,rightHead:string,locale:string){
 function wrapText(value:string,maxVisual:number,locale:string):string[]{
   const clean=value.replace(/\s+/g," ").trim();if(!clean)return[];
   if(!clean.includes(" "))return splitLongToken(clean,maxVisual,locale);
-  const words=clean.split(" "),lines:string[]=[];let line="";
-  for(const word of words){
-    if(cardVisualLength(word,locale)>maxVisual){
-      if(line){lines.push(line);line="";}
-      const chunks=splitLongToken(word,maxVisual,locale);lines.push(...chunks.slice(0,-1));line=chunks.at(-1)??"";continue;
-    }
-    const candidate=line?`${line} ${word}`:word;
-    if(line&&cardVisualLength(candidate,locale)>maxVisual){lines.push(line);line=word;}else line=candidate;
-  }
-  if(line)lines.push(line);
+  // Split over-long tokens first, then choose break points with a look-ahead cost model.
+  // A greedy filler cannot satisfy both "line fits" and "do not split a word group": when the
+  // next line is already full there is no local fix, only a different earlier break.
+  const tokens=clean.split(" ").flatMap(word=>cardVisualLength(word,locale)>maxVisual?splitLongToken(word,maxVisual,locale):[word]);
+  const n=tokens.length;
+  // Measure exactly like the layout does, so a line the DP accepts can never be reported as over-wide.
+  const width=(i:number,j:number)=>cardVisualLength(tokens.slice(i,j+1).join(" "),locale);
 
-  // Phrase repair: pull a word down from the end of a line when the break would strand a
-  // function word, split a known compound, or leave a one-word final line.
-  for(let pass=0;pass<2;pass++){
-    for(let i=0;i<lines.length-1;i++){
-      const parts=lines[i].split(" ");
-      if(parts.length<2)continue;
-      const tail=parts[parts.length-1];
-      const nextHead=lines[i+1].split(" ")[0];
-      const isLastLine=i+1===lines.length-1;
-      const runt=isLastLine&&lines[i+1].split(" ").length<2;
-      if(lineTailBlocked(tail,locale)||wouldSplitCompound(tail,nextHead,locale)||runt){
-        const moved=`${tail} ${lines[i+1]}`;
-        // Never fix phrasing by overflowing the receiving line.
-        if(cardVisualLength(moved,locale)>maxVisual)continue;
-        lines[i]=parts.slice(0,-1).join(" ");
-        lines[i+1]=moved;
+  const COST_BLOCKED_TAIL=4000;   // line ends on a function word
+  const COST_SPLIT_PAIR=9000;     // a two-syllable compound is split across the break
+  const COST_SHORT_LINE=1200;     // non-final line with a single token
+  const COST_RUNT=1500;           // final line with a single token
+
+  const best=new Array(n+1).fill(Infinity);best[n]=0;
+  const nextBreak=new Array(n+1).fill(n);
+  for(let i=n-1;i>=0;i--){
+    for(let j=i;j<n;j++){
+      const lineWidth=width(i,j);
+      if(lineWidth>maxVisual)break;
+      const ragged=Math.max(0,maxVisual-lineWidth);
+      let cost=ragged*ragged;
+      const isLast=j===n-1;
+      if(isLast){ if(j===i)cost+=COST_RUNT; }
+      else {
+        if(lineTailBlocked(tokens[j],locale))cost+=COST_BLOCKED_TAIL;
+        if(wouldSplitCompound(tokens[j],tokens[j+1],locale))cost+=COST_SPLIT_PAIR;
+        if(j===i)cost+=COST_SHORT_LINE;
       }
+      const total=cost+best[j+1];
+      if(total<best[i]){best[i]=total;nextBreak[i]=j;}
     }
   }
+  const lines:string[]=[];
+  for(let i=0;i<n;){const j=nextBreak[i];lines.push(tokens.slice(i,j+1).join(" "));i=j+1;}
   return lines;
 }
 function visualWidthPx(value:string,size:number,locale:string){return cardVisualLength(value,locale)*size*.54;}

@@ -137,6 +137,15 @@ wrapViDoc.textBlocks = [
 ];
 assertBreakPolicy(renderFinalSvg(wrapViDoc as never), "vi");
 console.log("BREAK_POLICY=PASS");
+const wrapViLive = doc("portrait-5x7", "vi");
+wrapViLive.textBlocks = [
+  { id: "kicker", role: "kicker", align: "center", text: "KỶ NIỆM" },
+  { id: "headline", role: "headline", align: "center", text: "Mười năm bên nhau" },
+  { id: "body", role: "body", align: "center", text: "Gửi Lan, hành trình lãng mạn của chúng mình. Mười năm bên nhau, anh vẫn nhớ như in chuyến đi Đà Lạt đầu tiên. Nơi sương giăng lối nhỏ và trái tim mình thuộc về nhau từ đó." }
+];
+assertBreakPolicy(renderFinalSvg(wrapViLive as never), "vi");
+console.log("BREAK_POLICY_LIVE_STRING=PASS");
+
 
 function hash(bytes: Uint8Array) { return createHash("sha256").update(bytes).digest("hex"); }
 function pdfText(pdf: Uint8Array) { return Buffer.from(pdf).toString("latin1"); }
