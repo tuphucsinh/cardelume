@@ -6,8 +6,14 @@
 import { readFileSync } from "node:fs";
 import { cardCopyMetrics } from "@cardelume/card-schema";
 
-const path = process.argv[2];
-const fmtOverride = process.argv[3];
+const args = process.argv.slice(2);
+const gate = args.includes("--gate");
+const path = args.find((a) => !a.startsWith("--"));
+if (!path) {
+  console.error("usage: cl2-body-budget-measure.ts <report.json> [format] [--gate]");
+  process.exit(2);
+}
+const fmtOverride = args.find((a) => !a.startsWith("--") && a !== path);
 const raw = JSON.parse(readFileSync(path, "utf8"));
 const cases = Array.isArray(raw) ? raw : (raw.cases ?? []);
 const fmtFor = (vp?: string) =>
@@ -47,3 +53,17 @@ for (const r of rows) console.log(r);
 console.log(
   `SUMMARY directions=${total} over_soft=${overSoft} over_hard=${overHard} within_budget_pct=${total ? (((total - overSoft) / total) * 100).toFixed(1) : "n/a"}`,
 );
+
+// --gate turns the measurement into a standing check the e2e run can fail on.
+if (gate) {
+  if (total === 0) {
+    console.error("BODY_BUDGET_GATE=FAIL no generated copy found in the report (wrong path or empty run)");
+    process.exit(1);
+  }
+  if (overSoft > 0 || overHard > 0) {
+    console.error(`BODY_BUDGET_GATE=FAIL over_soft=${overSoft} over_hard=${overHard} of ${total} directions`);
+    for (const r of rows) if (r.includes("suggest=Y")) console.error(`  over budget: ${r}`);
+    process.exit(1);
+  }
+  console.log(`BODY_BUDGET_GATE=PASS ${total} directions within the renderer body budget`);
+}
