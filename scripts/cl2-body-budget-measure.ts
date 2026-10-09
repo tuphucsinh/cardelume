@@ -20,21 +20,25 @@ const rows: string[] = [];
 
 for (const c of cases) {
   const info = c.case ?? c;
-  const dirs = c.directions ?? c.responses ?? c.result?.directions ?? [];
+  const dirs = (c.rounds ?? []).flatMap((r: any) =>
+    (r.results ?? []).flatMap((res: any) => res.directions ?? []),
+  );
   if (!dirs.length) {
     if (total === 0) console.log("NO_DIRECTIONS_FOUND case keys:", Object.keys(c).join(","));
     continue;
   }
   for (const d of dirs) {
-    if (!d?.body) continue;
+    const body = d?.body ?? d?.copy?.body;
+    const headline = d?.headline ?? d?.copy?.headline ?? "";
+    if (!body) continue;
     const locale = info.lang ?? "en";
     const format = fmtFor(info.vp);
-    const m = cardCopyMetrics(d.headline ?? "", d.body, locale, format);
+    const m = cardCopyMetrics(headline, body, locale, format);
     total++;
     if (m.suggestShortening) overSoft++;
     if (m.hardOverflow) overHard++;
     rows.push(
-      `${info.id ?? "?"} ${locale} ${format} bodyVisual=${m.bodyVisual.toFixed(0)} soft=${m.softBodyVisualLimit.toFixed(0)} hard=${m.hardBodyVisualLimit.toFixed(0)} words=${String(d.body).split(/\s+/).length} suggest=${m.suggestShortening ? "Y" : "n"} hardOverflow=${m.hardOverflow ? "Y" : "n"}`,
+      `${info.id ?? "?"} ${locale} ${format} bodyVisual=${m.bodyVisual.toFixed(0)} soft=${m.softBodyVisualLimit.toFixed(0)} hard=${m.hardBodyVisualLimit.toFixed(0)} words=${String(body).split(/\s+/).length} suggest=${m.suggestShortening ? "Y" : "n"} hardOverflow=${m.hardOverflow ? "Y" : "n"}`,
     );
   }
 }
